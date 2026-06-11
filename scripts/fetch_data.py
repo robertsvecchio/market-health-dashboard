@@ -413,10 +413,11 @@ def pull_shiller_cape():
 # ---------------------------------------------------------------------------
 
 def sp500_constituents():
-    """Best-effort S&P 500 ticker list. Tries Wikipedia, falls back to a baked list."""
+    """Best-effort S&P 500 ticker list. Tries Wikipedia, falls back to a baked list.
+    Symbols are kept in Alpaca-native format (dots for class shares, e.g. BRK.B)."""
     try:
         tbls = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
-        syms = tbls[0]["Symbol"].astype(str).str.replace(".", "-", regex=False).tolist()
+        syms = tbls[0]["Symbol"].astype(str).str.strip().tolist()
         if len(syms) > 400:
             return syms, "wikipedia"
     except Exception:
@@ -425,40 +426,65 @@ def sp500_constituents():
 
 
 def alpaca_daily_bars(symbols, api_key, api_secret, days=320):
-    """Pull daily bars for a list of symbols from Alpaca. Returns {sym: DataFrame}."""
+    """Pull daily bars for a list of symbols from Alpaca. Returns {sym: DataFrame}.
+
+    Resilient to bad/unsupported symbols: if Alpaca 400s a chunk with
+    'invalid symbol: X', X is dropped and the chunk is retried. One bad ticker
+    (e.g. a class share or a delisted name) never kills the whole pull.
+    """
+    import re
     headers = {"APCA-API-KEY-ID": api_key, "APCA-API-SECRET-KEY": api_secret}
     start = (datetime.now(timezone.utc) - timedelta(days=int(days * 1.6))).strftime("%Y-%m-%d")
     out = {}
-    # Alpaca multi-symbol bars endpoint, paginated
+    dropped = []
     base = f"{ALPACA_DATA_URL}/v2/stocks/bars"
     CHUNK = 100
     for i in range(0, len(symbols), CHUNK):
-        chunk = symbols[i:i + CHUNK]
-        page_token = None
-        while True:
-            params = {
-                "symbols": ",".join(chunk), "timeframe": "1Day",
-                "start": start, "limit": 10000, "adjustment": "split",
-                "feed": "iex",
-            }
-            if page_token:
-                params["page_token"] = page_token
-            r = requests.get(base, headers=headers, params=params, timeout=60)
-            if r.status_code != 200:
-                raise RuntimeError(f"Alpaca {r.status_code}: {r.text[:200]}")
-            j = r.json()
-            bars = j.get("bars", {})
-            for sym, blist in bars.items():
-                if not blist:
-                    continue
-                df = pd.DataFrame(blist)
-                df["t"] = pd.to_datetime(df["t"])
-                df = df.set_index("t").sort_index()
-                out[sym] = pd.concat([out.get(sym), df]) if sym in out else df
-            page_token = j.get("next_page_token")
-            if not page_token:
-                break
+        chunk = list(symbols[i:i + CHUNK])
+        attempts = 0
+        while chunk and attempts < 15:
+            attempts += 1
+            page_token = None
+            chunk_done = True
+            while True:
+                params = {
+                    "symbols": ",".join(chunk), "timeframe": "1Day",
+                    "start": start, "limit": 10000, "adjustment": "split",
+                    "feed": "iex",
+                }
+                if page_token:
+                    params["page_token"] = page_token
+                r = requests.get(base, headers=headers, params=params, timeout=60)
+                if r.status_code == 400 and "invalid symbol" in r.text.lower():
+                    m = re.search(r"invalid symbol:\s*([A-Za-z0-9.\-/]+)", r.text)
+                    if m:
+                        bad = m.group(1).strip().rstrip('"').rstrip("\\")
+                        dropped.append(bad)
+                        chunk = [s for s in chunk if s != bad]
+                    else:
+                        chunk = []  # unparseable; abandon this chunk
+                    chunk_done = False
+                    break  # retry the (now smaller) chunk from the top
+                if r.status_code != 200:
+                    raise RuntimeError(f"Alpaca {r.status_code}: {r.text[:200]}")
+                j = r.json()
+                bars = j.get("bars", {})
+                for sym, blist in bars.items():
+                    if not blist:
+                        continue
+                    df = pd.DataFrame(blist)
+                    df["t"] = pd.to_datetime(df["t"])
+                    df = df.set_index("t").sort_index()
+                    out[sym] = pd.concat([out.get(sym), df]) if sym in out else df
+                page_token = j.get("next_page_token")
+                if not page_token:
+                    break
+            if chunk_done:
+                break  # chunk fully processed; move to next chunk
         time.sleep(0.2)
+    if dropped:
+        print(f"  [alpaca] dropped {len(dropped)} unsupported symbols: {dropped[:10]}"
+              f"{'...' if len(dropped) > 10 else ''}", file=sys.stderr)
     return out
 
 
@@ -1035,7 +1061,7 @@ def selftest():
 # Minimal static S&P500 fallback (partial — enough to function if Wikipedia is down).
 # In production Wikipedia provides the full list; this is the safety net.
 FALLBACK_SP500 = [
-    "AAPL","MSFT","NVDA","AMZN","GOOGL","GOOG","META","BRK-B","LLY","AVGO",
+    "AAPL","MSFT","NVDA","AMZN","GOOGL","GOOG","META","BRK.B","LLY","AVGO",
     "TSLA","JPM","V","XOM","UNH","MA","JNJ","PG","HD","COST","ABBV","MRK",
     "CVX","ADBE","CRM","WMT","PEP","KO","BAC","NFLX","AMD","TMO","ACN","LIN",
     "MCD","CSCO","ABT","DHR","WFC","TXN","QCOM","INTU","DIS","CAT","VZ","INTC",
