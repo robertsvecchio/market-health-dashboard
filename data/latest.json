@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-11T22:59:38.200052+00:00",
-    "generated_display": "Jun 11 2026, 2:59 PM PT",
+    "generated_utc": "2026-06-11T23:24:50.030236+00:00",
+    "generated_display": "Jun 11 2026, 3:24 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -83,12 +83,12 @@
       "asof": "2026-05-01",
       "notes": "Core CPI (ex food & energy), index"
     },
-    "wilshire5000": {
-      "value": null,
-      "status": "unavailable",
-      "source": "FRED:WILL5000PRFC",
-      "error": "400 Client Error: Bad Request for url: https://api.stlouisfed.org/fred/series/observations?series_id=WILL5000PRFC&api_key=05513b566d98eb36d28a3bc9c65ac771&file_type=json&sort_order=asc&limit=100000",
-      "notes": "Wilshire 5000 Full Cap Price Index (Buffett indicator numerator)"
+    "equity_mktcap": {
+      "value": 73132723.0,
+      "status": "ok",
+      "source": "FRED:NCBEILQ027S",
+      "asof": "2025-10-01",
+      "notes": "Fed B.103 market value of equities (Buffett numerator; Wilshire removed from FRED Jun 2024)"
     },
     "real_10y": {
       "value": 2.21,
@@ -100,24 +100,27 @@
   },
   "structural": {
     "cape": {
-      "value": 30.81,
+      "value": 41.2,
       "status": "ok",
-      "source": "Shiller ie_data.xls",
+      "source": "multpl.com (Shiller PE)",
+      "asof": "Jun 11, 2026",
       "notes": "Cyclically adjusted P/E (P/E10)"
     },
     "buffett_indicator": {
-      "value": null,
-      "status": "unavailable",
-      "source": "FRED:WILL5000PRFC/GDP",
-      "error": "inputs missing",
-      "notes": ""
+      "value": 2.327,
+      "status": "ok",
+      "source": "FRED:NCBEILQ027S/GDP",
+      "asof": "2025-10-01",
+      "notes": "Market value of US equities / GDP (Buffett indicator). Watch deviation from trend, not the absolute level.",
+      "deviation_z": 3.02,
+      "elevated": true
     },
     "excess_cape_yield": {
-      "value": 1.04,
+      "value": 0.22,
       "status": "ok",
       "source": "Shiller + FRED:DFII10 (computed)",
       "notes": "Excess CAPE Yield = CAPE earnings yield minus real 10yr. Lower = stocks less attractive vs bonds.",
-      "low": false
+      "low": true
     },
     "forward_pe": {
       "value": 22.0,
@@ -211,12 +214,12 @@
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
     "mcclellan": {
-      "value": 17.34,
+      "value": 24.06,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 128.2,
-      "ema39": 110.865,
+      "ema19": 143.38,
+      "ema39": 119.322,
       "negative": false
     }
   },
@@ -242,14 +245,14 @@
       "ai_tech": {
         "value": {
           "artificial intelligence stocks": 0,
-          "nvidia stock": 34
+          "nvidia stock": 35
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['artificial intelligence stocks', 'nvidia stock']",
         "momentum_pct": {
           "artificial intelligence stocks": -100.0,
-          "nvidia stock": -2.9
+          "nvidia stock": 0.7
         }
       },
       "energy": {
@@ -261,7 +264,7 @@
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
         "momentum_pct": {
-          "oil stocks": 0.0,
+          "oil stocks": 3.7,
           "uranium stocks": 33.3
         }
       },
@@ -273,33 +276,33 @@
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['defense stocks']",
         "momentum_pct": {
-          "defense stocks": -28.6
+          "defense stocks": -23.1
         }
       },
       "financials": {
         "value": {
           "bank stocks": 2,
-          "interest rates": 36
+          "interest rates": 31
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
         "momentum_pct": {
           "bank stocks": -27.3,
-          "interest rates": 0.7
+          "interest rates": -11.4
         }
       },
       "fear_greed": {
         "value": {
           "stock market crash": 16,
-          "recession 2026": 10
+          "recession 2026": 12
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
         "momentum_pct": {
-          "stock market crash": -36.6,
-          "recession 2026": -24.5
+          "stock market crash": -36.0,
+          "recession 2026": -7.7
         }
       }
     }
@@ -446,12 +449,12 @@
   },
   "scores": {
     "goldman_composite": {
-      "value": 51.3,
+      "value": 56.6,
       "status": "ok",
       "source": "Goldman-style composite (self-calc)",
       "notes": "percentile-ranked composite; >70 historically high-risk, <40 favorable",
       "inputs": {
-        "valuation": 66.0,
+        "valuation": 92.5,
         "yield_curve": 8.75,
         "unemployment": 76.75,
         "core_inflation": 83.24742268041237,
@@ -462,39 +465,40 @@
       "above_50": true
     },
     "composite": {
-      "value": 57.8,
+      "value": 68.9,
       "status": "ok",
       "source": "derived",
       "notes": "average of structural & cycle sub-scores (available inputs only)",
       "label": "Elevated Risk",
       "structural_inputs": {
-        "cape": 66.0,
-        "ecy": 66.0,
+        "cape": 92.5,
+        "buffett": 100.0,
+        "ecy": 79.66666666666667,
         "breadth": 41.3
       },
       "cycle_inputs": {
-        "goldman": 51.3,
+        "goldman": 56.6,
         "nfci_leverage": 95.75,
         "debt_service": 26.190476190476193
       }
     },
     "structural_score": {
-      "value": 57.8,
+      "value": 78.4,
       "status": "ok",
       "source": "derived",
-      "label": "Elevated Risk"
+      "label": "High Risk"
     },
     "cycle_score": {
-      "value": 57.7,
+      "value": 59.5,
       "status": "ok",
       "source": "derived",
       "label": "Elevated Risk"
     }
   },
   "source_health": {
-    "ok": 44,
-    "unavailable": 3,
+    "ok": 46,
     "manual": 1,
-    "proxy": 4
+    "proxy": 4,
+    "unavailable": 1
   }
 }
