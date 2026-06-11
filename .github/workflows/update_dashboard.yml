@@ -1,0 +1,92 @@
+name: Update Market Dashboard
+
+# ---------------------------------------------------------------------------
+# Triggers
+#   - schedule: daily at 14:00 UTC. That is 6am PST (winter) / 7am PDT (summer).
+#     GitHub cron is always UTC and does NOT observe daylight saving, so the
+#     local hour drifts by one across DST. For morning market-health data this
+#     is harmless (markets aren't open yet either way).
+#   - workflow_dispatch: lets you trigger manually from the GitHub UI ("Run
+#     workflow" button) AND from the password-protected refresh button on the
+#     dashboard (Phase 4), which calls the GitHub API with your PAT.
+# ---------------------------------------------------------------------------
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+# Allow the workflow to commit the refreshed data back to the repo.
+permissions:
+  contents: write
+
+# If a scheduled run and a manual run overlap, keep the newest and cancel the
+# older in-progress one rather than committing twice.
+concurrency:
+  group: update-dashboard
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch data
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+          FORWARD_PE: ${{ secrets.FORWARD_PE }}
+          FORWARD_PE_MEAN: ${{ secrets.FORWARD_PE_MEAN }}
+        run: |
+          python scripts/fetch_data.py
+          echo "----- source health -----"
+          python -c "import json; print(json.load(open('data/latest.json'))['source_health'])"
+
+      # Phases 4 & 3 add these files later. The guards mean this same workflow
+      # keeps working now (before they exist) and after — you never edit it again.
+      - name: Build dashboard (if present)
+        run: |
+          if [ -f scripts/build_dashboard.py ]; then
+            python scripts/build_dashboard.py
+          else
+            echo "scripts/build_dashboard.py not present yet — skipping (Phase 4)."
+          fi
+
+      - name: Send alerts (if present)
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          if [ -f scripts/send_alerts.py ]; then
+            python scripts/send_alerts.py
+          else
+            echo "scripts/send_alerts.py not present yet — skipping (Phase 3)."
+          fi
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Stage whatever the pipeline produced/updated.
+          git add data/latest.json data/state.json docs/index.html 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-update market data ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+            git push
+          fi
