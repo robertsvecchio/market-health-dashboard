@@ -1,1 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>Market Health</title>
+<style>
+  :root{
+    --bg:#0E1116; --surface:#161B22; --surface2:#1B2128; --border:#232A33;
+    --text:#E6EDF3; --muted:#8B949E; --faint:#6E7681;
+    --low:#3FB950; --moderate:#D8A657; --elevated:#E8833A; --high:#F85149;
+    --info:#58A6FF;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 24px) env(safe-area-inset-left)}
+  .wrap{max-width:640px;margin:0 auto;padding:16px}
+  a{color:var(--info);text-decoration:none}
 
+  /* Header */
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:8px 2px 18px}
+  .brand{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:2px 0 0}
+  .updated{font-size:11px;color:var(--faint);margin-top:4px;font-variant-numeric:tabular-nums}
+  .refresh{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);
+    font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 13px;border-radius:10px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:border-color .15s,background .15s}
+  .refresh:hover{border-color:var(--info)}
+  .refresh:active{background:var(--surface2)}
+  .refresh svg{width:14px;height:14px}
+
+  /* Cards */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+  .card h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;margin:0 0 12px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+  /* Signature: risk meter */
+  .score-num{font-family:var(--mono);font-size:54px;font-weight:600;line-height:1;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .score-den{font-family:var(--mono);font-size:18px;color:var(--faint)}
+  .score-label{font-size:15px;font-weight:700;margin-top:2px;letter-spacing:.01em}
+  .score-posture{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .meter{position:relative;height:10px;border-radius:6px;margin:16px 0 6px;
+    background:linear-gradient(90deg,var(--low) 0%,var(--low) 25%,var(--moderate) 25%,var(--moderate) 50%,
+      var(--elevated) 50%,var(--elevated) 75%,var(--high) 75%,var(--high) 100%);opacity:.85}
+  .meter-marker{position:absolute;top:-5px;width:3px;height:20px;background:#fff;border-radius:2px;
+    box-shadow:0 0 0 2px var(--surface),0 1px 4px rgba(0,0,0,.6);transition:left .5s cubic-bezier(.2,.7,.2,1)}
+  .meter-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint)}
+
+  /* Sub-scores */
+  .subs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .sub{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+  .sub .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .sub .v{font-family:var(--mono);font-size:26px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums}
+  .sub .l{font-size:11.5px;margin-top:2px}
+
+  /* Alerts */
+  .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)}
+  .alert:first-of-type{border-top:none;padding-top:2px}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none}
+  .alert .atxt{font-size:13.5px;line-height:1.4}
+  .alert .asrc{font-size:11px;color:var(--faint);margin-top:1px}
+  .pri{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;margin-left:auto;flex:none}
+  .pri.HIGH{color:var(--high);background:rgba(248,81,73,.12)}
+  .pri.MED{color:var(--moderate);background:rgba(216,166,87,.12)}
+  .pri.INFO{color:var(--info);background:rgba(88,166,255,.12)}
+  .pri.BULL{color:var(--low);background:rgba(63,185,80,.12)}
+  .empty{color:var(--muted);font-size:13px}
+
+  /* Sectors */
+  .phase{font-family:var(--mono);font-size:16px;font-weight:600}
+  .phase-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .favored{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 14px}
+  .chip{font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;
+    background:rgba(63,185,80,.1);color:var(--low);border:1px solid rgba(63,185,80,.25)}
+  .srow{display:grid;grid-template-columns:34px 1fr 52px;align-items:center;gap:10px;padding:5px 0}
+  .stk{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .sbar{position:relative;height:6px;background:var(--surface2);border-radius:4px;overflow:hidden}
+  .sbar i{position:absolute;top:0;bottom:0;border-radius:4px}
+  .sval{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* Catalysts */
+  .cat{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
+  .cat:first-of-type{border-top:none;padding-top:2px}
+  .cat .cd{font-family:var(--mono);font-size:12px;color:var(--muted);width:54px;flex:none}
+  .cat .cl{font-size:13.5px}
+  .cat .cw{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);flex:none}
+
+  /* Detail rows */
+  details{margin-bottom:12px}
+  details>summary{list-style:none;cursor:pointer;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:14px 16px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;display:flex;align-items:center;justify-content:space-between}
+  details[open]>summary{border-radius:14px 14px 0 0;border-bottom:none}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary .car{transition:transform .2s}
+  details[open]>summary .car{transform:rotate(180deg)}
+  .det-body{background:var(--surface);border:1px solid var(--border);border-top:none;
+    border-radius:0 0 14px 14px;padding:4px 16px 10px}
+  .mrow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
+  .mrow:first-child{border-top:none}
+  .mk{font-size:12.5px;color:var(--text)}
+  .mk .mnote{display:block;font-size:11px;color:var(--faint);margin-top:1px}
+  .mv{font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+  /* status badges */
+  .badge{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:2px 5px;
+    border-radius:4px;margin-left:7px;vertical-align:middle;text-transform:uppercase}
+  .b-ok{display:none}
+  .b-proxy{color:var(--info);background:rgba(88,166,255,.12)}
+  .b-manual{color:var(--moderate);background:rgba(216,166,87,.12)}
+  .b-unavailable{color:var(--faint);background:rgba(110,118,129,.12)}
+  .b-stale{color:var(--high);background:rgba(248,81,73,.12)}
+
+  /* Banner */
+  .banner{display:flex;gap:10px;align-items:flex-start;background:rgba(216,166,87,.08);
+    border:1px solid rgba(216,166,87,.25);border-radius:12px;padding:11px 13px;margin-bottom:14px}
+  .banner svg{width:16px;height:16px;flex:none;margin-top:1px;color:var(--moderate)}
+  .banner .bt{font-size:12.5px;line-height:1.45;color:var(--text)}
+
+  footer{margin-top:18px;padding:0 2px;color:var(--faint);font-size:11px;line-height:1.6}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .lk{color:var(--faint);text-decoration:underline;cursor:pointer;background:none;border:none;
+    font:inherit;padding:0}
+
+  /* Toast */
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 16px;
+    border-radius:10px;font-size:13px;max-width:90vw;text-align:center;pointer-events:none;
+    transition:opacity .25s,transform .25s;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .skeleton{color:var(--faint);text-align:center;padding:40px 0;font-size:14px}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">Market Health</div>
+      <h1 class="title">Risk Dashboard</h1>
+      <div class="updated" id="updated">Loading…</div>
+    </div>
+    <button class="refresh" id="refreshBtn" title="Trigger a data refresh">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 3a5 5 0 1 0 4.546 2.914.75.75 0 0 1 1.364-.626A6.5 6.5 0 1 1 8 1.5V0l3 2.5L8 5V3Z"/></svg>
+      Refresh
+    </button>
+  </header>
+
+  <div id="content"><div class="skeleton">Loading market data…</div></div>
+
+  <footer>
+    <div class="legend">
+      <span><i style="background:var(--info)"></i>proxy</span>
+      <span><i style="background:var(--moderate)"></i>manual</span>
+      <span><i style="background:var(--faint)"></i>unavailable</span>
+      <span><i style="background:var(--high)"></i>stale</span>
+    </div>
+    <div id="health"></div>
+    <div style="margin-top:8px">
+      Data via FRED, yfinance, Shiller, Alpaca (S&amp;P 500 internals), Google Trends.
+      Breadth signals are S&amp;P 500 proxies for NYSE-wide indicators. Not investment advice.
+    </div>
+    <div style="margin-top:8px"><button class="lk" id="resetToken">Reset refresh token</button></div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+// ---- config ----
+const REPO = "robertsvecchio/market-health-dashboard";
+const WORKFLOW = "update_dashboard.yml";
+const DATA_URL = `https://raw.githubusercontent.com/${REPO}/main/data/latest.json`;
+
+// ---- pure helpers (unit-tested in node) ----
+function riskColor(v){
+  if(v==null) return "var(--faint)";
+  if(v<=25) return "var(--low)";
+  if(v<=50) return "var(--moderate)";
+  if(v<=75) return "var(--elevated)";
+  return "var(--high)";
+}
+function postureText(v){
+  if(v==null) return "Score unavailable — not enough inputs.";
+  if(v<=25) return "Low risk. Environment supports being fully deployed.";
+  if(v<=50) return "Moderate risk. Stay deployed but selective.";
+  if(v<=75) return "Elevated risk. Consider reducing exposure and raising cash.";
+  return "High risk. Defensive posture warranted; favor cash and quality.";
+}
+function daysBetween(aIso,bIso){
+  const a=new Date(aIso), b=new Date(bIso);
+  if(isNaN(a)||isNaN(b)) return null;
+  return Math.round((b-a)/86400000);
+}
+function isStale(asof, genUtc, maxDays){
+  if(!asof) return false;
+  const d=daysBetween(asof, genUtc||new Date().toISOString());
+  return d!=null && d>maxDays;
+}
+function num(x,dp){ return (x==null||isNaN(x))?"—":Number(x).toFixed(dp==null?2:dp); }
+
+// Derive the active alert list from the data. Pure: returns array of {txt,src,pri}.
+function deriveAlerts(d){
+  const out=[];
+  const m=d.macro||{}, s=d.scores||{}, se=d.sentiment||{}, b=d.breadth||{}, st=d.structural||{};
+  const yc=m.yield_curve_10y3m;
+  if(yc&&yc.status==="ok"&&yc.value!=null){
+    if(yc.value<0) out.push({txt:"Yield curve inverted (10y–3m below zero)",src:"FRED T10Y3M",pri:"HIGH"});
+    else if(yc.value<0.5) out.push({txt:`Yield curve flattening (${num(yc.value,2)})`,src:"FRED T10Y3M",pri:"MED"});
+  }
+  const g=s.goldman_composite;
+  if(g&&g.status==="ok"){
+    if(g.above_70) out.push({txt:`Goldman bear-risk composite above 70 (${num(g.value,0)})`,src:"composite",pri:"HIGH"});
+    else if(g.above_50) out.push({txt:`Goldman composite above 50 (${num(g.value,0)})`,src:"composite",pri:"MED"});
+  }
+  const vix=se.vix;
+  if(vix&&vix.status==="ok"){
+    if(vix.above_40) out.push({txt:`VIX above 40 (${num(vix.value,1)}) — stress`,src:"yfinance ^VIX",pri:"HIGH"});
+    else if(vix.above_30) out.push({txt:`VIX above 30 (${num(vix.value,1)})`,src:"yfinance ^VIX",pri:"MED"});
+  }
+  const pa=b.pct_above_200dma;
+  if(pa&&pa.value!=null&&pa.below_40) out.push({txt:`Only ${num(pa.value,0)}% of S&P 500 above 200-DMA`,src:"Alpaca internals",pri:"HIGH"});
+  const hz=b.hindenburg_omen_today;
+  if(hz&&hz.value===true) out.push({txt:"Hindenburg Omen flag today (single-day; watch for cluster)",src:"S&P 500 proxy",pri:"MED"});
+  const ti=b.titanic_syndrome_today;
+  if(ti&&ti.value===true) out.push({txt:"Titanic Syndrome flag today",src:"S&P 500 proxy",pri:"MED"});
+  const mc=b.mcclellan;
+  if(mc&&mc.negative===true) out.push({txt:"McClellan Oscillator negative",src:"S&P 500 proxy",pri:"MED"});
+  const ad=st.ad_line_proxy;
+  if(ad&&ad.bearish_divergence===true) out.push({txt:"Breadth divergence: index up while equal-weight lags",src:"RSP/SPY",pri:"MED"});
+  const order={HIGH:0,MED:1,INFO:2,BULL:3};
+  out.sort((a,b)=>order[a.pri]-order[b.pri]);
+  return out;
+}
+
+// expose for node test
+if(typeof module!=="undefined"){module.exports={riskColor,postureText,isStale,deriveAlerts,num,daysBetween};}
+
+// ---- DOM rendering (browser only) ----
+function el(html){const t=document.createElement("template");t.innerHTML=html.trim();return t.content.firstElementChild;}
+function badge(status,stale){
+  if(stale) return '<span class="badge b-stale">stale</span>';
+  if(!status||status==="ok") return "";
+  return `<span class="badge b-${status}">${status}</span>`;
+}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+function mrow(label,note,valueHtml){
+  return `<div class="mrow"><div class="mk">${esc(label)}${note?`<span class="mnote">${esc(note)}</span>`:""}</div><div class="mv">${valueHtml}</div></div>`;
+}
+function metricRow(label, metric, fmt, genUtc, staleDays){
+  if(!metric) return mrow(label,"",`—<span class="badge b-unavailable">n/a</span>`);
+  const stale=isStale(metric.asof, genUtc, staleDays||45);
+  if(metric.status==="unavailable"||metric.value==null)
+    return mrow(label,"",`—${badge("unavailable",false)}`);
+  const v=fmt?fmt(metric.value,metric):esc(metric.value);
+  return mrow(label, metric.asof?("as of "+metric.asof):"", `${v}${badge(metric.status,stale)}`);
+}
+
+function render(d){
+  const genUtc=(d.meta&&d.meta.generated_utc)||null;
+  document.getElementById("updated").textContent="Updated "+((d.meta&&d.meta.generated_display)||"—");
+  const c=document.getElementById("content");
+  c.innerHTML="";
+
+  // data-quality banner
+  const issues=[];
+  if(d.structural&&d.structural.cape&&d.structural.cape.status==="unavailable") issues.push("CAPE/valuation layer");
+  if(d.macro&&d.macro.lei&&isStale(d.macro.lei.asof,genUtc,90)) issues.push("LEI data is stale");
+  const bu=d.breadth&&d.breadth.pct_above_200dma;
+  if(bu&&bu.universe&&bu.universe<400) issues.push(`breadth on ${bu.universe} names`);
+  if(issues.length){
+    c.appendChild(el(`<div class="banner"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5 15 14H1L8 1.5Zm0 4.5v4M8 11.5v.5"/><path d="M7.25 5.5h1.5v4h-1.5zM7.25 11h1.5v1.5h-1.5z"/></svg><div class="bt"><b>Some inputs are limited right now:</b> ${esc(issues.join("; "))}. These are shown as <i>unavailable/stale</i> below and the composite score weights only what's live.</div></div>`));
+  }
+
+  // composite meter (signature)
+  const comp=(d.scores&&d.scores.composite)||{};
+  const cv=comp.value;
+  const pos=cv==null?0:Math.max(0,Math.min(100,cv));
+  c.appendChild(el(`
+    <div class="card">
+      <h2>Composite Risk</h2>
+      <div class="row" style="align-items:flex-end">
+        <div>
+          <span class="score-num" style="color:${riskColor(cv)}">${cv==null?"—":num(cv,0)}</span><span class="score-den"> / 100</span>
+          <div class="score-label" style="color:${riskColor(cv)}">${esc(comp.label||"Unknown")}</div>
+        </div>
+      </div>
+      <div class="meter"><div class="meter-marker" style="left:calc(${pos}% - 1.5px)"></div></div>
+      <div class="meter-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      <div class="score-posture">${esc(postureText(cv))}</div>
+    </div>`));
+
+  // sub-scores
+  const ss=(d.scores&&d.scores.structural_score)||{}, cs=(d.scores&&d.scores.cycle_score)||{};
+  c.appendChild(el(`
+    <div class="subs">
+      <div class="sub"><div class="k">Structural</div>
+        <div class="v" style="color:${riskColor(ss.value)}">${ss.value==null?"—":num(ss.value,0)}</div>
+        <div class="l" style="color:${riskColor(ss.value)}">${esc(ss.label||"—")}</div></div>
+      <div class="sub"><div class="k">Cycle</div>
+        <div class="v" style="color:${riskColor(cs.value)}">${cs.value==null?"—":num(cs.value,0)}</div>
+        <div class="l" style="color:${riskColor(cs.value)}">${esc(cs.label||"—")}</div></div>
+    </div>`));
+
+  // alerts
+  const alerts=deriveAlerts(d);
+  const acard=el(`<div class="card"><h2>Active Alerts</h2></div>`);
+  if(!alerts.length){ acard.appendChild(el(`<div class="empty">No alerts firing. Conditions are within normal ranges.</div>`)); }
+  else alerts.forEach(a=>{
+    const col=a.pri==="HIGH"?"var(--high)":a.pri==="MED"?"var(--moderate)":a.pri==="BULL"?"var(--low)":"var(--info)";
+    acard.appendChild(el(`<div class="alert"><span class="dot" style="background:${col}"></span><div><div class="atxt">${esc(a.txt)}</div><div class="asrc">${esc(a.src)}</div></div><span class="pri ${a.pri==="MED"?"MED":a.pri}">${a.pri}</span></div>`));
+  });
+  c.appendChild(acard);
+
+  // sector rotation
+  const ph=(d.sectors&&d.sectors.cycle_phase)||{};
+  const rs=(d.sectors&&d.sectors.relative_strength)||{};
+  const sc=el(`<div class="card"><h2>Sector Rotation</h2></div>`);
+  sc.appendChild(el(`<div class="row"><div><div class="phase">${esc(ph.value||"—")}</div><div class="phase-sub">LEI ${esc(ph.lei_direction||"—")} · 10y–3m ${ph.yield_curve!=null?num(ph.yield_curve,2):"—"}</div></div></div>`));
+  if(ph.favored_sectors&&ph.favored_sectors.length){
+    sc.appendChild(el(`<div class="favored">${ph.favored_sectors.map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>`));
+  }
+  const arr=Object.keys(rs).map(k=>({tk:k,...rs[k]})).filter(x=>x.value!=null).sort((a,b)=>b.value-a.value);
+  if(arr.length){
+    const max=Math.max(...arr.map(x=>Math.abs(x.value)),1);
+    const bars=el(`<div></div>`);
+    arr.forEach(x=>{
+      const w=Math.abs(x.value)/max*100;
+      const col=x.value>=0?"var(--low)":"var(--high)";
+      const left=x.value>=0?"50%":(50-w/2)+"%";
+      bars.appendChild(el(`<div class="srow"><div class="stk">${esc(x.tk)}</div><div class="sbar"><i style="left:${x.value>=0?"50%":(50-w/2)+"%"};width:${w/2}%;background:${col}"></i><span style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--border)"></span></div><div class="sval" style="color:${col}">${x.value>=0?"+":""}${num(x.value,1)}</div></div>`));
+    });
+    sc.appendChild(bars);
+    sc.appendChild(el(`<div class="phase-sub" style="margin-top:8px">3-month relative strength vs SPY (pct pts)</div>`));
+  }
+  c.appendChild(sc);
+
+  // catalysts
+  const cats=(d.catalysts&&d.catalysts.upcoming)||[];
+  const cc=el(`<div class="card"><h2>Catalyst Calendar</h2></div>`);
+  if(!cats.length) cc.appendChild(el(`<div class="empty">No catalysts in the next 30 days.</div>`));
+  else cats.forEach(ev=>{
+    const dd=new Date(ev.date+"T12:00:00");
+    const md=isNaN(dd)?ev.date:dd.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    const w=ev.days_away===0?"today":ev.days_away===1?"tomorrow":`${ev.days_away}d`;
+    cc.appendChild(el(`<div class="cat"><span class="cd">${esc(md)}</span><span class="cl">${esc(ev.label)}</span><span class="cw">${w}</span></div>`));
+  });
+  c.appendChild(cc);
+
+  // ---- detail sections ----
+  function detail(title, rowsHtml){
+    return `<details><summary>${title}<span class="car">▾</span></summary><div class="det-body">${rowsHtml}</div></details>`;
+  }
+  const m=d.macro||{}, st=d.structural||{}, tr=d.trend||{}, br=d.breadth||{}, se=d.sentiment||{};
+
+  // Valuation & structural
+  let vrows="";
+  vrows+=metricRow("CAPE (Shiller P/E)", st.cape, v=>num(v,1), genUtc);
+  vrows+=metricRow("Excess CAPE Yield", st.excess_cape_yield, v=>num(v,2)+"%", genUtc);
+  vrows+=metricRow("Buffett Indicator", st.buffett_indicator, (v,me)=>num(v,2)+(me.deviation_z!=null?` (z ${num(me.deviation_z,1)})`:""), genUtc);
+  vrows+=metricRow("Forward P/E", st.forward_pe, (v,me)=>num(v,1)+(me.vs_mean!=null?` (+${num(me.vs_mean,1)} vs mean)`:""), genUtc);
+  vrows+=metricRow("A/D proxy (RSP/SPY)", st.ad_line_proxy, (v,me)=>num(v,3)+(me.bearish_divergence?" ⚠":""), genUtc);
+  c.appendChild(el(detail("Valuation &amp; Structural", vrows)));
+
+  // Cycle / macro
+  let crows="";
+  crows+=metricRow("Leading Index (LEI)", m.lei, v=>num(v,2), genUtc, 75);
+  crows+=metricRow("Yield Curve 10y–3m", m.yield_curve_10y3m, v=>num(v,2), genUtc, 14);
+  crows+=metricRow("Unemployment", m.unemployment, v=>num(v,1)+"%", genUtc, 75);
+  crows+=metricRow("NFCI Leverage", m.nfci_leverage, v=>num(v,2), genUtc, 30);
+  crows+=metricRow("Credit Card Delinquency", m.cc_delinquency, v=>num(v,2)+"%", genUtc, 220);
+  crows+=metricRow("Auto Loan Delinquency", m.auto_delinquency, v=>num(v,2)+"%", genUtc, 220);
+  crows+=metricRow("Personal Savings Rate", m.savings_rate, v=>num(v,1)+"%", genUtc, 75);
+  crows+=metricRow("Debt Service Ratio", m.debt_service, v=>num(v,2)+"%", genUtc, 220);
+  c.appendChild(el(detail("Cycle &amp; Macro", crows)));
+
+  // Trend & breadth
+  let trows="";
+  trows+=metricRow("S&P 500 vs 200-DMA", tr.spx_vs_200dma, v=>(v>=0?"+":"")+num(v,1)+"%", genUtc);
+  trows+=metricRow("200-DMA slope", tr.dma200_slope, v=>esc(v), genUtc);
+  trows+=metricRow("Weekly MACD hist", tr.weekly_macd, (v,me)=>num(v,1)+(me.bearish?" (bearish)":" (bullish)"), genUtc);
+  trows+=metricRow("% above 200-DMA", br.pct_above_200dma, (v,me)=>num(v,0)+"%"+(me.universe?` of ${me.universe}`:""), genUtc);
+  trows+=metricRow("McClellan Osc", br.mcclellan, v=>num(v,1), genUtc);
+  trows+=metricRow("Hindenburg today", br.hindenburg_omen_today, v=>v?"flag":"clear", genUtc);
+  trows+=metricRow("Titanic today", br.titanic_syndrome_today, v=>v?"flag":"clear", genUtc);
+  c.appendChild(el(detail("Trend &amp; Breadth", trows)));
+
+  // Sentiment
+  let srows="";
+  srows+=metricRow("VIX", se.vix, (v,me)=>num(v,1)+(me.ma20!=null?` (20d ${num(me.ma20,1)})`:""), genUtc);
+  srows+=metricRow("Put/Call ratio", se.put_call, v=>num(v,2), genUtc);
+  const gt=se.google_trends||{};
+  Object.keys(gt).forEach(theme=>{
+    const t=gt[theme];
+    if(t&&t.value&&typeof t.value==="object"){
+      const parts=Object.keys(t.value).map(term=>`${esc(term.split(" ")[0])} ${t.value[term]}`).join(" · ");
+      srows+=mrow("Trends: "+theme.replace("_"," "),"",esc(parts));
+    }
+  });
+  c.appendChild(el(detail("Sentiment", srows)));
+
+  // footer health
+  const h=d.source_health||{};
+  document.getElementById("health").textContent=
+    `Sources: ${h.ok||0} live · ${h.proxy||0} proxy · ${h.manual||0} manual · ${h.unavailable||0} unavailable`;
+}
+
+// ---- data load ----
+function toast(msg,ms){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),ms||3500);
+}
+async function load(){
+  try{
+    const r=await fetch(DATA_URL+"?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    render(d);
+  }catch(e){
+    document.getElementById("content").innerHTML=
+      `<div class="card"><h2>Couldn't load data</h2><div class="empty">${esc(e.message)}. The data file may not be published yet, or the latest run failed. Try Refresh, then reload in ~2 minutes.</div></div>`;
+  }
+}
+
+// ---- refresh (PAT-based, stored on device) ----
+const TKEY="mhd_gh_pat";
+async function doRefresh(){
+  let pat=localStorage.getItem(TKEY);
+  if(!pat){
+    pat=prompt("Paste your GitHub token (stored on this device only, used to trigger a refresh):");
+    if(!pat) return;
+    pat=pat.trim();
+    localStorage.setItem(TKEY,pat);
+  }
+  toast("Starting refresh…",2500);
+  try{
+    const r=await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,{
+      method:"POST",
+      headers:{Authorization:"Bearer "+pat,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},
+      body:JSON.stringify({ref:"main"})
+    });
+    if(r.status===204){ toast("Refresh started — reload in ~1–2 min for fresh data.",5000); }
+    else if(r.status===401||r.status===403){ localStorage.removeItem(TKEY); toast("Token rejected. Tap Refresh to re-enter it.",5000); }
+    else{ toast("Refresh failed (HTTP "+r.status+").",4000); }
+  }catch(e){ toast("Network error triggering refresh.",4000); }
+}
+
+document.getElementById("refreshBtn").addEventListener("click",doRefresh);
+document.getElementById("resetToken").addEventListener("click",()=>{localStorage.removeItem(TKEY);toast("Stored token cleared.",2500);});
+load();
+</script>
+</body>
+</html>
