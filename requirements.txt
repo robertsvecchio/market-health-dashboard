@@ -1,0 +1,11 @@
+# Market Health Dashboard — Python dependencies
+# Phase 2: fetch_data.py
+requests>=2.31
+pandas>=2.0
+numpy>=1.24
+yfinance>=0.2.40
+fredapi>=0.5.1
+pytrends>=4.9.2
+openpyxl>=3.1
+xlrd>=2.0.1
+lxml>=5.0
