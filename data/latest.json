@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-11T21:23:12.444580+00:00",
-    "generated_display": "Jun 11 2026, 1:23 PM PT",
+    "generated_utc": "2026-06-11T21:58:34.620300+00:00",
+    "generated_display": "Jun 11 2026, 1:58 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -176,19 +176,49 @@
     }
   },
   "breadth": {
-    "breadth_error": {
-      "value": null,
-      "status": "unavailable",
-      "source": "Alpaca",
-      "error": "Alpaca 400: {\"message\":\"invalid symbol: BRK-B\"}\n",
-      "notes": ""
+    "constituent_source": {
+      "value": "fallback_static",
+      "status": "ok",
+      "source": "fallback_static"
     },
     "pct_above_200dma": {
-      "value": null,
-      "status": "unavailable",
-      "source": "Finviz (fallback)",
-      "error": "404 Client Error: Not Found for url: https://finviz.com/api/counts?t=sma200",
-      "notes": ""
+      "value": 54.1,
+      "status": "ok",
+      "source": "Alpaca S&P500 internals",
+      "notes": "percent of S&P 500 members above their 200-DMA",
+      "universe": 109,
+      "below_40": false
+    },
+    "hindenburg_omen_today": {
+      "value": true,
+      "status": "proxy",
+      "source": "Alpaca S&P500 internals",
+      "notes": "PROXY on S&P500 (true indicator is NYSE-wide). Single-day flag; cluster (2+/30d) is the real alert \u2014 tracked by alert script over time.",
+      "new_high_pct": 2.75,
+      "new_low_pct": 2.75
+    },
+    "titanic_syndrome_today": {
+      "value": false,
+      "status": "proxy",
+      "source": "Alpaca S&P500 internals",
+      "notes": "PROXY on S&P500. Real signal needs a 52wk index high within 7 sessions; alert script confirms timing across runs.",
+      "new_highs": 3,
+      "new_lows": 3
+    },
+    "zweig_adv_ratio": {
+      "value": 0.546,
+      "status": "proxy",
+      "source": "Alpaca S&P500 internals",
+      "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
+    },
+    "mcclellan": {
+      "value": 0.0,
+      "status": "proxy",
+      "source": "Alpaca S&P500 internals",
+      "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
+      "ema19": 92.593,
+      "ema39": 92.593,
+      "negative": false
     }
   },
   "sentiment": {
@@ -213,26 +243,26 @@
       "ai_tech": {
         "value": {
           "artificial intelligence stocks": 0,
-          "nvidia stock": 33
+          "nvidia stock": 35
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['artificial intelligence stocks', 'nvidia stock']",
         "momentum_pct": {
           "artificial intelligence stocks": -100.0,
-          "nvidia stock": 0.8
+          "nvidia stock": 6.9
         }
       },
       "energy": {
         "value": {
-          "oil stocks": 6,
+          "oil stocks": 7,
           "uranium stocks": 1
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
         "momentum_pct": {
-          "oil stocks": -11.1,
+          "oil stocks": 3.7,
           "uranium stocks": 33.3
         }
       },
@@ -244,20 +274,20 @@
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['defense stocks']",
         "momentum_pct": {
-          "defense stocks": -25.9
+          "defense stocks": -23.1
         }
       },
       "financials": {
         "value": {
           "bank stocks": 2,
-          "interest rates": 36
+          "interest rates": 37
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
         "momentum_pct": {
           "bank stocks": -27.3,
-          "interest rates": -4.0
+          "interest rates": -1.3
         }
       },
       "fear_greed": {
@@ -432,12 +462,14 @@
       "above_50": false
     },
     "composite": {
-      "value": 57.1,
+      "value": 51.5,
       "status": "ok",
       "source": "derived",
       "notes": "average of structural & cycle sub-scores (available inputs only)",
       "label": "Elevated Risk",
-      "structural_inputs": {},
+      "structural_inputs": {
+        "breadth": 45.9
+      },
       "cycle_inputs": {
         "goldman": 49.4,
         "nfci_leverage": 95.75,
@@ -445,10 +477,10 @@
       }
     },
     "structural_score": {
-      "value": null,
-      "status": "unavailable",
+      "value": 45.9,
+      "status": "ok",
       "source": "derived",
-      "label": "Unknown"
+      "label": "Moderate Risk"
     },
     "cycle_score": {
       "value": 57.1,
@@ -458,8 +490,9 @@
     }
   },
   "source_health": {
-    "ok": 39,
-    "unavailable": 8,
-    "manual": 1
+    "ok": 42,
+    "unavailable": 5,
+    "manual": 1,
+    "proxy": 4
   }
 }
