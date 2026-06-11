@@ -78,7 +78,7 @@ SECTOR_ETFS = {
 # FRED series. Note where these are proxies for proprietary series.
 FRED_SERIES = {
     # Cycle position
-    "lei":               ("USSLIND",            "Leading Index (Philly Fed) — free proxy for Conference Board LEI"),
+    "lei":               ("USALOLITOAASTSAM",   "OECD Composite Leading Indicator, US (amplitude-adjusted) — current; replaces discontinued USSLIND"),
     "yield_curve_10y3m": ("T10Y3M",             "10yr minus 3mo Treasury spread"),
     "nfci_leverage":     ("NFCINONFINLEVERAGE", "Chicago Fed NFCI nonfinancial leverage subindex"),
     "unemployment":      ("UNRATE",             "Civilian unemployment rate"),
@@ -90,15 +90,15 @@ FRED_SERIES = {
     "gdp":               ("GDP",                "Nominal GDP"),
     "core_cpi":          ("CPILFESL",           "Core CPI (ex food & energy), index"),
     # Valuation building blocks
-    "wilshire5000":      ("WILL5000PR",         "Wilshire 5000 price index (Buffett indicator numerator proxy)"),
+    "wilshire5000":      ("WILL5000PRFC",       "Wilshire 5000 Full Cap Price Index (Buffett indicator numerator)"),
     "real_10y":          ("DFII10",             "10yr TIPS yield (real) — for Excess CAPE Yield"),
 }
 
 # Shiller CAPE candidate download URLs (tried in order)
 SHILLER_URLS = [
-    "https://img1.wsimg.com/blobby/go/e5e77e0b-59d1-44d9-ab25-4763ac982e53/downloads/ie_data.xls",
-    "https://shillerdata.com/wp-content/uploads/2024/ie_data.xls",
     "http://www.econ.yale.edu/~shiller/data/ie_data.xls",
+    "https://shillerdata.com/wp-content/uploads/2024/ie_data.xls",
+    "https://img1.wsimg.com/blobby/go/e5e77e0b-59d1-44d9-ab25-4763ac982e53/downloads/ie_data.xls",
 ]
 
 # Google Trends themes
@@ -371,40 +371,56 @@ def pull_sectors():
 # ---------------------------------------------------------------------------
 
 def pull_shiller_cape():
-    """Download Shiller's ie_data.xls and extract the latest CAPE (P/E10)."""
+    """Download Shiller's ie_data.xls and extract latest CAPE (P/E10) and, if present,
+    the pre-computed Excess CAPE Yield column. Returns (cape_metric, cape_value, ecy_value)."""
+    ua = {"User-Agent": "Mozilla/5.0 (market-health-dashboard)"}
     last_err = None
     for url in SHILLER_URLS:
         try:
-            r = requests.get(url, timeout=45)
+            r = requests.get(url, headers=ua, timeout=45)
             r.raise_for_status()
             from io import BytesIO
             xls = pd.ExcelFile(BytesIO(r.content))
             sheet = "Data" if "Data" in xls.sheet_names else xls.sheet_names[0]
             df = xls.parse(sheet, header=None)
-            # Find the CAPE column by scanning the header rows for 'CAPE' or 'P/E10'
-            cape_col = None
-            header_row = None
-            for ri in range(0, 12):
-                row = df.iloc[ri].astype(str).str.upper()
-                for ci, val in row.items():
-                    if "CAPE" in val or "P/E10" in val or "PE10" in val:
-                        cape_col = ci
-                        header_row = ri
-                        break
-                if cape_col is not None:
+
+            # Locate CAPE and Excess CAPE Yield columns by scanning the header block.
+            # Use explicit str() per cell (avoids the float-not-iterable bug).
+            cape_col = ecy_col = header_row = None
+            for ri in range(min(15, len(df))):
+                for ci in range(df.shape[1]):
+                    s = str(df.iat[ri, ci]).strip().upper()
+                    if cape_col is None and (s == "CAPE" or s == "P/E10" or s == "PE10"):
+                        cape_col, header_row = ci, ri
+                    if ecy_col is None and "EXCESS CAPE YIELD" in s:
+                        ecy_col = ci
+                if cape_col is not None and ecy_col is not None:
                     break
             if cape_col is None:
                 raise ValueError("CAPE column not found in Shiller workbook")
-            col = pd.to_numeric(df.iloc[header_row + 1:, cape_col], errors="coerce").dropna()
-            cape = float(col.iloc[-1])
+
+            start = (header_row or 0) + 1
+            cape_series = pd.to_numeric(df.iloc[start:, cape_col], errors="coerce").dropna()
+            cape = float(cape_series.iloc[-1])
             if not (3 < cape < 100):
                 raise ValueError(f"CAPE sanity check failed: {cape}")
-            return metric(round(cape, 2), source="Shiller ie_data.xls",
-                          notes="Cyclically adjusted P/E (P/E10)"), cape
+
+            ecy_val = None
+            if ecy_col is not None:
+                try:
+                    ecy_series = pd.to_numeric(df.iloc[start:, ecy_col], errors="coerce").dropna()
+                    cand = float(ecy_series.iloc[-1])
+                    if -5 < cand < 15:  # ECY is a small percentage
+                        ecy_val = cand
+                except Exception:
+                    ecy_val = None
+
+            return (metric(round(cape, 2), source="Shiller ie_data.xls",
+                           notes="Cyclically adjusted P/E (P/E10)"), cape, ecy_val)
         except Exception as e:
             last_err = e
             continue
-    return unavailable(source="Shiller ie_data.xls", error=last_err), None
+    return (unavailable(source="Shiller ie_data.xls", error=last_err), None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -413,15 +429,34 @@ def pull_shiller_cape():
 # ---------------------------------------------------------------------------
 
 def sp500_constituents():
-    """Best-effort S&P 500 ticker list. Tries Wikipedia, falls back to a baked list.
-    Symbols are kept in Alpaca-native format (dots for class shares, e.g. BRK.B)."""
+    """Best-effort S&P 500 ticker list in Alpaca-native format (dots for class shares).
+    Order: maintained GitHub CSV -> Wikipedia (with UA) -> baked-in static list."""
+    ua = {"User-Agent": "Mozilla/5.0 (market-health-dashboard)"}
+    # 1) Maintained dataset CSV (stable, ~500 names, already dot-formatted)
     try:
-        tbls = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+        url = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
+        r = requests.get(url, headers=ua, timeout=30)
+        r.raise_for_status()
+        from io import StringIO
+        df = pd.read_csv(StringIO(r.text))
+        syms = df["Symbol"].astype(str).str.strip().tolist()
+        if len(syms) > 400:
+            return syms, "github_csv"
+    except Exception:
+        pass
+    # 2) Wikipedia (needs a UA or it 403s)
+    try:
+        r = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+                         headers=ua, timeout=30)
+        r.raise_for_status()
+        from io import StringIO
+        tbls = pd.read_html(StringIO(r.text))
         syms = tbls[0]["Symbol"].astype(str).str.strip().tolist()
         if len(syms) > 400:
             return syms, "wikipedia"
     except Exception:
         pass
+    # 3) Static safety net
     return list(FALLBACK_SP500), "fallback_static"
 
 
@@ -729,15 +764,21 @@ def buffett_indicator(raw):
         return unavailable(source="FRED:WILL5000PR/GDP", error=e)
 
 
-def excess_cape_yield(cape_value, raw):
+def excess_cape_yield(cape_value, raw, prefilled=None):
     try:
+        # Prefer the value Shiller already computes in the workbook.
+        if prefilled is not None:
+            return metric(round(float(prefilled), 2), source="Shiller ie_data.xls",
+                          notes="Excess CAPE Yield (from Shiller workbook): CAPE earnings yield "
+                                "minus real bond yield. Lower = stocks less attractive vs bonds.",
+                          low=bool(prefilled < 1.0))
         if cape_value is None:
             return unavailable(source="Shiller+FRED:DFII10", error="CAPE unavailable")
         real10 = raw.get("real_10y")
         if real10 is None:
             return unavailable(source="FRED:DFII10", error="real yield unavailable")
         ecy = (1.0 / cape_value) * 100 - float(real10.iloc[-1])
-        return metric(round(ecy, 2), source="Shiller + FRED:DFII10",
+        return metric(round(ecy, 2), source="Shiller + FRED:DFII10 (computed)",
                       notes="Excess CAPE Yield = CAPE earnings yield minus real 10yr. "
                             "Lower = stocks less attractive vs bonds.",
                       low=bool(ecy < 1.0))
@@ -934,12 +975,12 @@ def run(no_breadth=False):
     result["macro"].update(fred_out)
 
     # ---- Shiller CAPE ----
-    cape_metric, cape_value = pull_shiller_cape()
+    cape_metric, cape_value, cape_ecy = pull_shiller_cape()
     result["structural"]["cape"] = cape_metric
 
     # ---- Derived valuation ----
     result["structural"]["buffett_indicator"] = buffett_indicator(fred_raw)
-    result["structural"]["excess_cape_yield"] = excess_cape_yield(cape_value, fred_raw)
+    result["structural"]["excess_cape_yield"] = excess_cape_yield(cape_value, fred_raw, cape_ecy)
     result["structural"]["forward_pe"] = metric(
         FORWARD_PE, status="manual", source="manual (Yardeni)",
         notes=f"manual monthly input; historical mean ~{FORWARD_PE_HIST_MEAN}",
