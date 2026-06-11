@@ -50,8 +50,7 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
           ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
-          FORWARD_PE: ${{ secrets.FORWARD_PE }}
-          FORWARD_PE_MEAN: ${{ secrets.FORWARD_PE_MEAN }}
+
         run: |
           python scripts/fetch_data.py
           echo "----- source health -----"
