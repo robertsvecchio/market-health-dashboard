@@ -384,36 +384,64 @@ def pull_shiller_cape():
             sheet = "Data" if "Data" in xls.sheet_names else xls.sheet_names[0]
             df = xls.parse(sheet, header=None)
 
-            # Locate CAPE and Excess CAPE Yield columns by scanning the header block.
-            # Use explicit str() per cell (avoids the float-not-iterable bug).
-            cape_col = ecy_col = header_row = None
-            for ri in range(min(15, len(df))):
-                for ci in range(df.shape[1]):
-                    s = str(df.iat[ri, ci]).strip().upper()
-                    if cape_col is None and (s == "CAPE" or s == "P/E10" or s == "PE10"):
-                        cape_col, header_row = ci, ri
-                    if ecy_col is None and "EXCESS CAPE YIELD" in s:
-                        ecy_col = ci
-                if cape_col is not None and ecy_col is not None:
+            # Find the header row (first row mentioning CAPE / P/E10)
+            header_row = None
+            for ri in range(min(20, len(df))):
+                rowtext = " ".join(str(df.iat[ri, ci]).upper() for ci in range(df.shape[1]))
+                if "CAPE" in rowtext or "P/E10" in rowtext:
+                    header_row = ri
                     break
-            if cape_col is None:
-                raise ValueError("CAPE column not found in Shiller workbook")
+            if header_row is None:
+                raise ValueError("no CAPE header row found")
+            start = header_row + 1
 
-            start = (header_row or 0) + 1
-            cape_series = pd.to_numeric(df.iloc[start:, cape_col], errors="coerce").dropna()
-            cape = float(cape_series.iloc[-1])
+            def last_in_range(ci, lo, hi):
+                col = pd.to_numeric(df.iloc[start:, ci], errors="coerce").dropna()
+                col = col[(col > lo) & (col < hi)]
+                return float(col.iloc[-1]) if len(col) else None
+
+            # Candidate CAPE columns + the ECY column, from header text.
+            cape_candidates = []
+            ecy_col = None
+            for ci in range(df.shape[1]):
+                h = str(df.iat[header_row, ci]).upper().strip()
+                if "EXCESS CAPE YIELD" in h:
+                    ecy_col = ci
+                if ("CAPE" in h or "P/E10" in h or "PE10" in h) \
+                        and "EXCESS" not in h and "TR CAPE" not in h and "TR_CAPE" not in h:
+                    cape_candidates.append(ci)
+
+            # Pick the candidate whose latest value is a plausible CAPE (3..70).
+            # This rejects mis-matches like the ECY column (~0.02) or TR CAPE.
+            cape = None
+            for ci in cape_candidates:
+                v = last_in_range(ci, 3, 70)
+                if v is not None:
+                    cape = v
+                    break
+            # Last resort: scan every column for a CAPE-shaped series (mostly 8..55).
+            if cape is None:
+                for ci in range(df.shape[1]):
+                    col = pd.to_numeric(df.iloc[start:, ci], errors="coerce").dropna()
+                    if len(col) < 50:
+                        continue
+                    if float(((col > 8) & (col < 55)).mean()) > 0.6:
+                        v = last_in_range(ci, 3, 70)
+                        if v is not None:
+                            cape = v
+                            break
+            if cape is None:
+                raise ValueError("could not locate a plausible CAPE column")
             if not (3 < cape < 100):
                 raise ValueError(f"CAPE sanity check failed: {cape}")
 
+            # Excess CAPE Yield straight from the workbook, if present.
+            # Shiller stores it as a fraction (0.0183); normalize to percent (1.83).
             ecy_val = None
             if ecy_col is not None:
-                try:
-                    ecy_series = pd.to_numeric(df.iloc[start:, ecy_col], errors="coerce").dropna()
-                    cand = float(ecy_series.iloc[-1])
-                    if -5 < cand < 15:  # ECY is a small percentage
-                        ecy_val = cand
-                except Exception:
-                    ecy_val = None
+                ecy_val = last_in_range(ecy_col, -5, 15)
+                if ecy_val is not None and abs(ecy_val) < 0.5:
+                    ecy_val *= 100.0
 
             return (metric(round(cape, 2), source="Shiller ie_data.xls",
                            notes="Cyclically adjusted P/E (P/E10)"), cape, ecy_val)
@@ -744,9 +772,17 @@ def pull_google_trends():
 def buffett_indicator(raw):
     try:
         w = raw.get("wilshire5000")
+        # Self-heal: if the primary numerator didn't come back, try alternates live.
+        if w is None and FRED_API_KEY:
+            for alt in ("WILL5000PRFC", "WILL5000INDFC", "WILLLRGCAPPR"):
+                try:
+                    w = fred_series(alt, FRED_API_KEY)
+                    break
+                except Exception:
+                    continue
         g = raw.get("gdp")
         if w is None or g is None:
-            return unavailable(source="FRED:WILL5000PR/GDP", error="inputs missing")
+            return unavailable(source="FRED:WILL5000PRFC/GDP", error="inputs missing")
         # Align: Wilshire is high-frequency, GDP quarterly. Use latest of each.
         ratio_series = (w / g.reindex(w.index, method="ffill")).dropna()
         latest = float(ratio_series.iloc[-1])
@@ -756,12 +792,12 @@ def buffett_indicator(raw):
         trend = np.polyval(coeffs, x)
         resid = ratio_series.values - trend
         z = (resid[-1] - resid.mean()) / (resid.std() or 1)
-        return metric(round(latest, 4), source="FRED:WILL5000PR/GDP",
+        return metric(round(latest, 4), source="FRED:WILL5000PRFC/GDP",
                       notes="Wilshire5000/GDP. Buffett-indicator proxy; watch deviation not level.",
                       deviation_z=round(float(z), 2),
                       elevated=bool(z > 1.0))
     except Exception as e:
-        return unavailable(source="FRED:WILL5000PR/GDP", error=e)
+        return unavailable(source="FRED:WILL5000PRFC/GDP", error=e)
 
 
 def excess_cape_yield(cape_value, raw, prefilled=None):
