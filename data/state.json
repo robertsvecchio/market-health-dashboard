@@ -1,7 +1,21 @@
 {
-  "last_run_utc": "2026-06-11T23:24:50.030236+00:00",
+  "last_run_utc": "2026-06-11T23:42:32.957939+00:00",
   "mcclellan": {
-    "ema19": 143.38,
-    "ema39": 119.32157407407406
+    "ema19": 157.042,
+    "ema39": 127.35549537037036
+  },
+  "alerts": {
+    "last_snapshot": {
+      "composite": 68.9,
+      "label": "Elevated Risk",
+      "goldman": 56.6,
+      "yield_curve": 0.67,
+      "vix": 19.44,
+      "pct_above_200": 58.7,
+      "hindenburg": false,
+      "titanic": false
+    },
+    "last_sent_utc": "2026-06-11T23:43:05.851303+00:00",
+    "last_send_ok": true
   }
 }
