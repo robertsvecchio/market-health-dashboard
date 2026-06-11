@@ -90,7 +90,7 @@ FRED_SERIES = {
     "gdp":               ("GDP",                "Nominal GDP"),
     "core_cpi":          ("CPILFESL",           "Core CPI (ex food & energy), index"),
     # Valuation building blocks
-    "wilshire5000":      ("WILL5000PRFC",       "Wilshire 5000 Full Cap Price Index (Buffett indicator numerator)"),
+    "equity_mktcap":     ("NCBEILQ027S",        "Fed B.103 market value of equities (Buffett numerator; Wilshire removed from FRED Jun 2024)"),
     "real_10y":          ("DFII10",             "10yr TIPS yield (real) — for Excess CAPE Yield"),
 }
 
@@ -369,6 +369,30 @@ def pull_sectors():
 # ---------------------------------------------------------------------------
 # Shiller CAPE
 # ---------------------------------------------------------------------------
+
+def pull_cape():
+    """Current CAPE. Primary: multpl.com monthly table (current, Shiller-sourced).
+    Fallback: Shiller ie_data.xls. Returns (cape_metric, cape_value, ecy_value)."""
+    ua = {"User-Agent": "Mozilla/5.0 (market-health-dashboard)"}
+    # Primary: multpl.com by-month table (most current machine-readable CAPE)
+    try:
+        import re
+        from io import StringIO
+        r = requests.get("https://www.multpl.com/shiller-pe/table/by-month",
+                         headers=ua, timeout=30)
+        r.raise_for_status()
+        t = pd.read_html(StringIO(r.text))[0]
+        asof = str(t.iloc[0, 0]).strip()
+        m = re.search(r"[-+]?\d+\.?\d*", str(t.iloc[0, 1]))
+        cape = float(m.group()) if m else None
+        if cape is not None and 3 < cape < 100:
+            return (metric(round(cape, 2), source="multpl.com (Shiller PE)", asof=asof,
+                           notes="Cyclically adjusted P/E (P/E10)"), cape, None)
+    except Exception:
+        pass
+    # Fallback: Shiller workbook (may lag if the hosted file is cached)
+    return pull_shiller_cape()
+
 
 def pull_shiller_cape():
     """Download Shiller's ie_data.xls and extract latest CAPE (P/E10) and, if present,
@@ -771,33 +795,34 @@ def pull_google_trends():
 
 def buffett_indicator(raw):
     try:
-        w = raw.get("wilshire5000")
-        # Self-heal: if the primary numerator didn't come back, try alternates live.
+        w = raw.get("equity_mktcap")  # NCBEILQ027S, Millions of $, quarterly
         if w is None and FRED_API_KEY:
-            for alt in ("WILL5000PRFC", "WILL5000INDFC", "WILLLRGCAPPR"):
-                try:
-                    w = fred_series(alt, FRED_API_KEY)
-                    break
-                except Exception:
-                    continue
-        g = raw.get("gdp")
+            try:
+                w = fred_series("NCBEILQ027S", FRED_API_KEY)
+            except Exception:
+                w = None
+        g = raw.get("gdp")  # Billions of $, quarterly
         if w is None or g is None:
-            return unavailable(source="FRED:WILL5000PRFC/GDP", error="inputs missing")
-        # Align: Wilshire is high-frequency, GDP quarterly. Use latest of each.
-        ratio_series = (w / g.reindex(w.index, method="ffill")).dropna()
+            return unavailable(source="FRED:NCBEILQ027S/GDP", error="inputs missing")
+        # Align quarterly series; scale equities (millions) to billions to match GDP.
+        g_aligned = g.reindex(w.index, method="ffill")
+        ratio_series = ((w / 1000.0) / g_aligned).dropna()
+        if ratio_series.empty:
+            return unavailable(source="FRED:NCBEILQ027S/GDP", error="no overlapping dates")
         latest = float(ratio_series.iloc[-1])
-        # deviation from own long-run linear trend (the spec's framing)
         x = np.arange(len(ratio_series))
         coeffs = np.polyfit(x, ratio_series.values, 1)
         trend = np.polyval(coeffs, x)
         resid = ratio_series.values - trend
         z = (resid[-1] - resid.mean()) / (resid.std() or 1)
-        return metric(round(latest, 4), source="FRED:WILL5000PRFC/GDP",
-                      notes="Wilshire5000/GDP. Buffett-indicator proxy; watch deviation not level.",
+        return metric(round(latest, 3), source="FRED:NCBEILQ027S/GDP",
+                      asof=ratio_series.index[-1].strftime("%Y-%m-%d"),
+                      notes="Market value of US equities / GDP (Buffett indicator). "
+                            "Watch deviation from trend, not the absolute level.",
                       deviation_z=round(float(z), 2),
                       elevated=bool(z > 1.0))
     except Exception as e:
-        return unavailable(source="FRED:WILL5000PRFC/GDP", error=e)
+        return unavailable(source="FRED:NCBEILQ027S/GDP", error=e)
 
 
 def excess_cape_yield(cape_value, raw, prefilled=None):
@@ -1011,7 +1036,7 @@ def run(no_breadth=False):
     result["macro"].update(fred_out)
 
     # ---- Shiller CAPE ----
-    cape_metric, cape_value, cape_ecy = pull_shiller_cape()
+    cape_metric, cape_value, cape_ecy = pull_cape()
     result["structural"]["cape"] = cape_metric
 
     # ---- Derived valuation ----
