@@ -37,7 +37,7 @@ from datetime import datetime, timezone
 
 import requests
 
-LATEST_PATH = os.environ.get("LATEST_PATH", "data/latest.json")
+LATEST_PATH = os.environ.get("LATEST_PATH", "docs/data/latest.json")
 STATE_PATH = os.environ.get("STATE_PATH", "data/state.json")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 ALERT_EMAIL = os.environ.get("ALERT_EMAIL", "")
