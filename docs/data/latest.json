@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-12T22:53:14.793166+00:00",
-    "generated_display": "Jun 12 2026, 2:53 PM PT",
+    "generated_utc": "2026-06-12T23:56:20.125425+00:00",
+    "generated_display": "Jun 12 2026, 3:56 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -374,12 +374,12 @@
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
     "mcclellan": {
-      "value": 118.82,
+      "value": 120.85,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 414.813,
-      "ema39": 295.995,
+      "ema19": 430.761,
+      "ema39": 309.91,
       "negative": false
     }
   },
@@ -405,26 +405,26 @@
       "ai_tech": {
         "value": {
           "artificial intelligence stocks": 0,
-          "nvidia stock": 31
+          "nvidia stock": 36
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['artificial intelligence stocks', 'nvidia stock']",
         "momentum_pct": {
           "artificial intelligence stocks": -100.0,
-          "nvidia stock": -22.5
+          "nvidia stock": -9.4
         }
       },
       "energy": {
         "value": {
-          "oil stocks": 6,
+          "oil stocks": 5,
           "uranium stocks": 0
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
         "momentum_pct": {
-          "oil stocks": -20.0,
+          "oil stocks": -33.3,
           "uranium stocks": -100.0
         }
       },
@@ -441,15 +441,15 @@
       },
       "financials": {
         "value": {
-          "bank stocks": 3,
-          "interest rates": 29
+          "bank stocks": 2,
+          "interest rates": 32
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
         "momentum_pct": {
-          "bank stocks": 9.1,
-          "interest rates": -26.6
+          "bank stocks": -27.3,
+          "interest rates": -18.5
         }
       },
       "fear_greed": {
@@ -461,8 +461,8 @@
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
         "momentum_pct": {
-          "stock market crash": -52.7,
-          "recession 2026": -18.4
+          "stock market crash": -53.2,
+          "recession 2026": -20.0
         }
       }
     }
