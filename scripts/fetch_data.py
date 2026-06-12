@@ -1563,32 +1563,6 @@ def run(no_breadth=False):
     # ---- Catalysts ----
     result["catalysts"]["upcoming"] = upcoming_catalysts(30)
 
-    # ---- Portfolio context ----
-    # Positions loaded from PORTFOLIO_POSITIONS secret (format: TICKER:shares,TICKER:shares)
-    # Never committed to the repo.
-    def _parse_positions(env_str):
-        positions = []
-        if not env_str:
-            return positions
-        for item in env_str.strip().split(","):
-            item = item.strip()
-            if ":" not in item:
-                continue
-            try:
-                ticker, shares = item.split(":", 1)
-                positions.append((ticker.strip(), float(shares.strip())))
-            except Exception:
-                continue
-        return positions
-
-    _positions = _parse_positions(os.environ.get("PORTFOLIO_POSITIONS", ""))
-    _risk_score = (result.get("scores", {}).get("composite") or {}).get("value")
-    result["portfolio"] = {}
-    try:
-        result["portfolio"]["roth_ira"] = pull_portfolio(_positions, _risk_score)
-    except Exception as e:
-        result["portfolio"]["roth_ira"] = {"status": "unavailable", "error": str(e)[:200]}
-
     # ---- Interpretation: per-metric readings + summary + watch list ----
     try:
         result["interpretation"] = interpret(result, fred_raw)
