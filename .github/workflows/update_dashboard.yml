@@ -82,7 +82,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # Stage whatever the pipeline produced/updated.
-          git add data/latest.json data/state.json docs/index.html 2>/dev/null || true
+          git add docs/data/latest.json data/state.json docs/index.html 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
