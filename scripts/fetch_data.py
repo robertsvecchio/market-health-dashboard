@@ -89,9 +89,24 @@ FRED_SERIES = {
     "corp_profits":      ("A053RC1Q027SBEA",    "Corporate profits (with IVA/CCAdj)"),
     "gdp":               ("GDP",                "Nominal GDP"),
     "core_cpi":          ("CPILFESL",           "Core CPI (ex food & energy), index"),
+    "core_pce":          ("PCEPILFE",           "Core PCE price index (Fed's preferred inflation gauge), index"),
+    "fed_funds":         ("DFF",                "Effective federal funds rate"),
+    "umich_sentiment":   ("UMCSENT",            "U. Michigan Consumer Sentiment"),
+    "avg_hourly_earnings":("CES0500000003",     "Average hourly earnings, total private (for real wage growth)"),
+    "hy_oas":            ("BAMLH0A0HYM2",       "ICE BofA US High-Yield option-adjusted credit spread"),
+    "ig_oas":            ("BAMLC0A0CM",         "ICE BofA US Investment-Grade option-adjusted credit spread"),
     # Valuation building blocks
     "equity_mktcap":     ("NCBEILQ027S",        "Fed B.103 market value of equities (Buffett numerator; Wilshire removed from FRED Jun 2024)"),
     "real_10y":          ("DFII10",             "10yr TIPS yield (real) — for Excess CAPE Yield"),
+}
+
+# How far back to look when computing a metric's trend, by series cadence.
+TREND_LOOKBACK = {
+    "lei": 3, "yield_curve_10y3m": 21, "nfci_leverage": 4, "unemployment": 3,
+    "cc_delinquency": 1, "auto_delinquency": 1, "savings_rate": 3, "debt_service": 1,
+    "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "fed_funds": 21,
+    "umich_sentiment": 3, "avg_hourly_earnings": 3, "hy_oas": 21, "ig_oas": 21,
+    "real_10y": 21, "equity_mktcap": 1,
 }
 
 # Shiller CAPE candidate download URLs (tried in order)
@@ -229,6 +244,36 @@ def fred_series(series_id, api_key, observations=400):
     return s.iloc[-observations:]
 
 
+def series_trend(s, periods):
+    """Direction + magnitude of a series over the last `periods` observations."""
+    try:
+        s = pd.Series(s).dropna()
+        if len(s) < periods + 1:
+            return None
+        cur = float(s.iloc[-1])
+        prev = float(s.iloc[-periods - 1])
+        chg = cur - prev
+        pct = (chg / abs(prev) * 100) if prev else 0.0
+        # 'flat' band scaled to the series' own typical move
+        band = (s.diff().abs().median() or 0) * 0.5
+        direction = "rising" if chg > band else "falling" if chg < -band else "flat"
+        return {"direction": direction, "change": round(chg, 3),
+                "pct": round(pct, 2), "periods": periods}
+    except Exception:
+        return None
+
+
+def yoy_pct(s):
+    """Year-over-year percent change of a monthly index series (e.g. CPI/PCE)."""
+    try:
+        s = pd.Series(s).dropna()
+        if len(s) < 13:
+            return None
+        return round((float(s.iloc[-1]) / float(s.iloc[-13]) - 1) * 100, 2)
+    except Exception:
+        return None
+
+
 def pull_fred_all(api_key):
     out = {}
     raw = {}
@@ -240,12 +285,26 @@ def pull_fred_all(api_key):
         try:
             s = fred_series(sid, api_key)
             raw[key] = s
-            out[key] = metric(
+            m = metric(
                 value=round(float(s.iloc[-1]), 4),
                 source=f"FRED:{sid}",
                 asof=s.index[-1].strftime("%Y-%m-%d"),
                 notes=desc,
             )
+            tr = series_trend(s, TREND_LOOKBACK.get(key, 3))
+            if tr:
+                m["trend"] = tr
+            # For inflation indices, surface YoY (the headline people read).
+            if key in ("core_cpi", "core_pce"):
+                yoy = yoy_pct(s)
+                if yoy is not None:
+                    m["yoy_pct"] = yoy
+                    # is inflation accelerating or decelerating?
+                    yoy_prev = yoy_pct(s.iloc[:-3]) if len(s) > 16 else None
+                    if yoy_prev is not None:
+                        m["yoy_direction"] = "accelerating" if yoy > yoy_prev + 0.1 \
+                            else "decelerating" if yoy < yoy_prev - 0.1 else "steady"
+            out[key] = m
         except Exception as e:
             out[key] = unavailable(source=f"FRED:{sid}", error=e, notes=desc)
         time.sleep(0.15)  # be polite to FRED
@@ -1013,6 +1072,295 @@ def save_state(state, path="data/state.json"):
 # Main
 # ---------------------------------------------------------------------------
 
+def _ordinal(n):
+    n = int(n)
+    if 10 <= n % 100 <= 20:
+        suf = "th"
+    else:
+        suf = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suf}"
+
+
+def interpret(result, fred_raw):
+    """Generate dynamic per-metric readings + a top-level summary and a
+    slightly-prescriptive Watch/Consider list, all from the assembled result."""
+    R = {"readings": {}, "watch": [], "summary": ""}
+
+    def mval(section, key, field="value"):
+        m = result.get(section, {}).get(key)
+        if isinstance(m, dict):
+            return m.get(field)
+        return None
+
+    def trend_word(section, key):
+        m = result.get(section, {}).get(key)
+        if isinstance(m, dict) and isinstance(m.get("trend"), dict):
+            return m["trend"].get("direction")
+        return None
+
+    # ---------- Per-metric readings ----------
+
+    # CAPE
+    cape = mval("structural", "cape")
+    cape_pct = None
+    if cape is not None:
+        cape_pct = percentile_rank(cape, list(np.linspace(5, 44, 200))) or 50
+        if cape_pct >= 90:
+            tail = "among the most expensive readings ever recorded — deeply stretched"
+        elif cape_pct >= 75:
+            tail = "well above the long-run average of ~17 — elevated"
+        elif cape_pct >= 40:
+            tail = "near its historical middle"
+        else:
+            tail = "below average — relatively cheap"
+        R["readings"]["cape"] = (f"At the {_ordinal(round(cape_pct))} percentile of all history; {tail}. "
+                                 "Says little about this month, a lot about the next decade.")
+
+    # Buffett
+    bz = mval("structural", "buffett_indicator", "deviation_z")
+    if bz is not None:
+        if bz >= 2:
+            tail = "at a record extreme versus its own trend"
+        elif bz >= 1:
+            tail = "stretched above trend"
+        elif bz >= -1:
+            tail = "near its long-run trend"
+        else:
+            tail = "below trend"
+        R["readings"]["buffett_indicator"] = (f"Total market value vs GDP is {tail} "
+                                              f"(z = {bz:+.1f}). Watch the deviation, not the level.")
+
+    # Excess CAPE Yield
+    ecy = mval("structural", "excess_cape_yield")
+    if ecy is not None:
+        if ecy < 0:
+            tail = "negative — by this gauge stocks are priced to underperform bonds"
+        elif ecy < 1:
+            tail = "low — thin compensation for holding stocks over bonds"
+        else:
+            tail = "positive — stocks still offer a yield cushion over bonds"
+        R["readings"]["excess_cape_yield"] = f"{ecy:.2f}% — {tail}."
+
+    # Forward P/E
+    fpe = mval("structural", "forward_pe")
+    fpe_mean = mval("structural", "forward_pe", "vs_mean")
+    if fpe is not None:
+        state = "elevated" if fpe >= 20 else "moderate" if fpe >= 16 else "below average"
+        R["readings"]["forward_pe"] = (f"{fpe:.1f}x next-12-month earnings — {state}"
+                                       + (f", {fpe_mean:+.1f} vs the ~16x long-run mean." if fpe_mean is not None else "."))
+
+    # Yield curve
+    yc = mval("macro", "yield_curve_10y3m")
+    yct = trend_word("macro", "yield_curve_10y3m")
+    if yc is not None:
+        if yc < 0:
+            base = "Inverted — the classic recession warning; every U.S. recession since the 1950s followed an inversion"
+        elif yc < 0.5:
+            base = "Positive but flat — the recession cushion has thinned"
+        else:
+            base = "Comfortably positive — no recession signal here"
+        if yct:
+            base += f"; {yct} lately"
+        R["readings"]["yield_curve_10y3m"] = base + "."
+
+    # Credit spreads (HY OAS)
+    hy = mval("macro", "hy_oas")
+    hyt = trend_word("macro", "hy_oas")
+    if hy is not None:
+        if hy < 3:
+            base = "Very tight — credit markets are complacent, little stress priced in"
+        elif hy < 5:
+            base = "Normal — no credit stress"
+        elif hy < 7:
+            base = "Widening into caution territory — watch closely"
+        else:
+            base = "Stressed — credit markets are flashing real risk"
+        if hyt == "rising":
+            base += "; spreads are widening (bond market getting nervous)"
+        elif hyt == "falling":
+            base += "; spreads are tightening (risk appetite firm)"
+        R["readings"]["hy_oas"] = base + "."
+
+    # LEI
+    lei = mval("macro", "lei")
+    leit = trend_word("macro", "lei")
+    if lei is not None:
+        if leit == "rising":
+            base = "Rising — leading indicators point to continued expansion"
+        elif leit == "falling":
+            base = "Falling — leading indicators are softening, an early caution"
+        else:
+            base = "Flat — leading indicators are stalling"
+        R["readings"]["lei"] = base + "."
+
+    # Unemployment
+    un = mval("macro", "unemployment")
+    unt = trend_word("macro", "unemployment")
+    if un is not None:
+        if unt == "rising":
+            base = f"{un:.1f}% and rising — a turn up from lows is a late-cycle warning (Sahm-rule territory if it accelerates)"
+        elif unt == "falling":
+            base = f"{un:.1f}% and falling — labor market still firm"
+        else:
+            base = f"{un:.1f}%, holding steady"
+        R["readings"]["unemployment"] = base + "."
+
+    # Inflation (Core PCE preferred, CPI fallback)
+    for key, label in (("core_pce", "Core PCE"), ("core_cpi", "Core CPI")):
+        yoy = mval("macro", key, "yoy_pct")
+        ydir = mval("macro", key, "yoy_direction")
+        if yoy is not None:
+            vs = "above" if yoy > 2.2 else "near" if yoy > 1.8 else "below"
+            base = f"{label} running {yoy:.1f}% YoY, {vs} the Fed's 2% target"
+            if ydir:
+                base += f" and {ydir}"
+            R["readings"][key] = base + "."
+
+    # Fed funds stance
+    ff = mval("macro", "fed_funds")
+    fft = trend_word("macro", "fed_funds")
+    if ff is not None:
+        stance = "cutting" if fft == "falling" else "hiking" if fft == "rising" else "on hold"
+        R["readings"]["fed_funds"] = (f"Policy rate {ff:.2f}%, currently {stance}. "
+                                      "Rate-cut cycles have preceded recent recessions — easing is not always bullish.")
+
+    # Consumer sentiment
+    um = mval("macro", "umich_sentiment")
+    umt = trend_word("macro", "umich_sentiment")
+    if um is not None:
+        lvl = "weak" if um < 70 else "moderate" if um < 90 else "strong"
+        base = f"{um:.0f} — {lvl} consumer mood"
+        if umt:
+            base += f", {umt}"
+        R["readings"]["umich_sentiment"] = base + "."
+
+    # NFCI leverage
+    nf = mval("macro", "nfci_leverage")
+    if nf is not None:
+        base = ("Positive — financial leverage/conditions tighter than average"
+                if nf > 0 else "Negative — leverage/conditions looser than average (easy money)")
+        R["readings"]["nfci_leverage"] = base + "."
+
+    # Delinquencies
+    for key, label in (("cc_delinquency", "Credit-card"), ("auto_delinquency", "Auto-loan")):
+        v = mval("macro", key)
+        t = trend_word("macro", key)
+        if v is not None:
+            base = f"{label} delinquencies at {v:.2f}%"
+            if t == "rising":
+                base += " and rising — early sign of consumer stress (leads the economy by months)"
+            elif t == "falling":
+                base += " and easing"
+            R["readings"][key] = base + "."
+
+    # VIX
+    vix = mval("sentiment", "vix")
+    if vix is not None:
+        if vix < 15:
+            tail = "calm — possibly complacent"
+        elif vix < 20:
+            tail = "normal"
+        elif vix < 30:
+            tail = "elevated — markets are nervous"
+        else:
+            tail = "high — stress/fear regime (often a contrarian bottom signal above 40)"
+        R["readings"]["vix"] = f"{vix:.1f} — {tail}."
+
+    # Breadth
+    pa = mval("breadth", "pct_above_200dma")
+    if pa is not None:
+        if pa >= 60:
+            tail = "broad participation — healthy"
+        elif pa >= 40:
+            tail = "narrowing — fewer names holding up the index"
+        else:
+            tail = "weak — distribution underway beneath the surface"
+        R["readings"]["pct_above_200dma"] = f"{pa:.0f}% of the S&P 500 above its 200-DMA — {tail}."
+
+    ad_div = mval("structural", "ad_line_proxy", "bearish_divergence")
+    if ad_div is not None:
+        R["readings"]["ad_line_proxy"] = ("Equal-weight is lagging cap-weight — a few megacaps are masking weaker breadth."
+                                          if ad_div else "Breadth confirms the index — no divergence.")
+
+    # ---------- Summary + Watch/Consider ----------
+    score = mval("scores", "composite")
+    label = mval("scores", "composite", "label") or "Unknown"
+    s_parts = []
+    if score is not None:
+        s_parts.append(f"{label} ({score:.0f}/100).")
+
+    # Valuation clause
+    val_flags = []
+    if cape_pct is not None and cape_pct >= 85:
+        val_flags.append("CAPE near historic highs")
+    if bz is not None and bz >= 1.5:
+        val_flags.append("the Buffett indicator at a record")
+    if ecy is not None and ecy < 1:
+        val_flags.append("a thin equity-risk premium")
+    if val_flags:
+        s_parts.append("Valuations are stretched — " + ", ".join(val_flags) + ".")
+
+    # Cycle clause
+    cyc_bits = []
+    if leit == "rising":
+        cyc_bits.append("leading indicators still rising")
+    elif leit == "falling":
+        cyc_bits.append("leading indicators softening")
+    if yc is not None:
+        cyc_bits.append("the yield curve " + ("inverted" if yc < 0 else "still positive"))
+    if hy is not None:
+        cyc_bits.append("credit spreads " + ("calm" if hy < 5 else "widening"))
+    if unt == "rising":
+        cyc_bits.append("unemployment ticking up")
+    if cyc_bits:
+        joined = ", ".join(cyc_bits)
+        if val_flags and ("positive" in joined or "rising" in joined or "calm" in joined):
+            s_parts.append("Still, the cycle holds — " + joined + ".")
+        else:
+            s_parts.append("On the cycle: " + joined + ".")
+
+    # Breadth/trigger clause
+    if pa is not None:
+        if pa < 40:
+            s_parts.append("Breadth has broken down — distribution beneath the surface.")
+        elif ad_div:
+            s_parts.append("Breadth is narrowing, a yellow flag.")
+        else:
+            s_parts.append("Breadth is healthy, so no regime break yet.")
+
+    R["summary"] = " ".join(s_parts)
+
+    # Watch / Consider (slightly prescriptive)
+    watch = []
+    if hy is not None and (hy >= 5 or hyt == "rising"):
+        watch.append("Credit spreads are the key tell right now — widening here would confirm rising risk.")
+    if yc is not None and 0 <= yc < 0.5:
+        watch.append("Yield curve is flat; an inversion would be a fresh recession warning.")
+    if val_flags:
+        watch.append("With valuations this stretched, favor quality and proven earnings over speculative names.")
+    if pa is not None and pa < 50:
+        watch.append("Thin breadth argues for tighter stops and smaller new positions.")
+    elif pa is not None and pa >= 60:
+        watch.append("Breadth is broad — the tape supports staying invested.")
+    if unt == "rising":
+        watch.append("Rising unemployment is the cleanest recession trigger to monitor from here.")
+    for key in ("core_pce", "core_cpi"):
+        ydir = mval("macro", key, "yoy_direction")
+        if ydir == "accelerating":
+            watch.append("Inflation is re-accelerating — watch the next CPI/PCE print and Fed tone.")
+            break
+    cats = result.get("catalysts", {}).get("upcoming", [])
+    near = [c for c in cats if isinstance(c, dict) and c.get("days_away", 99) <= 7]
+    if near:
+        nm = near[0]
+        watch.append(f"Next catalyst: {nm['label']} on {nm['date']} ({nm['days_away']}d).")
+    if not watch:
+        watch.append("No pressing risks firing; conditions are within normal ranges.")
+    R["watch"] = watch[:6]
+
+    return R
+
+
 def run(no_breadth=False):
     utc_iso, pt_disp = now_stamps()
     prev_state = load_state()
@@ -1109,6 +1457,37 @@ def run(no_breadth=False):
     # ---- Catalysts ----
     result["catalysts"]["upcoming"] = upcoming_catalysts(30)
 
+    # ---- Interpretation: per-metric readings + summary + watch list ----
+    try:
+        result["interpretation"] = interpret(result, fred_raw)
+    except Exception as e:
+        result["interpretation"] = {"summary": "", "watch": [], "readings": {},
+                                    "error": str(e)[:200]}
+
+    # ---- History log (compounds over time; stored in committed state.json) ----
+    try:
+        hist = new_state.get("history", [])
+        today = utc_iso[:10]
+        snap = {
+            "date": today,
+            "composite": mval_path(result, "scores", "composite", "value"),
+            "structural": mval_path(result, "scores", "structural_score", "value"),
+            "cycle": mval_path(result, "scores", "cycle_score", "value"),
+            "cape": mval_path(result, "structural", "cape", "value"),
+            "buffett_z": mval_path(result, "structural", "buffett_indicator", "deviation_z"),
+            "yield_curve": mval_path(result, "macro", "yield_curve_10y3m", "value"),
+            "hy_oas": mval_path(result, "macro", "hy_oas", "value"),
+            "vix": mval_path(result, "sentiment", "vix", "value"),
+            "pct_above_200": mval_path(result, "breadth", "pct_above_200dma", "value"),
+            "goldman": mval_path(result, "scores", "goldman_composite", "value"),
+        }
+        # one entry per day (replace today's if re-run)
+        hist = [h for h in hist if h.get("date") != today]
+        hist.append(snap)
+        new_state["history"] = hist[-460:]  # ~15 months of daily points
+    except Exception as e:
+        print(f"WARN: history log failed: {e}", file=sys.stderr)
+
     # ---- Source health summary ----
     def walk_status(node, acc):
         if isinstance(node, dict):
@@ -1127,6 +1506,11 @@ def run(no_breadth=False):
     save_state(new_state)
 
     return result
+
+
+def mval_path(result, section, key, field="value"):
+    m = result.get(section, {}).get(key)
+    return m.get(field) if isinstance(m, dict) else None
 
 
 def selftest():
