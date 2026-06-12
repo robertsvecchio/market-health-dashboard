@@ -132,7 +132,7 @@
 "use strict";
 const REPO="robertsvecchio/market-health-dashboard";
 const WORKFLOW="update_dashboard.yml";
-const DATA_URL="./data/latest.json";
+const DATA_URL=`https://raw.githubusercontent.com/${REPO}/main/data/latest.json`;
 
 const PRIMERS={
  cape:"Price vs 10-year inflation-adjusted earnings. A long-run return gauge, not a timing tool — high CAPE means low expected 10-year returns. Long-run average ~17; above 30 has always eventually preceded a bear market.",
@@ -351,7 +351,6 @@ const TABS=[
   {id:"trend",label:"Trend & Breadth",render:panelTrend},
   {id:"sentiment",label:"Sentiment",render:panelSentiment},
   {id:"sectors",label:"Sectors",render:panelSectors},
-  {id:"portfolio",label:"Portfolio",render:panelPortfolio},
 ];
 let activeTab="overview";
 function renderTabs(){
