@@ -1082,10 +1082,7 @@ def _ordinal(n):
 
 
 def pull_portfolio(positions, risk_score=None):
-    """Calculate portfolio-level beta, Sharpe, concentration, and sector overlap.
-    positions: list of (ticker, shares)
-    Returns a dict ready to merge into result["portfolio"].
-    """
+    """Calculate portfolio-level beta, Sharpe, concentration, and sector overlap."""
     if not positions:
         return {"status": "no_positions", "notes": "No positions configured in watchlist.py"}
     try:
@@ -1093,93 +1090,88 @@ def pull_portfolio(positions, risk_score=None):
         tickers = [t for t, _ in positions]
         shares_map = {t: s for t, s in positions}
 
-        # Batch download 2 years of daily prices
-        raw = yf.download(
-            tickers, period="2y", interval="1d",
-            auto_adjust=True, progress=False, group_by="ticker"
-        )
-        spy = yf.download("SPY", period="2y", interval="1d",
-                          auto_adjust=True, progress=False)["Close"].dropna()
+        # Fetch SPY first as benchmark
+        spy_df = yf.download("SPY", period="2y", interval="1d",
+                             auto_adjust=True, progress=False)
+        if spy_df is None or spy_df.empty:
+            return {"status": "unavailable", "error": "SPY benchmark data unavailable"}
+        spy = spy_df["Close"].dropna() if "Close" in spy_df else spy_df.iloc[:, 0].dropna()
 
+        # Fetch each ticker individually — avoids all multi-ticker column structure issues
         holdings = []
         skipped = []
-        total_value = 0.0
-
         for ticker, shares in positions:
             try:
-                if len(tickers) == 1:
-                    px = raw["Close"].dropna()
-                else:
-                    px = raw[ticker]["Close"].dropna() if ticker in raw else raw["Close"][ticker].dropna()
+                df = yf.download(ticker, period="2y", interval="1d",
+                                 auto_adjust=True, progress=False)
+                if df is None or df.empty or len(df) < 30:
+                    skipped.append(ticker)
+                    continue
+                px = df["Close"].dropna() if "Close" in df else df.iloc[:, 0].dropna()
                 if len(px) < 30:
                     skipped.append(ticker)
                     continue
                 price = float(px.iloc[-1])
                 value = price * shares
-                total_value += value
-                # Beta vs SPY (252 trading days)
+                # Beta vs SPY
                 ret = px.pct_change().dropna()
                 spy_ret = spy.pct_change().dropna()
-                aligned = ret.align(spy_ret, join="inner")[0], spy_ret.align(ret, join="inner")[0]
-                r, s = aligned
+                r, s = ret.align(spy_ret, join="inner")
                 if len(r) > 60:
                     cov = float(r.cov(s))
                     var = float(s.var())
-                    beta = cov / var if var > 0 else 1.0
+                    beta = round(cov / var, 2) if var > 0 else 1.0
                 else:
                     beta = 1.0
-                # Sharpe (annualised, 252 days, risk-free ~5%)
+                # Sharpe (annualised, ~4.33% risk-free)
                 rf_daily = 0.0433 / 252
                 excess = ret - rf_daily
-                sharpe = float(excess.mean() / excess.std() * (252 ** 0.5)) if excess.std() > 0 else 0.0
+                sharpe = round(float(excess.mean() / excess.std() * (252 ** 0.5)), 2) if excess.std() > 0 else 0.0
                 # 1-yr return
-                ret_1y = float(px.iloc[-1] / px.iloc[max(-252, -len(px))] - 1) if len(px) >= 21 else None
+                ret_1y = round(float(px.iloc[-1] / px.iloc[max(-252, -len(px))] - 1) * 100, 1) if len(px) >= 21 else None
                 holdings.append({
                     "ticker": ticker, "shares": shares, "price": round(price, 2),
-                    "value": round(value, 2), "beta": round(beta, 2),
-                    "sharpe": round(sharpe, 2), "ret_1y": round(ret_1y * 100, 1) if ret_1y is not None else None,
+                    "value": round(value, 2), "beta": beta,
+                    "sharpe": sharpe, "ret_1y": ret_1y,
                 })
+                time.sleep(0.1)  # be gentle with Yahoo
             except Exception as e:
-                skipped.append(f"{ticker}({str(e)[:30]})")
+                skipped.append(f"{ticker}")
+                print(f"  [portfolio] {ticker} skipped: {str(e)[:60]}", file=sys.stderr)
 
         if not holdings:
-            return {"status": "unavailable", "error": "no price data returned",
-                    "skipped": skipped}
+            return {"status": "unavailable", "error": "no price data returned", "skipped": skipped}
 
         total_value = sum(h["value"] for h in holdings)
         for h in holdings:
             h["weight"] = round(h["value"] / total_value * 100, 1) if total_value else 0
 
-        # Weighted portfolio beta
-        port_beta = sum(h["weight"] / 100 * h["beta"] for h in holdings)
-        # Weighted average Sharpe
-        port_sharpe = sum(h["weight"] / 100 * h["sharpe"] for h in holdings)
+        port_beta = round(sum(h["weight"] / 100 * h["beta"] for h in holdings), 2)
+        port_sharpe = round(sum(h["weight"] / 100 * h["sharpe"] for h in holdings), 2)
+        top5_weight = round(sum(h["weight"] for h in sorted(holdings, key=lambda x: -x["weight"])[:5]), 1)
 
-        # Concentration: top 5 weight
-        top5_weight = sum(h["weight"] for h in sorted(holdings, key=lambda x: -x["weight"])[:5])
-
-        # Beta vs risk score framing
         beta_context = ""
         if risk_score is not None:
             if risk_score >= 75 and port_beta > 1.2:
                 beta_context = "High beta in high-risk environment — consider reducing exposure"
             elif risk_score >= 50 and port_beta > 1.4:
                 beta_context = "Elevated beta vs elevated macro risk — worth monitoring"
+            elif risk_score >= 50 and port_beta > 1.1:
+                beta_context = "Moderately elevated beta in an elevated-risk tape — stay selective"
             elif risk_score <= 30 and port_beta < 0.8:
                 beta_context = "Low beta in low-risk environment — room to add exposure"
             else:
                 beta_context = "Beta and risk score are reasonably aligned"
 
-        # Sort by weight descending for display
-        holdings.sort(key=lambda x: -x["weight"])
+        holdings.sort(key=lambda x: -x["value"])
 
         return {
             "status": "ok",
             "total_value": round(total_value, 2),
             "position_count": len(holdings),
-            "portfolio_beta": round(port_beta, 2),
-            "portfolio_sharpe": round(port_sharpe, 2),
-            "top5_concentration_pct": round(top5_weight, 1),
+            "portfolio_beta": port_beta,
+            "portfolio_sharpe": port_sharpe,
+            "top5_concentration_pct": top5_weight,
             "risk_score_context": beta_context,
             "macro_risk_score": risk_score,
             "holdings": holdings,
