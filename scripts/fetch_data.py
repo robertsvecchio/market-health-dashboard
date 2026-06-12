@@ -1081,6 +1081,115 @@ def _ordinal(n):
     return f"{n}{suf}"
 
 
+def pull_portfolio(positions, risk_score=None):
+    """Calculate portfolio-level beta, Sharpe, concentration, and sector overlap.
+    positions: list of (ticker, shares)
+    Returns a dict ready to merge into result["portfolio"].
+    """
+    if not positions:
+        return {"status": "no_positions", "notes": "No positions configured in watchlist.py"}
+    try:
+        import yfinance as yf
+        tickers = [t for t, _ in positions]
+        shares_map = {t: s for t, s in positions}
+
+        # Batch download 2 years of daily prices
+        raw = yf.download(
+            tickers, period="2y", interval="1d",
+            auto_adjust=True, progress=False, group_by="ticker"
+        )
+        spy = yf.download("SPY", period="2y", interval="1d",
+                          auto_adjust=True, progress=False)["Close"].dropna()
+
+        holdings = []
+        skipped = []
+        total_value = 0.0
+
+        for ticker, shares in positions:
+            try:
+                if len(tickers) == 1:
+                    px = raw["Close"].dropna()
+                else:
+                    px = raw[ticker]["Close"].dropna() if ticker in raw else raw["Close"][ticker].dropna()
+                if len(px) < 30:
+                    skipped.append(ticker)
+                    continue
+                price = float(px.iloc[-1])
+                value = price * shares
+                total_value += value
+                # Beta vs SPY (252 trading days)
+                ret = px.pct_change().dropna()
+                spy_ret = spy.pct_change().dropna()
+                aligned = ret.align(spy_ret, join="inner")[0], spy_ret.align(ret, join="inner")[0]
+                r, s = aligned
+                if len(r) > 60:
+                    cov = float(r.cov(s))
+                    var = float(s.var())
+                    beta = cov / var if var > 0 else 1.0
+                else:
+                    beta = 1.0
+                # Sharpe (annualised, 252 days, risk-free ~5%)
+                rf_daily = 0.0433 / 252
+                excess = ret - rf_daily
+                sharpe = float(excess.mean() / excess.std() * (252 ** 0.5)) if excess.std() > 0 else 0.0
+                # 1-yr return
+                ret_1y = float(px.iloc[-1] / px.iloc[max(-252, -len(px))] - 1) if len(px) >= 21 else None
+                holdings.append({
+                    "ticker": ticker, "shares": shares, "price": round(price, 2),
+                    "value": round(value, 2), "beta": round(beta, 2),
+                    "sharpe": round(sharpe, 2), "ret_1y": round(ret_1y * 100, 1) if ret_1y is not None else None,
+                })
+            except Exception as e:
+                skipped.append(f"{ticker}({str(e)[:30]})")
+
+        if not holdings:
+            return {"status": "unavailable", "error": "no price data returned",
+                    "skipped": skipped}
+
+        total_value = sum(h["value"] for h in holdings)
+        for h in holdings:
+            h["weight"] = round(h["value"] / total_value * 100, 1) if total_value else 0
+
+        # Weighted portfolio beta
+        port_beta = sum(h["weight"] / 100 * h["beta"] for h in holdings)
+        # Weighted average Sharpe
+        port_sharpe = sum(h["weight"] / 100 * h["sharpe"] for h in holdings)
+
+        # Concentration: top 5 weight
+        top5_weight = sum(h["weight"] for h in sorted(holdings, key=lambda x: -x["weight"])[:5])
+
+        # Beta vs risk score framing
+        beta_context = ""
+        if risk_score is not None:
+            if risk_score >= 75 and port_beta > 1.2:
+                beta_context = "High beta in high-risk environment — consider reducing exposure"
+            elif risk_score >= 50 and port_beta > 1.4:
+                beta_context = "Elevated beta vs elevated macro risk — worth monitoring"
+            elif risk_score <= 30 and port_beta < 0.8:
+                beta_context = "Low beta in low-risk environment — room to add exposure"
+            else:
+                beta_context = "Beta and risk score are reasonably aligned"
+
+        # Sort by weight descending for display
+        holdings.sort(key=lambda x: -x["weight"])
+
+        return {
+            "status": "ok",
+            "total_value": round(total_value, 2),
+            "position_count": len(holdings),
+            "portfolio_beta": round(port_beta, 2),
+            "portfolio_sharpe": round(port_sharpe, 2),
+            "top5_concentration_pct": round(top5_weight, 1),
+            "risk_score_context": beta_context,
+            "macro_risk_score": risk_score,
+            "holdings": holdings,
+            "skipped": skipped,
+            "asof": spy.index[-1].strftime("%Y-%m-%d"),
+        }
+    except Exception as e:
+        return {"status": "unavailable", "error": str(e)[:300]}
+
+
 def interpret(result, fred_raw):
     """Generate dynamic per-metric readings + a top-level summary and a
     slightly-prescriptive Watch/Consider list, all from the assembled result."""
@@ -1456,6 +1565,20 @@ def run(no_breadth=False):
 
     # ---- Catalysts ----
     result["catalysts"]["upcoming"] = upcoming_catalysts(30)
+
+    # ---- Portfolio context ----
+    try:
+        import sys as _sys, os as _os
+        _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
+        from config.watchlist import ROTH_IRA
+    except ImportError:
+        ROTH_IRA = []
+    _risk_score = (result.get("scores", {}).get("composite") or {}).get("value")
+    result["portfolio"] = {}
+    try:
+        result["portfolio"]["roth_ira"] = pull_portfolio(ROTH_IRA, _risk_score)
+    except Exception as e:
+        result["portfolio"]["roth_ira"] = {"status": "unavailable", "error": str(e)[:200]}
 
     # ---- Interpretation: per-metric readings + summary + watch list ----
     try:
