@@ -185,7 +185,7 @@ function metric(section,key,label,fmt,readingKey,staleDays){
   else{status=m.status;if(m.asof){const dd=daysBetween(m.asof,(DATA.meta||{}).generated_utc||new Date().toISOString());stale=dd!=null&&dd>(staleDays||45);}
     valHtml=`${fmt?fmt(m.value,m):esc(m.value)} <span class="marrow">${arrow(m)}</span>${badge(status,stale)}`;}
   const hasBody=primer||reading;
-  const card=el(`<div class="metric"><div class="mhead"><span class="mname">${esc(label)}</span><span class="mval">${valHtml}</span>${hasBody?'<button class="info" aria-label="explain">i</button>':''}</div>${hasBody?`<div class="mbody">${primer?`<div class="primer">${esc(primer)}</div>`:''}${reading?`<div class="reading"><b>Today:</b> ${esc(reading)}</div>`:''}</div>`:''}</div>`);
+  const card=el(`<div class="metric"><div class="mhead"><span class="mname">${esc(label)}</span>${hasBody?'<button class="info" aria-label="explain">i</button>':''}<span class="mval">${valHtml}</span></div>${hasBody?`<div class="mbody">${primer?`<div class="primer">${esc(primer)}</div>`:''}${reading?`<div class="reading"><b>Today:</b> ${esc(reading)}</div>`:''}</div>`:''}</div>`);
   if(hasBody){const btn=card.querySelector(".info"),body=card.querySelector(".mbody");btn.addEventListener("click",()=>body.classList.toggle("open"));}
   return card;
 }
@@ -293,7 +293,55 @@ function panelSectors(){
 }
 function panelPortfolio(){
   const c=document.createDocumentFragment();
-  c.appendChild(el(`<div class="card"><h2>Portfolio</h2><div class="empty" style="line-height:1.55">No positions loaded yet. Once your holdings are added, this tab will show your portfolio's weighted <b style="color:var(--text)">beta vs the current risk score</b>, each position's Sharpe ratio, concentration, and how your exposure overlaps the cycle's favored sectors.</div></div>`));
+  const p=(DATA.portfolio||{}).roth_ira||{};
+  if(!p||p.status==="no_positions"||p.status==="unavailable"){
+    c.appendChild(el(`<div class="card"><h2>Roth IRA</h2><div class="empty" style="line-height:1.55">${p.error||"No positions loaded yet."}</div></div>`));
+    return c;
+  }
+  const risk=p.macro_risk_score;const rc=riskColor(risk);
+  const betaColor=p.portfolio_beta>1.4?"var(--high)":p.portfolio_beta>1.1?"var(--elevated)":p.portfolio_beta<0.7?"var(--info)":"var(--low)";
+  // summary card
+  const sc=el(`<div class="card"><h2>Roth IRA · Portfolio Context</h2></div>`);
+  sc.appendChild(el(`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Portfolio Beta</div>
+      <div style="font-family:var(--mono);font-size:26px;font-weight:600;color:${betaColor};margin-top:6px">${num(p.portfolio_beta,2)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Avg Sharpe</div>
+      <div style="font-family:var(--mono);font-size:26px;font-weight:600;color:var(--text);margin-top:6px">${num(p.portfolio_sharpe,2)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Top 5 Wt</div>
+      <div style="font-family:var(--mono);font-size:26px;font-weight:600;color:var(--text);margin-top:6px">${num(p.top5_concentration_pct,0)}%</div>
+    </div>
+  </div>`));
+  if(p.risk_score_context)sc.appendChild(el(`<div style="font-size:13.5px;line-height:1.45;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)"><span style="color:${rc};font-weight:600">Risk ${num(risk,0)}</span> · ${esc(p.risk_score_context)}</div>`));
+  c.appendChild(sc);
+  // holdings
+  const hc=el(`<div class="card"><h2>Holdings (${p.position_count})</h2></div>`);
+  const maxW=Math.max(...(p.holdings||[]).map(h=>h.weight),1);
+  (p.holdings||[]).forEach(h=>{
+    const sc2=h.sharpe>=1?"var(--low)":h.sharpe>=0?"var(--moderate)":"var(--high)";
+    const bc=h.beta>1.3?"var(--elevated)":h.beta<0.7?"var(--info)":"var(--muted)";
+    const ret1y=h.ret_1y!=null?(h.ret_1y>=0?`+${h.ret_1y}%`:`${h.ret_1y}%`):"—";
+    const retColor=h.ret_1y!=null?(h.ret_1y>=0?"var(--low)":"var(--high)"):"var(--faint)";
+    hc.appendChild(el(`<div style="border-top:1px solid var(--border);padding:10px 0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:600;width:48px">${esc(h.ticker)}</span>
+        <div style="flex:1;background:var(--surface2);border-radius:3px;height:5px"><div style="width:${h.weight/maxW*100}%;height:100%;background:var(--info);border-radius:3px"></div></div>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--muted);width:36px;text-align:right">${h.weight}%</span>
+      </div>
+      <div style="display:flex;gap:16px;font-family:var(--mono);font-size:11.5px;padding-left:56px">
+        <span style="color:var(--faint)">$${num(h.value,0)}</span>
+        <span>β <span style="color:${bc}">${num(h.beta,2)}</span></span>
+        <span>Sharpe <span style="color:${sc2}">${num(h.sharpe,2)}</span></span>
+        <span style="color:${retColor}">${ret1y} 1yr</span>
+      </div>
+    </div>`));
+  });
+  c.appendChild(hc);
+  if(p.skipped&&p.skipped.length)c.appendChild(el(`<div class="card"><div class="empty">Skipped (no price data): ${esc(p.skipped.join(", "))}</div></div>`));
   return c;
 }
 const TABS=[
