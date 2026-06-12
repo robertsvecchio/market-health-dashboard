@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-12T22:48:42.889259+00:00",
-    "generated_display": "Jun 12 2026, 2:48 PM PT",
+    "generated_utc": "2026-06-12T22:51:59.959471+00:00",
+    "generated_display": "Jun 12 2026, 2:51 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -374,12 +374,12 @@
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
     "mcclellan": {
-      "value": 111.47,
+      "value": 115.75,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 377.403,
-      "ema39": 265.929,
+      "ema19": 397.092,
+      "ema39": 281.347,
       "negative": false
     }
   },
@@ -454,14 +454,14 @@
       },
       "fear_greed": {
         "value": {
-          "stock market crash": 11,
+          "stock market crash": 12,
           "recession 2026": 10
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
         "momentum_pct": {
-          "stock market crash": -52.2,
+          "stock market crash": -47.8,
           "recession 2026": -20.0
         }
       }
@@ -655,172 +655,6 @@
     "manual": 1,
     "proxy": 4,
     "unavailable": 1
-  },
-  "portfolio": {
-    "roth_ira": {
-      "status": "ok",
-      "total_value": 118258.24,
-      "position_count": 15,
-      "portfolio_beta": 1.93,
-      "portfolio_sharpe": 1.28,
-      "top5_concentration_pct": 54.6,
-      "risk_score_context": "Elevated beta vs elevated macro risk \u2014 worth monitoring",
-      "macro_risk_score": 68.5,
-      "holdings": [
-        {
-          "ticker": "MU",
-          "shares": 20.87,
-          "price": 981.61,
-          "value": 20486.2,
-          "beta": 2.37,
-          "sharpe": 1.72,
-          "ret_1y": 746.9,
-          "weight": 17.3
-        },
-        {
-          "ticker": "SEZL",
-          "shares": 100.0,
-          "price": 132.7,
-          "value": 13270.0,
-          "beta": 2.83,
-          "sharpe": 1.54,
-          "ret_1y": -5.3,
-          "weight": 11.2
-        },
-        {
-          "ticker": "CNC",
-          "shares": 171.18,
-          "price": 65.19,
-          "value": 11159.22,
-          "beta": 0.18,
-          "sharpe": 0.15,
-          "ret_1y": 17.7,
-          "weight": 9.4
-        },
-        {
-          "ticker": "CLS",
-          "shares": 25.45,
-          "price": 393.12,
-          "value": 10004.9,
-          "beta": 2.42,
-          "sharpe": 1.64,
-          "ret_1y": 200.7,
-          "weight": 8.5
-        },
-        {
-          "ticker": "CRDO",
-          "shares": 38.67,
-          "price": 250.81,
-          "value": 9698.82,
-          "beta": 2.79,
-          "sharpe": 1.58,
-          "ret_1y": 237.4,
-          "weight": 8.2
-        },
-        {
-          "ticker": "AMZN",
-          "shares": 37.34,
-          "price": 238.55,
-          "value": 8907.46,
-          "beta": 1.36,
-          "sharpe": 0.43,
-          "ret_1y": 11.9,
-          "weight": 7.5
-        },
-        {
-          "ticker": "LITE",
-          "shares": 9.04,
-          "price": 921.56,
-          "value": 8330.9,
-          "beta": 2.46,
-          "sharpe": 2.24,
-          "ret_1y": 977.8,
-          "weight": 7.0
-        },
-        {
-          "ticker": "ONDS",
-          "shares": 668.39,
-          "price": 9.33,
-          "value": 6236.08,
-          "beta": 2.41,
-          "sharpe": 1.54,
-          "ret_1y": 445.6,
-          "weight": 5.3
-        },
-        {
-          "ticker": "MPC",
-          "shares": 17.84,
-          "price": 263.58,
-          "value": 4702.27,
-          "beta": 0.7,
-          "sharpe": 0.75,
-          "ret_1y": 62.8,
-          "weight": 4.0
-        },
-        {
-          "ticker": "REPX",
-          "shares": 132.65,
-          "price": 35.26,
-          "value": 4677.24,
-          "beta": 1.06,
-          "sharpe": 0.54,
-          "ret_1y": 31.5,
-          "weight": 4.0
-        },
-        {
-          "ticker": "NEXA",
-          "shares": 337.33,
-          "price": 13.73,
-          "value": 4631.54,
-          "beta": 0.93,
-          "sharpe": 0.72,
-          "ret_1y": 177.4,
-          "weight": 3.9
-        },
-        {
-          "ticker": "VICR",
-          "shares": 14.7,
-          "price": 303.77,
-          "value": 4465.42,
-          "beta": 2.09,
-          "sharpe": 1.73,
-          "ret_1y": 575.0,
-          "weight": 3.8
-        },
-        {
-          "ticker": "VVX",
-          "shares": 45.26,
-          "price": 90.81,
-          "value": 4110.06,
-          "beta": 0.92,
-          "sharpe": 0.91,
-          "ret_1y": 100.7,
-          "weight": 3.5
-        },
-        {
-          "ticker": "HIMX",
-          "shares": 231.68,
-          "price": 17.7,
-          "value": 4100.74,
-          "beta": 1.91,
-          "sharpe": 0.99,
-          "ret_1y": 102.2,
-          "weight": 3.5
-        },
-        {
-          "ticker": "APP",
-          "shares": 7.0,
-          "price": 496.77,
-          "value": 3477.39,
-          "beta": 2.25,
-          "sharpe": 1.5,
-          "ret_1y": 30.5,
-          "weight": 2.9
-        }
-      ],
-      "skipped": [],
-      "asof": "2026-06-12"
-    }
   },
   "interpretation": {
     "readings": {
