@@ -259,6 +259,25 @@ def build_email(data, prev_snap):
             {rows}
           </div>''')
 
+    # Plain-English summary + Watch/Consider (single source of truth from the pipeline)
+    summary = _g(data, "interpretation", "summary", default="")
+    watch = _g(data, "interpretation", "watch", default=[]) or []
+    if summary:
+        parts.append(f'''
+          <div style="margin-top:18px;padding:14px;background:#161B22;border:1px solid #232A33;border-radius:12px">
+            <div style="font:600 11px sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8B949E;margin-bottom:6px">Where it stands</div>
+            <div style="font-size:14px;line-height:1.5;color:#E6EDF3">{summary}</div>
+          </div>''')
+    if watch:
+        items = "".join(
+            f'<div style="padding:6px 0;border-top:1px solid #232A33;font-size:13.5px;line-height:1.45">→ {w}</div>'
+            for w in watch)
+        parts.append(f'''
+          <div style="margin-top:14px">
+            <div style="font:600 11px sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">Watch / Consider</div>
+            {items}
+          </div>''')
+
     if alerts:
         rows = "".join(
             f'<div style="padding:7px 0;border-top:1px solid #232A33;font-size:13.5px">'
