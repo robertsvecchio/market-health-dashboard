@@ -1559,16 +1559,28 @@ def run(no_breadth=False):
     result["catalysts"]["upcoming"] = upcoming_catalysts(30)
 
     # ---- Portfolio context ----
-    try:
-        import sys as _sys, os as _os
-        _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
-        from config.watchlist import ROTH_IRA
-    except ImportError:
-        ROTH_IRA = []
+    # Positions loaded from PORTFOLIO_POSITIONS secret (format: TICKER:shares,TICKER:shares)
+    # Never committed to the repo.
+    def _parse_positions(env_str):
+        positions = []
+        if not env_str:
+            return positions
+        for item in env_str.strip().split(","):
+            item = item.strip()
+            if ":" not in item:
+                continue
+            try:
+                ticker, shares = item.split(":", 1)
+                positions.append((ticker.strip(), float(shares.strip())))
+            except Exception:
+                continue
+        return positions
+
+    _positions = _parse_positions(os.environ.get("PORTFOLIO_POSITIONS", ""))
     _risk_score = (result.get("scores", {}).get("composite") or {}).get("value")
     result["portfolio"] = {}
     try:
-        result["portfolio"]["roth_ira"] = pull_portfolio(ROTH_IRA, _risk_score)
+        result["portfolio"]["roth_ira"] = pull_portfolio(_positions, _risk_score)
     except Exception as e:
         result["portfolio"]["roth_ira"] = {"status": "unavailable", "error": str(e)[:200]}
 
