@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-12T23:56:20.125425+00:00",
-    "generated_display": "Jun 12 2026, 3:56 PM PT",
+    "generated_utc": "2026-06-12T23:58:06.130548+00:00",
+    "generated_display": "Jun 12 2026, 3:58 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -374,12 +374,12 @@
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
     "mcclellan": {
-      "value": 120.85,
+      "value": 121.99,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 430.761,
-      "ema39": 309.91,
+      "ema19": 445.115,
+      "ema39": 323.129,
       "negative": false
     }
   },
@@ -405,63 +405,63 @@
       "ai_tech": {
         "value": {
           "artificial intelligence stocks": 0,
-          "nvidia stock": 36
+          "nvidia stock": 31
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['artificial intelligence stocks', 'nvidia stock']",
         "momentum_pct": {
           "artificial intelligence stocks": -100.0,
-          "nvidia stock": -9.4
+          "nvidia stock": -15.6
         }
       },
       "energy": {
         "value": {
-          "oil stocks": 5,
+          "oil stocks": 6,
           "uranium stocks": 0
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
         "momentum_pct": {
-          "oil stocks": -33.3,
+          "oil stocks": -20.0,
           "uranium stocks": -100.0
         }
       },
       "defense": {
         "value": {
-          "defense stocks": 5
+          "defense stocks": 6
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['defense stocks']",
         "momentum_pct": {
-          "defense stocks": -28.6
+          "defense stocks": -11.1
         }
       },
       "financials": {
         "value": {
           "bank stocks": 2,
-          "interest rates": 32
+          "interest rates": 30
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
         "momentum_pct": {
           "bank stocks": -27.3,
-          "interest rates": -18.5
+          "interest rates": -23.6
         }
       },
       "fear_greed": {
         "value": {
-          "stock market crash": 11,
+          "stock market crash": 12,
           "recession 2026": 10
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
         "momentum_pct": {
-          "stock market crash": -53.2,
+          "stock market crash": -50.0,
           "recession 2026": -20.0
         }
       }
