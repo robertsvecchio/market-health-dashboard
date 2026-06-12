@@ -1095,7 +1095,9 @@ def pull_portfolio(positions, risk_score=None):
                              auto_adjust=True, progress=False)
         if spy_df is None or spy_df.empty:
             return {"status": "unavailable", "error": "SPY benchmark data unavailable"}
-        spy = spy_df["Close"].dropna() if "Close" in spy_df else spy_df.iloc[:, 0].dropna()
+        if isinstance(spy_df.columns, pd.MultiIndex):
+            spy_df.columns = spy_df.columns.droplevel(1)
+        spy = spy_df["Close"].dropna() if "Close" in spy_df.columns else spy_df.iloc[:, 0].dropna()
 
         # Fetch each ticker individually — avoids all multi-ticker column structure issues
         holdings = []
@@ -1107,7 +1109,10 @@ def pull_portfolio(positions, risk_score=None):
                 if df is None or df.empty or len(df) < 30:
                     skipped.append(ticker)
                     continue
-                px = df["Close"].dropna() if "Close" in df else df.iloc[:, 0].dropna()
+                # yfinance sometimes returns MultiIndex columns even for single tickers
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.droplevel(1)
+                px = df["Close"].dropna() if "Close" in df.columns else df.iloc[:, 0].dropna()
                 if len(px) < 30:
                     skipped.append(ticker)
                     continue
