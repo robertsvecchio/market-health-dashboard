@@ -23,7 +23,7 @@ permissions:
 # older in-progress one rather than committing twice.
 concurrency:
   group: update-dashboard
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   refresh:
@@ -50,21 +50,11 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
           ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
-
+          PORTFOLIO_POSITIONS: ${{ secrets.PORTFOLIO_POSITIONS }}
         run: |
           python scripts/fetch_data.py
           echo "----- source health -----"
-          python -c "import json; print(json.load(open('data/latest.json'))['source_health'])"
-
-      # Phases 4 & 3 add these files later. The guards mean this same workflow
-      # keeps working now (before they exist) and after — you never edit it again.
-      - name: Build dashboard (if present)
-        run: |
-          if [ -f scripts/build_dashboard.py ]; then
-            python scripts/build_dashboard.py
-          else
-            echo "scripts/build_dashboard.py not present yet — skipping (Phase 4)."
-          fi
+          python -c "import json; print(json.load(open('docs/data/latest.json'))['source_health'])"
 
       - name: Send alerts (if present)
         env:
@@ -74,14 +64,13 @@ jobs:
           if [ -f scripts/send_alerts.py ]; then
             python scripts/send_alerts.py
           else
-            echo "scripts/send_alerts.py not present yet — skipping (Phase 3)."
+            echo "scripts/send_alerts.py not present yet — skipping."
           fi
 
       - name: Commit refreshed data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Stage whatever the pipeline produced/updated.
           git add docs/data/latest.json data/state.json docs/index.html 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit."
