@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-12T18:20:33.960130+00:00",
-    "generated_display": "Jun 12 2026, 10:20 AM PT",
+    "generated_utc": "2026-06-12T18:51:14.517756+00:00",
+    "generated_display": "Jun 12 2026, 10:51 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -290,30 +290,30 @@
       "vs_mean": 6.0
     },
     "ad_line_proxy": {
-      "value": 0.28561,
+      "value": 0.28545,
       "status": "ok",
       "source": "yfinance:RSP/SPY",
       "notes": "equal-weight/cap-weight ratio; proxy for NYSE A/D divergence",
       "ratio_ma50": 0.28174,
-      "spy_21d_pct": -0.99,
-      "ratio_21d_pct": 4.92,
+      "spy_21d_pct": -0.87,
+      "ratio_21d_pct": 4.86,
       "bearish_divergence": false
     }
   },
   "trend": {
     "spx_price": {
-      "value": 7419.11,
+      "value": 7429.05,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "asof": "2026-06-12"
     },
     "spx_vs_200dma": {
-      "value": 7.81,
+      "value": 7.95,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "percent above/below 200-day moving average",
-      "price": 7419.11,
-      "dma200": 6881.93
+      "price": 7429.05,
+      "dma200": 6881.98
     },
     "dma200_slope": {
       "value": "rising",
@@ -323,17 +323,17 @@
       "change_pct": 1.584
     },
     "dma50": {
-      "value": 7247.54,
+      "value": 7247.74,
       "status": "ok",
       "source": "yfinance:^GSPC"
     },
     "weekly_macd": {
-      "value": 47.856,
+      "value": 48.49,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "weekly MACD histogram; <0 = bearish momentum",
-      "macd_line": 208.575,
-      "signal_line": 160.719,
+      "macd_line": 209.368,
+      "signal_line": 160.878,
       "bearish": false
     }
   },
@@ -344,7 +344,7 @@
       "source": "github_csv"
     },
     "pct_above_200dma": {
-      "value": 60.7,
+      "value": 60.9,
       "status": "ok",
       "source": "Alpaca S&P500 internals",
       "notes": "percent of S&P 500 members above their 200-DMA",
@@ -356,36 +356,36 @@
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "PROXY on S&P500 (true indicator is NYSE-wide). Single-day flag; cluster (2+/30d) is the real alert \u2014 tracked by alert script over time.",
-      "new_high_pct": 7.39,
-      "new_low_pct": 1.6
+      "new_high_pct": 7.78,
+      "new_low_pct": 1.2
     },
     "titanic_syndrome_today": {
       "value": false,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "PROXY on S&P500. Real signal needs a 52wk index high within 7 sessions; alert script confirms timing across runs.",
-      "new_highs": 37,
-      "new_lows": 8
+      "new_highs": 39,
+      "new_lows": 6
     },
     "zweig_adv_ratio": {
-      "value": 0.748,
+      "value": 0.76,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
     "mcclellan": {
-      "value": 55.55,
+      "value": 68.02,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 215.942,
-      "ema39": 160.395,
+      "ema19": 246.444,
+      "ema39": 178.423,
       "negative": false
     }
   },
   "sentiment": {
     "vix": {
-      "value": 18.28,
+      "value": 18.27,
       "status": "ok",
       "source": "yfinance:^VIX",
       "asof": "2026-06-12",
@@ -405,14 +405,14 @@
       "ai_tech": {
         "value": {
           "artificial intelligence stocks": 0,
-          "nvidia stock": 30
+          "nvidia stock": 29
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['artificial intelligence stocks', 'nvidia stock']",
         "momentum_pct": {
           "artificial intelligence stocks": -100.0,
-          "nvidia stock": -18.9
+          "nvidia stock": -21.6
         }
       },
       "energy": {
@@ -442,14 +442,14 @@
       "financials": {
         "value": {
           "bank stocks": 2,
-          "interest rates": 32
+          "interest rates": 31
         },
         "status": "ok",
         "source": "GoogleTrends",
         "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
         "momentum_pct": {
           "bank stocks": -27.3,
-          "interest rates": -17.4
+          "interest rates": -20.0
         }
       },
       "fear_greed": {
@@ -470,103 +470,103 @@
   "sectors": {
     "relative_strength": {
       "XLK": {
-        "value": 22.35,
+        "value": 22.52,
         "status": "ok",
         "source": "yfinance:XLK",
         "notes": "Technology: 3-month relative strength vs SPY (pct pts)",
         "name": "Technology",
-        "rsi": 55.7,
-        "sector_3m_pct": 33.08
+        "rsi": 56.1,
+        "sector_3m_pct": 33.38
       },
       "XLF": {
-        "value": -2.82,
+        "value": -2.75,
         "status": "ok",
         "source": "yfinance:XLF",
         "notes": "Financials: 3-month relative strength vs SPY (pct pts)",
         "name": "Financials",
-        "rsi": 64.0,
-        "sector_3m_pct": 7.92
+        "rsi": 64.6,
+        "sector_3m_pct": 8.1
       },
       "XLE": {
-        "value": -11.0,
+        "value": -11.35,
         "status": "ok",
         "source": "yfinance:XLE",
         "notes": "Energy: 3-month relative strength vs SPY (pct pts)",
         "name": "Energy",
-        "rsi": 49.0,
-        "sector_3m_pct": -0.26
+        "rsi": 48.3,
+        "sector_3m_pct": -0.49
       },
       "XLV": {
-        "value": -8.87,
+        "value": -9.04,
         "status": "ok",
         "source": "yfinance:XLV",
         "notes": "Health Care: 3-month relative strength vs SPY (pct pts)",
         "name": "Health Care",
-        "rsi": 62.2,
-        "sector_3m_pct": 1.87
+        "rsi": 61.9,
+        "sector_3m_pct": 1.81
       },
       "XLI": {
-        "value": -4.67,
+        "value": -4.61,
         "status": "ok",
         "source": "yfinance:XLI",
         "notes": "Industrials: 3-month relative strength vs SPY (pct pts)",
         "name": "Industrials",
-        "rsi": 55.8,
-        "sector_3m_pct": 6.07
+        "rsi": 56.3,
+        "sector_3m_pct": 6.24
       },
       "XLB": {
-        "value": -4.88,
+        "value": -4.98,
         "status": "ok",
         "source": "yfinance:XLB",
         "notes": "Materials: 3-month relative strength vs SPY (pct pts)",
         "name": "Materials",
-        "rsi": 57.8,
-        "sector_3m_pct": 5.86
+        "rsi": 57.9,
+        "sector_3m_pct": 5.88
       },
       "XLU": {
-        "value": -16.69,
+        "value": -16.73,
         "status": "ok",
         "source": "yfinance:XLU",
         "notes": "Utilities: 3-month relative strength vs SPY (pct pts)",
         "name": "Utilities",
-        "rsi": 49.1,
-        "sector_3m_pct": -5.96
+        "rsi": 49.5,
+        "sector_3m_pct": -5.88
       },
       "XLP": {
-        "value": -9.85,
+        "value": -9.95,
         "status": "ok",
         "source": "yfinance:XLP",
         "notes": "Consumer Staples: 3-month relative strength vs SPY (pct pts)",
         "name": "Consumer Staples",
-        "rsi": 60.6,
-        "sector_3m_pct": 0.88
+        "rsi": 60.7,
+        "sector_3m_pct": 0.91
       },
       "XLRE": {
-        "value": -4.41,
+        "value": -4.42,
         "status": "ok",
         "source": "yfinance:XLRE",
         "notes": "Real Estate: 3-month relative strength vs SPY (pct pts)",
         "name": "Real Estate",
-        "rsi": 61.2,
-        "sector_3m_pct": 6.33
+        "rsi": 61.6,
+        "sector_3m_pct": 6.43
       },
       "XLY": {
-        "value": -7.27,
+        "value": -7.32,
         "status": "ok",
         "source": "yfinance:XLY",
         "notes": "Consumer Discretionary: 3-month relative strength vs SPY (pct pts)",
         "name": "Consumer Discretionary",
-        "rsi": 46.7,
-        "sector_3m_pct": 3.46
+        "rsi": 46.9,
+        "sector_3m_pct": 3.54
       },
       "XLC": {
-        "value": -13.73,
+        "value": -13.9,
         "status": "ok",
         "source": "yfinance:XLC",
         "notes": "Communication Services: 3-month relative strength vs SPY (pct pts)",
         "name": "Communication Services",
-        "rsi": 39.1,
-        "sector_3m_pct": -2.99
+        "rsi": 38.9,
+        "sector_3m_pct": -3.04
       }
     },
     "cycle_phase": {
@@ -629,7 +629,7 @@
         "cape": 92.5,
         "buffett": 99.2,
         "ecy": 79.66666666666667,
-        "breadth": 39.3
+        "breadth": 39.1
       },
       "cycle_inputs": {
         "goldman": 56.6,
@@ -638,7 +638,7 @@
       }
     },
     "structural_score": {
-      "value": 77.7,
+      "value": 77.6,
       "status": "ok",
       "source": "derived",
       "label": "High Risk"
@@ -661,21 +661,21 @@
       "status": "unavailable",
       "error": "no price data returned",
       "skipped": [
-        "MU(Must specify axis=0 or 1)",
-        "SEZL(Must specify axis=0 or 1)",
-        "CNC(Must specify axis=0 or 1)",
-        "CRDO(Must specify axis=0 or 1)",
-        "CLS(Must specify axis=0 or 1)",
-        "AMZN(Must specify axis=0 or 1)",
-        "LITE(Must specify axis=0 or 1)",
-        "ONDS(Must specify axis=0 or 1)",
-        "MPC(Must specify axis=0 or 1)",
-        "REPX(Must specify axis=0 or 1)",
-        "NEXA(Must specify axis=0 or 1)",
-        "VVX(Must specify axis=0 or 1)",
-        "APP(Must specify axis=0 or 1)",
-        "BRK-B(Must specify axis=0 or 1)",
-        "HIMX(Must specify axis=0 or 1)"
+        "MU",
+        "SEZL",
+        "CNC",
+        "CRDO",
+        "CLS",
+        "AMZN",
+        "LITE",
+        "ONDS",
+        "MPC",
+        "REPX",
+        "NEXA",
+        "VVX",
+        "APP",
+        "BRK-B",
+        "HIMX"
       ]
     }
   },
