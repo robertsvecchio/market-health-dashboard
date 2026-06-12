@@ -56,7 +56,7 @@ except Exception as e:  # pragma: no cover
 # Constants & configuration
 # ---------------------------------------------------------------------------
 
-OUTPUT_PATH = os.environ.get("OUTPUT_PATH", "data/latest.json")
+OUTPUT_PATH = os.environ.get("OUTPUT_PATH", "docs/data/latest.json")
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY", "")
 ALPACA_KEY = os.environ.get("ALPACA_KEY", "")
