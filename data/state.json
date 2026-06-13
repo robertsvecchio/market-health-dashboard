@@ -1,8 +1,8 @@
 {
-  "last_run_utc": "2026-06-12T23:58:06.130548+00:00",
+  "last_run_utc": "2026-06-13T15:42:33.734628+00:00",
   "mcclellan": {
-    "ema19": 445.1149686772345,
-    "ema39": 323.1291917771289
+    "ema19": 458.0331906850131,
+    "ema39": 335.68759162602345
   },
   "alerts": {
     "last_snapshot": {
@@ -15,12 +15,25 @@
       "hindenburg": false,
       "titanic": false
     },
-    "last_sent_utc": "2026-06-12T23:58:33.262308+00:00",
+    "last_sent_utc": "2026-06-13T15:42:56.592090+00:00",
     "last_send_ok": true
   },
   "history": [
     {
       "date": "2026-06-12",
+      "composite": 68.5,
+      "structural": 77.7,
+      "cycle": 59.4,
+      "cape": 41.43,
+      "buffett_z": 2.46,
+      "yield_curve": 0.7,
+      "hy_oas": 2.78,
+      "vix": 17.68,
+      "pct_above_200": 60.7,
+      "goldman": 56.3
+    },
+    {
+      "date": "2026-06-13",
       "composite": 68.5,
       "structural": 77.7,
       "cycle": 59.4,
