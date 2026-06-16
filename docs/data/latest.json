@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-16T18:27:41.293806+00:00",
-    "generated_display": "Jun 16 2026, 10:27 AM PT",
+    "generated_utc": "2026-06-16T18:42:10.982959+00:00",
+    "generated_display": "Jun 16 2026, 10:42 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -290,30 +290,30 @@
       "vs_mean": 6.0
     },
     "ad_line_proxy": {
-      "value": 0.28296,
+      "value": 0.28293,
       "status": "ok",
       "source": "yfinance:RSP/SPY",
       "notes": "equal-weight/cap-weight ratio; proxy for NYSE A/D divergence",
       "ratio_ma50": 0.28126,
-      "spy_21d_pct": 1.84,
-      "ratio_21d_pct": 3.06,
+      "spy_21d_pct": 1.8,
+      "ratio_21d_pct": 3.05,
       "bearish_divergence": false
     }
   },
   "trend": {
     "spx_price": {
-      "value": 7533.15,
+      "value": 7529.99,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "asof": "2026-06-16"
     },
     "spx_vs_200dma": {
-      "value": 9.29,
+      "value": 9.25,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "percent above/below 200-day moving average",
-      "price": 7533.15,
-      "dma200": 6892.52
+      "price": 7529.99,
+      "dma200": 6892.5
     },
     "dma200_slope": {
       "value": "rising",
@@ -323,17 +323,17 @@
       "change_pct": 1.582
     },
     "dma50": {
-      "value": 7285.65,
+      "value": 7285.58,
       "status": "ok",
       "source": "yfinance:^GSPC"
     },
     "weekly_macd": {
-      "value": 44.925,
+      "value": 44.723,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "weekly MACD histogram; <0 = bearish momentum",
-      "macd_line": 217.073,
-      "signal_line": 172.148,
+      "macd_line": 216.821,
+      "signal_line": 172.097,
       "bearish": false
     }
   },
@@ -344,7 +344,7 @@
       "source": "github_csv"
     },
     "pct_above_200dma": {
-      "value": 61.5,
+      "value": 61.7,
       "status": "ok",
       "source": "Alpaca S&P500 internals",
       "notes": "percent of S&P 500 members above their 200-DMA",
@@ -356,7 +356,7 @@
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "PROXY on S&P500 (true indicator is NYSE-wide). Single-day flag; cluster (2+/30d) is the real alert \u2014 tracked by alert script over time.",
-      "new_high_pct": 4.59,
+      "new_high_pct": 4.39,
       "new_low_pct": 0.6
     },
     "titanic_syndrome_today": {
@@ -364,28 +364,28 @@
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "PROXY on S&P500. Real signal needs a 52wk index high within 7 sessions; alert script confirms timing across runs.",
-      "new_highs": 23,
+      "new_highs": 22,
       "new_lows": 3
     },
     "zweig_adv_ratio": {
-      "value": 0.587,
+      "value": 0.59,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
     "mcclellan": {
-      "value": 64.1,
+      "value": 50.69,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 384.196,
-      "ema39": 320.095,
+      "ema19": 363.777,
+      "ema39": 313.09,
       "negative": false
     }
   },
   "sentiment": {
     "vix": {
-      "value": 15.87,
+      "value": 15.81,
       "status": "ok",
       "source": "yfinance:^VIX",
       "asof": "2026-06-16",
@@ -410,29 +410,37 @@
         "notes": "['artificial intelligence stocks', 'nvidia stock']"
       },
       "energy": {
-        "value": null,
-        "status": "unavailable",
-        "source": "GoogleTrends",
-        "error": "The request failed: Google returned a response with code 429",
-        "notes": "['oil stocks', 'uranium stocks']"
-      },
-      "defense": {
         "value": {
-          "defense stocks": 10
+          "oil stocks": 9,
+          "uranium stocks": 1
         },
         "status": "ok",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['defense stocks']",
+        "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
         "momentum_pct": {
-          "defense stocks": 0.0
+          "oil stocks": -2.7,
+          "uranium stocks": 33.3
         }
       },
-      "financials": {
+      "defense": {
         "value": null,
         "status": "unavailable",
         "source": "GoogleTrends",
         "error": "The request failed: Google returned a response with code 429",
-        "notes": "['bank stocks', 'interest rates']"
+        "notes": "['defense stocks']"
+      },
+      "financials": {
+        "value": {
+          "bank stocks": 3,
+          "interest rates": 43
+        },
+        "status": "ok",
+        "source": "GoogleTrends",
+        "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
+        "momentum_pct": {
+          "bank stocks": 20.0,
+          "interest rates": 20.3
+        }
       },
       "fear_greed": {
         "value": {
@@ -452,103 +460,103 @@
   "sectors": {
     "relative_strength": {
       "XLK": {
-        "value": 22.61,
+        "value": 22.47,
         "status": "ok",
         "source": "yfinance:XLK",
         "notes": "Technology: 3-month relative strength vs SPY (pct pts)",
         "name": "Technology",
-        "rsi": 57.3,
-        "sector_3m_pct": 36.34
+        "rsi": 57.1,
+        "sector_3m_pct": 36.17
       },
       "XLF": {
-        "value": -2.88,
+        "value": -2.9,
         "status": "ok",
         "source": "yfinance:XLF",
         "notes": "Financials: 3-month relative strength vs SPY (pct pts)",
         "name": "Financials",
-        "rsi": 70.8,
-        "sector_3m_pct": 10.84
+        "rsi": 70.7,
+        "sector_3m_pct": 10.79
       },
       "XLE": {
-        "value": -19.07,
+        "value": -19.03,
         "status": "ok",
         "source": "yfinance:XLE",
         "notes": "Energy: 3-month relative strength vs SPY (pct pts)",
         "name": "Energy",
-        "rsi": 39.1,
-        "sector_3m_pct": -5.35
+        "rsi": 39.2,
+        "sector_3m_pct": -5.33
       },
       "XLV": {
-        "value": -9.78,
+        "value": -9.84,
         "status": "ok",
         "source": "yfinance:XLV",
         "notes": "Health Care: 3-month relative strength vs SPY (pct pts)",
         "name": "Health Care",
-        "rsi": 59.0,
-        "sector_3m_pct": 3.95
+        "rsi": 58.6,
+        "sector_3m_pct": 3.86
       },
       "XLI": {
-        "value": -4.29,
+        "value": -4.3,
         "status": "ok",
         "source": "yfinance:XLI",
         "notes": "Industrials: 3-month relative strength vs SPY (pct pts)",
         "name": "Industrials",
-        "rsi": 62.9,
-        "sector_3m_pct": 9.44
+        "rsi": 62.8,
+        "sector_3m_pct": 9.39
       },
       "XLB": {
-        "value": -4.77,
+        "value": -4.82,
         "status": "ok",
         "source": "yfinance:XLB",
         "notes": "Materials: 3-month relative strength vs SPY (pct pts)",
         "name": "Materials",
-        "rsi": 60.5,
-        "sector_3m_pct": 8.95
+        "rsi": 60.3,
+        "sector_3m_pct": 8.88
       },
       "XLU": {
-        "value": -17.13,
+        "value": -17.15,
         "status": "ok",
         "source": "yfinance:XLU",
         "notes": "Utilities: 3-month relative strength vs SPY (pct pts)",
         "name": "Utilities",
-        "rsi": 55.5,
-        "sector_3m_pct": -3.4
+        "rsi": 55.3,
+        "sector_3m_pct": -3.46
       },
       "XLP": {
-        "value": -10.26,
+        "value": -10.2,
         "status": "ok",
         "source": "yfinance:XLP",
         "notes": "Consumer Staples: 3-month relative strength vs SPY (pct pts)",
         "name": "Consumer Staples",
-        "rsi": 58.7,
-        "sector_3m_pct": 3.46
+        "rsi": 58.9,
+        "sector_3m_pct": 3.49
       },
       "XLRE": {
-        "value": -6.5,
+        "value": -6.39,
         "status": "ok",
         "source": "yfinance:XLRE",
         "notes": "Real Estate: 3-month relative strength vs SPY (pct pts)",
         "name": "Real Estate",
-        "rsi": 57.9,
-        "sector_3m_pct": 7.22
+        "rsi": 58.2,
+        "sector_3m_pct": 7.31
       },
       "XLY": {
-        "value": -6.41,
+        "value": -6.36,
         "status": "ok",
         "source": "yfinance:XLY",
         "notes": "Consumer Discretionary: 3-month relative strength vs SPY (pct pts)",
         "name": "Consumer Discretionary",
-        "rsi": 54.3,
-        "sector_3m_pct": 7.31
+        "rsi": 54.4,
+        "sector_3m_pct": 7.33
       },
       "XLC": {
-        "value": -15.07,
+        "value": -14.96,
         "status": "ok",
         "source": "yfinance:XLC",
         "notes": "Communication Services: 3-month relative strength vs SPY (pct pts)",
         "name": "Communication Services",
-        "rsi": 41.1,
-        "sector_3m_pct": -1.35
+        "rsi": 41.6,
+        "sector_3m_pct": -1.26
       }
     },
     "cycle_phase": {
@@ -616,7 +624,7 @@
         "cape": 95.0,
         "buffett": 99.2,
         "ecy": 80.0,
-        "breadth": 38.5
+        "breadth": 38.3
       },
       "cycle_inputs": {
         "goldman": 55.6,
@@ -625,7 +633,7 @@
       }
     },
     "structural_score": {
-      "value": 78.2,
+      "value": 78.1,
       "status": "ok",
       "source": "derived",
       "label": "High Risk"
@@ -638,10 +646,10 @@
     }
   },
   "source_health": {
-    "ok": 49,
+    "ok": 50,
     "manual": 1,
     "proxy": 4,
-    "unavailable": 4
+    "unavailable": 3
   },
   "interpretation": {
     "readings": {
@@ -660,7 +668,7 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "15.9 \u2014 normal.",
+      "vix": "15.8 \u2014 normal.",
       "pct_above_200dma": "62% of the S&P 500 above its 200-DMA \u2014 broad participation \u2014 healthy.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
