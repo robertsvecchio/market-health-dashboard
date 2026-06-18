@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-18T08:00:39.029893+00:00",
-    "generated_display": "Jun 18 2026, 12:00 AM PT",
+    "generated_utc": "2026-06-18T08:16:03.724658+00:00",
+    "generated_display": "Jun 18 2026, 12:16 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -352,12 +352,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -74.34,
+      "value": -112.36,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 118.17,
-      "ema39": 192.511,
+      "ema19": 34.696,
+      "ema39": 147.057,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -421,12 +421,12 @@
   },
   "sentiment": {
     "vix": {
-      "value": 17.12,
+      "value": 17.03,
       "status": "ok",
       "source": "yfinance:^VIX",
       "asof": "2026-06-18",
       "notes": "CBOE Volatility Index",
-      "ma20": 17.44,
+      "ma20": 17.43,
       "above_30": false,
       "above_40": false
     },
@@ -440,38 +440,59 @@
     "google_trends": {
       "ai_tech": {
         "value": null,
-        "status": "unavailable",
+        "status": "proxy",
         "source": "GoogleTrends",
-        "error": "The request failed: Google returned a response with code 429",
-        "notes": "['artificial intelligence stocks', 'nvidia stock']"
+        "notes": "Rate-limited or error for ['artificial intelligence stocks', 'nvidia stock']; stale."
       },
       "energy": {
-        "value": null,
-        "status": "unavailable",
+        "value": {
+          "oil stocks": 9,
+          "uranium stocks": 1
+        },
+        "status": "ok",
         "source": "GoogleTrends",
-        "error": "The request failed: Google returned a response with code 429",
-        "notes": "['oil stocks', 'uranium stocks']"
+        "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
+        "momentum_pct": {
+          "oil stocks": -18.2,
+          "uranium stocks": 0.0
+        }
       },
       "defense": {
-        "value": null,
-        "status": "unavailable",
+        "value": {
+          "defense stocks": 11
+        },
+        "status": "ok",
         "source": "GoogleTrends",
-        "error": "The request failed: Google returned a response with code 429",
-        "notes": "['defense stocks']"
+        "notes": "interest 0-100 for ['defense stocks']",
+        "momentum_pct": {
+          "defense stocks": 0.0
+        }
       },
       "financials": {
-        "value": null,
-        "status": "unavailable",
+        "value": {
+          "bank stocks": 3,
+          "interest rates": 57
+        },
+        "status": "ok",
         "source": "GoogleTrends",
-        "error": "The request failed: Google returned a response with code 429",
-        "notes": "['bank stocks', 'interest rates']"
+        "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
+        "momentum_pct": {
+          "bank stocks": 9.1,
+          "interest rates": 34.1
+        }
       },
       "fear_greed": {
-        "value": null,
-        "status": "unavailable",
+        "value": {
+          "stock market crash": 12,
+          "recession 2026": 11
+        },
+        "status": "ok",
         "source": "GoogleTrends",
-        "error": "The request failed: Google returned a response with code 429",
-        "notes": "['stock market crash', 'recession 2026']"
+        "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
+        "momentum_pct": {
+          "stock market crash": -5.9,
+          "recession 2026": -8.3
+        }
       }
     }
   },
@@ -659,10 +680,10 @@
     }
   },
   "source_health": {
-    "ok": 47,
+    "ok": 51,
     "manual": 1,
-    "proxy": 4,
-    "unavailable": 6
+    "proxy": 5,
+    "unavailable": 1
   },
   "interpretation": {
     "readings": {
@@ -681,7 +702,7 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "17.1 \u2014 normal.",
+      "vix": "17.0 \u2014 normal.",
       "pct_above_200dma": "58% of the S&P 500 above its 200-DMA \u2014 narrowing \u2014 fewer names holding up the index.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
