@@ -1,23 +1,23 @@
 {
-  "last_run_utc": "2026-06-18T19:02:03.683535+00:00",
+  "last_run_utc": "2026-06-18T21:54:45.480156+00:00",
   "mcclellan": {
-    "ema19": 1.8104414887144813,
-    "ema39": 61.528489617112804
+    "ema19": 7.629397339843034,
+    "ema39": 61.45206513625716
   },
   "alerts": {
     "last_snapshot": {
-      "composite": 68.8,
+      "composite": 69.2,
       "label": "Elevated Risk",
-      "goldman": 55.4,
-      "yield_curve": 0.66,
-      "vix": 16.77,
-      "pct_above_200": 57.1,
+      "goldman": 56.0,
+      "yield_curve": 0.63,
+      "vix": 16.4,
+      "pct_above_200": 57.7,
       "hindenburg": true,
       "titanic": true,
       "hindenburg_confirmed": true,
       "titanic_confirmed": true
     },
-    "last_sent_utc": "2026-06-18T19:02:43.021827+00:00",
+    "last_sent_utc": "2026-06-18T21:55:15.524019+00:00",
     "last_send_ok": true
   },
   "history": [
@@ -490,20 +490,22 @@
     },
     {
       "date": "2026-06-18",
-      "composite": 68.8,
-      "structural": 78.4,
-      "cycle": 59.2,
-      "cape": 41.38,
+      "composite": 69.2,
+      "structural": 79.0,
+      "cycle": 59.4,
+      "cape": 41.71,
       "buffett_z": 2.46,
-      "yield_curve": 0.66,
+      "yield_curve": 0.63,
       "hy_oas": 2.63,
-      "vix": 16.77,
-      "pct_above_200": 57.1,
-      "goldman": 55.4,
+      "vix": 16.4,
+      "pct_above_200": 57.7,
+      "goldman": 56.0,
       "hindenburg_raw": true,
       "titanic_raw": true,
-      "new_high_pct": 4.19,
-      "new_low_pct": 4.99
+      "new_high_pct": 3.79,
+      "new_low_pct": 4.39,
+      "fear_greed": 37.5,
+      "umich": 49.8
     }
   ]
 }
