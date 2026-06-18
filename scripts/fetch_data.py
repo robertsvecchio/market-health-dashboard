@@ -92,6 +92,9 @@ FRED_SERIES = {
     "core_cpi":          ("CPILFESL",           "Core CPI (ex food & energy), index"),
     "core_pce":          ("PCEPILFE",           "Core PCE price index (Fed's preferred inflation gauge), index"),
     "ppi":               ("PPIFIS",             "Producer Price Index, Final Demand (SA) — leads CPI by 1-3 months"),
+    "philly_coincident": ("USPHCI",             "Philly Fed Coincident Index — 4-factor current economic activity"),
+    "sahm_rule":         ("SAHMREALTIME",       "Sahm Rule: 3mo avg unemployment rise from 12mo low. >=0.5 = recession onset"),
+    "recession_prob":    ("RECPROUSM156N",       "Chauvet-Piger smoothed recession probability (0-100%)"),
     "fed_funds":         ("DFF",                "Effective federal funds rate"),
     "umich_sentiment":   ("UMCSENT",            "U. Michigan Consumer Sentiment"),
     "avg_hourly_earnings":("CES0500000003",     "Average hourly earnings, total private (for real wage growth)"),
@@ -105,6 +108,7 @@ FRED_SERIES = {
 # How far back to look when computing a metric's trend, by series cadence.
 TREND_LOOKBACK = {
     "lei": 3, "yield_curve_10y3m": 21, "nfci_leverage": 4, "unemployment": 3,
+    "philly_coincident": 3, "sahm_rule": 1, "recession_prob": 3,
     "lending_standards": 1,
     "cc_delinquency": 1, "auto_delinquency": 1, "savings_rate": 3, "debt_service": 1,
     "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "ppi": 3, "fed_funds": 21,
