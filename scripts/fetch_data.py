@@ -878,6 +878,23 @@ def pull_put_call():
 # Google Trends
 # ---------------------------------------------------------------------------
 
+def _pytrends_fetch(py, terms, retries=3):
+    """Fetch one theme with exponential backoff on 429. Returns DataFrame or raises."""
+    for attempt in range(retries):
+        try:
+            py.build_payload(terms, timeframe="today 3-m")
+            df = py.interest_over_time()
+            return df
+        except Exception as e:
+            is_429 = "429" in str(e) or "Too Many Requests" in str(e)
+            if is_429 and attempt < retries - 1:
+                wait = 15 * (2 ** attempt)   # 15s, 30s, 60s
+                print(f"  GoogleTrends 429 on {terms}; retrying in {wait}s", flush=True)
+                time.sleep(wait)
+            else:
+                raise
+
+
 def pull_google_trends():
     out = {}
     try:
@@ -885,13 +902,15 @@ def pull_google_trends():
         py = TrendReq(hl="en-US", tz=480)
         for theme, terms in TRENDS_THEMES.items():
             try:
-                py.build_payload(terms, timeframe="today 3-m")
-                df = py.interest_over_time()
+                df = _pytrends_fetch(py, terms)
                 if df is None or df.empty:
-                    out[theme] = unavailable(source="GoogleTrends", notes=str(terms))
+                    # Rate-limited or empty — mark stale (proxy) not unavailable
+                    # so it costs -4 on confidence, not -8
+                    out[theme] = metric(None, status="proxy", source="GoogleTrends",
+                                        notes=f"No data returned for {terms}; stale.")
+                    time.sleep(8.0)
                     continue
                 latest = {t: int(df[t].iloc[-1]) for t in terms if t in df}
-                # momentum: latest vs 4-week trailing mean
                 mom = {}
                 for t in terms:
                     if t in df:
@@ -899,13 +918,16 @@ def pull_google_trends():
                         mom[t] = round((df[t].iloc[-1] / trail - 1) * 100, 1)
                 out[theme] = metric(latest, source="GoogleTrends",
                                     notes=f"interest 0-100 for {terms}", momentum_pct=mom)
-                time.sleep(1.0)
+                time.sleep(8.0)   # spacing between themes reduces 429 risk
             except Exception as e:
-                out[theme] = unavailable(source="GoogleTrends", error=e, notes=str(terms))
-                time.sleep(1.0)
+                # Still failed after retries — mark proxy (stale) not unavailable
+                print(f"  GoogleTrends failed for {theme}: {e}", flush=True)
+                out[theme] = metric(None, status="proxy", source="GoogleTrends",
+                                    notes=f"Rate-limited or error for {terms}; stale.")
+                time.sleep(8.0)
     except Exception as e:
-        return {"google_trends": unavailable(source="GoogleTrends", error=e,
-                notes="pytrends frequently rate-limited; non-fatal")}
+        return {"google_trends": metric(None, status="proxy", source="GoogleTrends",
+                notes=f"pytrends import/init failed: {str(e)[:100]}")}
     return out
 
 
