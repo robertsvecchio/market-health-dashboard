@@ -853,28 +853,80 @@ def finviz_pct_above_200():
 # Put/Call ratio (CBOE)
 # ---------------------------------------------------------------------------
 
+def _parse_cboe_csv(text):
+    """Parse CBOE put/call CSV. Returns (date_str, ratio_float) or raises."""
+    import io, csv as _csv
+    lines = [l for l in text.splitlines() if l.strip() and not l.startswith("For")]
+    # Skip header rows until we find the data header
+    data_rows = []
+    in_data = False
+    for line in lines:
+        low = line.lower()
+        if "trade_date" in low or ("date" in low and "call" in low):
+            in_data = True
+            continue
+        if in_data and line.strip():
+            data_rows.append(line)
+    if not data_rows:
+        raise ValueError("No data rows found in CSV")
+    # Last row = most recent trading day
+    last = list(_csv.reader([data_rows[-1]]))[0]
+    # Columns: Date, Call, Put, Total, P/C Ratio  (sometimes 4-column, ratio last)
+    date_str = last[0].strip()
+    ratio = float(last[-1].strip())   # P/C Ratio is always last column
+    if not (0.1 <= ratio <= 5.0):
+        raise ValueError(f"Implausible ratio: {ratio}")
+    return date_str, ratio
+
+
 def pull_put_call():
-    try:
-        url = "https://cdn.cboe.com/api/global/us_indices/daily_prices/_data/put_call_ratio.json"
-        r = requests.get(url, timeout=30,
-                         headers={"User-Agent": "Mozilla/5.0 (market-health-dashboard)"})
-        r.raise_for_status()
-        j = r.json()
-        # Shape varies; attempt to read the latest total put/call ratio.
-        val = None
-        if isinstance(j, dict) and "data" in j and j["data"]:
-            last = j["data"][-1]
-            for k in ("ratio", "total", "pc_ratio", "value"):
-                if k in last:
-                    val = float(last[k]); break
-        if val is None:
-            raise ValueError("CBOE put/call shape unrecognized")
-        return metric(round(val, 3), source="CBOE",
-                      notes="Total put/call ratio; <0.5 = euphoria (contrarian warning)",
-                      euphoria=bool(val < 0.5))
-    except Exception as e:
-        return unavailable(source="CBOE", error=e,
-                           notes="put/call optional; CBOE endpoints change frequently")
+    """
+    Fetch CBOE put/call ratio. Tries three endpoints in order:
+    1. totalpc.csv   — total (equity + index) — preferred; most complete
+    2. equitypc.csv  — equity-only (less index hedging distortion)
+    3. Legacy JSON   — old endpoint; often 403 but kept as final fallback
+    CSV format: Date, Call, Put, Total, P/C Ratio
+    """
+    HEADERS = {"User-Agent": "Mozilla/5.0 (market-health-dashboard/1.0)"}
+    candidates = [
+        ("https://cdn.cboe.com/resources/options/volume_and_call_put_ratios/totalpc.csv",  "total"),
+        ("https://cdn.cboe.com/resources/options/volume_and_call_put_ratios/equitypc.csv", "equity"),
+        ("https://cdn.cboe.com/api/global/us_indices/daily_prices/_data/put_call_ratio.json", "json"),
+    ]
+    last_err = None
+    for url, flavor in candidates:
+        try:
+            r = requests.get(url, timeout=20, headers=HEADERS)
+            r.raise_for_status()
+            if flavor == "json":
+                j = r.json()
+                val = None
+                if isinstance(j, dict) and "data" in j and j["data"]:
+                    last = j["data"][-1]
+                    for k in ("ratio", "total", "pc_ratio", "value"):
+                        if k in last:
+                            val = float(last[k]); break
+                if val is None:
+                    raise ValueError("JSON shape unrecognized")
+                date_str = "unknown"
+            else:
+                date_str, val = _parse_cboe_csv(r.text)
+            print(f"  put/call: {val:.3f} ({flavor}, {date_str})", flush=True)
+            return metric(round(val, 3), source=f"CBOE ({flavor})",
+                          notes="Put/call ratio. <0.5=euphoria (contrarian warning); "
+                                ">1.2=fear (contrarian opportunity). "
+                                "Equity-only cleaner than total for sentiment; total more complete.",
+                          asof=date_str,
+                          euphoria=bool(val < 0.5),
+                          fear=bool(val > 1.2))
+        except Exception as e:
+            last_err = e
+            print(f"  put/call {flavor} failed: {e}", flush=True)
+            continue
+    return unavailable(source="CBOE", error=last_err,
+                       notes="All three CBOE put/call endpoints failed. "
+                             "If totalpc.csv 403s on GitHub Actions, add cdn.cboe.com "
+                             "to network egress allowlist.")
 
 
 # ---------------------------------------------------------------------------
