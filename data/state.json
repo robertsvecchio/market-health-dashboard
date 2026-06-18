@@ -1,8 +1,8 @@
 {
-  "last_run_utc": "2026-06-18T18:43:27.821259+00:00",
+  "last_run_utc": "2026-06-18T19:02:03.683535+00:00",
   "mcclellan": {
-    "ema19": -4.000422393968991,
-    "ema39": 61.91903031102054
+    "ema19": 1.8104414887144813,
+    "ema39": 61.528489617112804
   },
   "alerts": {
     "last_snapshot": {
@@ -11,13 +11,13 @@
       "goldman": 55.4,
       "yield_curve": 0.66,
       "vix": 16.77,
-      "pct_above_200": 57.5,
+      "pct_above_200": 57.1,
       "hindenburg": true,
-      "titanic": false,
+      "titanic": true,
       "hindenburg_confirmed": true,
       "titanic_confirmed": true
     },
-    "last_sent_utc": "2026-06-18T18:44:00.900970+00:00",
+    "last_sent_utc": "2026-06-18T19:02:43.021827+00:00",
     "last_send_ok": true
   },
   "history": [
@@ -491,19 +491,19 @@
     {
       "date": "2026-06-18",
       "composite": 68.8,
-      "structural": 78.3,
+      "structural": 78.4,
       "cycle": 59.2,
       "cape": 41.38,
       "buffett_z": 2.46,
       "yield_curve": 0.66,
       "hy_oas": 2.63,
       "vix": 16.77,
-      "pct_above_200": 57.5,
+      "pct_above_200": 57.1,
       "goldman": 55.4,
       "hindenburg_raw": true,
-      "titanic_raw": false,
-      "new_high_pct": 4.59,
-      "new_low_pct": 4.59
+      "titanic_raw": true,
+      "new_high_pct": 4.19,
+      "new_low_pct": 4.99
     }
   ]
 }
