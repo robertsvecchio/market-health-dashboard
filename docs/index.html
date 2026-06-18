@@ -616,34 +616,76 @@ function panelOverview(){
   const heroRow=el(`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px"></div>`);
 
   // Tile 1: Market Health score
-  const t1=el(`<div class="ov-score-card kd-tile"></div>`);
-  t1.innerHTML=`<div class="ov-score-label">Market Health</div>
+  // helper: wire an info button + mbody primer onto a tile element
+  function wireTileInfo(tile, primerKey){
+    const primerText=PRIMERS[primerKey]||"";
+    if(!primerText)return;
+    const btn=tile.querySelector(".tile-info-btn");
+    const body=tile.querySelector(".tile-mbody");
+    if(!btn||!body)return;
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const o=body.classList.toggle("open");
+      btn.setAttribute("aria-expanded",o);
+    });
+  }
+
+  // Tile 1: Market Health
+  const t1=el(`<div class="ov-score-card"></div>`);
+  t1.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="ov-score-label" style="margin-bottom:0">Market Health</div>
+      <button class="info tile-info-btn" aria-label="Explain Market Health" aria-expanded="false">i</button>
+    </div>
     <div class="ov-big-num" style="color:${riskColor(cv)};font-size:42px">${cv==null?"—":Math.round(cv)}</div>
     <div class="ov-risk-label" style="color:${riskColor(cv)};font-size:13px">${esc(comp.label||"Unknown")}</div>
     ${trendTag?`<div class="ov-trend-tag" style="font-size:10px;padding:3px 8px;margin-top:6px">${esc(trendTag)}</div>`:""}
     ${compSpark}
-    <div class="kd-tooltip">${esc(PRIMERS.composite||PRIMERS.goldman_composite||"Market Health composite risk score (0-100). Higher = more risk.")}</div>`;
+    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.goldman_composite||"Composite risk score 0-100. Higher = more risk.")}</div></div>`;
+  wireTileInfo(t1,"goldman_composite");
   heroRow.appendChild(t1);
 
-  // Tile 2: F&G odometer
-  const t2=el(`<div class="ov-score-card kd-tile"></div>`);
-  t2.innerHTML=`<div class="ov-score-label">Fear &amp; Greed</div>${odometer(fgv,fgLabel,fgcol)}${fgSpark}<div class="kd-tooltip">${esc(PRIMERS.fear_greed||"CNN Fear & Greed Index")}</div>`;
+  // Tile 2: Fear & Greed
+  const t2=el(`<div class="ov-score-card"></div>`);
+  t2.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="ov-score-label" style="margin-bottom:0">Fear &amp; Greed</div>
+      <button class="info tile-info-btn" aria-label="Explain Fear and Greed" aria-expanded="false">i</button>
+    </div>
+    ${odometer(fgv,fgLabel,fgcol)}
+    ${fgSpark}
+    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.fear_greed||"CNN Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed.")}</div></div>`;
+  wireTileInfo(t2,"fear_greed");
   heroRow.appendChild(t2);
 
   // Tile 3: VIX
-  const t3=el(`<div class="ov-score-card kd-tile"></div>`);
-  t3.innerHTML=`<div class="ov-score-label">VIX</div>
+  const t3=el(`<div class="ov-score-card"></div>`);
+  t3.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="ov-score-label" style="margin-bottom:0">VIX</div>
+      <button class="info tile-info-btn" aria-label="Explain VIX" aria-expanded="false">i</button>
+    </div>
     <div class="ov-big-num" style="color:${vxcol};font-size:42px">${vxv==null?"—":num(vxv,1)}</div>
     <div class="ov-risk-label" style="color:${vxcol};font-size:13px">${esc(vxlbl)}</div>
-    ${vx.ma20!=null?`<div style="font-size:10px;color:var(--muted);margin-top:4px">20d avg ${num(vx.ma20,1)}</div>`:""}`;
+    ${vx.ma20!=null?`<div style="font-size:10px;color:var(--muted);margin-top:4px">20d avg ${num(vx.ma20,1)}</div>`:""}
+    ${vxSpark}
+    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.vix||"Expected 30-day S&P volatility. Above 30=fear, above 40=capitulation.")}</div></div>`;
+  wireTileInfo(t3,"vix");
   heroRow.appendChild(t3);
 
   // Tile 4: Consumer Sentiment
-  const t4=el(`<div class="ov-score-card kd-tile"></div>`);
-  t4.innerHTML=`<div class="ov-score-label">Consumer Sentiment</div>
+  const t4=el(`<div class="ov-score-card"></div>`);
+  t4.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="ov-score-label" style="margin-bottom:0">Consumer Sentiment</div>
+      <button class="info tile-info-btn" aria-label="Explain Consumer Sentiment" aria-expanded="false">i</button>
+    </div>
     <div class="ov-big-num" style="color:${umcol};font-size:42px">${umv==null?"—":Math.round(umv)}</div>
     <div class="ov-risk-label" style="color:${umcol};font-size:13px">${esc(umlbl)}</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">UMich / 100</div>`;
+    <div style="font-size:10px;color:var(--muted);margin-top:4px">UMich / 100</div>
+    ${umSpark}
+    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.umich_sentiment||"University of Michigan consumer sentiment. Below 60=pessimistic.")}</div></div>`;
+  wireTileInfo(t4,"umich_sentiment");
   heroRow.appendChild(t4);
   c.appendChild(heroRow);
 
