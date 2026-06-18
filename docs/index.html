@@ -171,8 +171,10 @@ const PRIMERS={
   put_call:"Put-to-call option volume ratio. Very low = euphoria (contrarian warning); very high = fear (contrarian opportunity).",
   pct_above_200dma:"Share of S&P 500 stocks above their 200-day average. Above 60% = healthy broad participation; below 40% while the index is near highs signals distribution beneath the surface.",
   mcclellan:"Breadth-momentum oscillator from advancers vs decliners. Negative = deteriorating internal momentum. (S&P 500 proxy; sharpens after ~40 daily runs.)",
-  hindenburg_omen_today:"Fires when many stocks hit both new highs AND new lows simultaneously — internal fracturing under a rising index. A single flag is noise; a cluster (2+/30d) is the real warning. (S&P 500 proxy.)",
-  titanic_syndrome_today:"Fires when new lows outnumber new highs just after the index made a high — a lack of confirmation at the top. (S&P 500 proxy.)",
+  hindenburg_omen_confirmed:"CONFIRMED when 2+ raw same-day flags occur within 30 days. This is the actionable signal. (S&P 500 proxy for NYSE-wide indicator.)",
+  hindenburg_omen_today:"RAW same-day flag: fires when new highs AND new lows each exceed 2.2% of issues, index in uptrend, McClellan negative. Not actionable alone — watch for confirmation.",
+  titanic_syndrome_confirmed:"CONFIRMED when 2+ raw flags occur within 30 days. This is the actionable signal. (S&P 500 proxy.)",
+  titanic_syndrome_today:"RAW same-day flag: fires when new lows outnumber new highs. Not actionable alone — watch for confirmation.",
   spx_vs_200dma:"Where the S&P 500 sits vs its 200-day average — the most-watched trend line. Breaks below a flat or falling 200-DMA have preceded every bear since 2000.",
   dma200_slope:"Direction of the 200-day average. Rising = dips usually buyable; flat/falling turns breaks into structural warnings.",
   weekly_macd:"Weekly trend-momentum. Daily MACD is noisy; the weekly turning negative has preceded every sustained bear since 2000.",
@@ -381,8 +383,10 @@ function deriveAlerts(d){
   }
   const pa=b.pct_above_200dma;
   if(pa&&pa.below_40)out.push({txt:`Only ${num(pa.value,0)}% of S&P 500 above 200-DMA`,pri:"HIGH"});
-  if(b.hindenburg_omen_today&&b.hindenburg_omen_today.value)out.push({txt:"Hindenburg Omen flag today (watch for cluster)",pri:"MED"});
-  if(b.titanic_syndrome_today&&b.titanic_syndrome_today.value)out.push({txt:"Titanic Syndrome flag today",pri:"MED"});
+  if(b.hindenburg_omen_confirmed&&b.hindenburg_omen_confirmed.value)out.push({txt:"Hindenburg Omen CONFIRMED (cluster 2+/30d — S&P 500 proxy)",pri:"HIGH"});
+  else if(b.hindenburg_omen_today&&b.hindenburg_omen_today.value)out.push({txt:"Hindenburg Omen raw flag today (not yet confirmed)",pri:"LOW"});
+  if(b.titanic_syndrome_confirmed&&b.titanic_syndrome_confirmed.value)out.push({txt:"Titanic Syndrome CONFIRMED (cluster — S&P 500 proxy)",pri:"HIGH"});
+  else if(b.titanic_syndrome_today&&b.titanic_syndrome_today.value)out.push({txt:"Titanic Syndrome raw flag today (not yet confirmed)",pri:"LOW"});
   if(st.excess_cape_yield&&(st.excess_cape_yield.low||st.excess_cape_yield.value<1))
     out.push({txt:"Excess CAPE Yield low — stocks expensive vs bonds",pri:"MED"});
   if(st.ad_line_proxy&&st.ad_line_proxy.bearish_divergence)
@@ -502,8 +506,10 @@ function panelTrend(){return mList([
   {h:"Breadth"},
   {sec:"breadth",key:"pct_above_200dma",label:"% above 200-DMA",fmt:(v,m)=>num(v,0)+"%"+(m.universe?` / ${m.universe}`:"")},
   {sec:"breadth",key:"mcclellan",label:"McClellan Oscillator",fmt:v=>num(v,1)},
-  {sec:"breadth",key:"hindenburg_omen_today",label:"Hindenburg Omen",fmt:v=>v?"flag":"clear"},
-  {sec:"breadth",key:"titanic_syndrome_today",label:"Titanic Syndrome",fmt:v=>v?"flag":"clear"},
+  {sec:"breadth",key:"hindenburg_omen_confirmed",label:"Hindenburg Omen (confirmed)",fmt:(v,m)=>v?`CONFIRMED (${m.count||0} flags/${m.window_days||30}d)`:"not confirmed"},
+  {sec:"breadth",key:"hindenburg_omen_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
+  {sec:"breadth",key:"titanic_syndrome_confirmed",label:"Titanic Syndrome (confirmed)",fmt:(v,m)=>v?`CONFIRMED (${m.count||0} flags/${m.window_days||30}d)`:"not confirmed"},
+  {sec:"breadth",key:"titanic_syndrome_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
 ]);}
 
 function panelSentiment(){
