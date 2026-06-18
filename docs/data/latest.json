@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-18T21:54:45.480156+00:00",
-    "generated_display": "Jun 18 2026, 1:54 PM PT",
+    "generated_utc": "2026-06-18T21:58:02.930501+00:00",
+    "generated_display": "Jun 18 2026, 1:58 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -419,12 +419,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -53.82,
+      "value": -48.51,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 7.629,
-      "ema39": 61.452,
+      "ema19": 12.866,
+      "ema39": 61.379,
       "negative": true
     },
     "hindenburg_omen_today": {
