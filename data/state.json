@@ -1,8 +1,8 @@
 {
-  "last_run_utc": "2026-06-18T09:00:43.840510+00:00",
+  "last_run_utc": "2026-06-18T09:36:53.629692+00:00",
   "mcclellan": {
-    "ema19": -108.04392471221661,
-    "ema39": 62.85407583783041
+    "ema19": -168.89621886774145,
+    "ema39": 23.883028732565634
   },
   "alerts": {
     "last_snapshot": {
@@ -10,14 +10,14 @@
       "label": "Elevated Risk",
       "goldman": 55.4,
       "yield_curve": 0.66,
-      "vix": 17.04,
+      "vix": 17.1,
       "pct_above_200": 57.7,
       "hindenburg": true,
       "titanic": true,
       "hindenburg_confirmed": true,
       "titanic_confirmed": true
     },
-    "last_sent_utc": "2026-06-18T09:06:16.093106+00:00",
+    "last_sent_utc": "2026-06-18T09:39:36.169600+00:00",
     "last_send_ok": true
   },
   "history": [
@@ -497,7 +497,7 @@
       "buffett_z": 2.46,
       "yield_curve": 0.66,
       "hy_oas": 2.71,
-      "vix": 17.04,
+      "vix": 17.1,
       "pct_above_200": 57.7,
       "goldman": 55.4,
       "hindenburg_raw": true,
