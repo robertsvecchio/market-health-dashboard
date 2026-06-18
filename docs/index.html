@@ -153,12 +153,13 @@ const PRIMERS={
   excess_cape_yield:"CAPE earnings yield minus the real bond yield — how much extra you're paid to own stocks over bonds. Low or negative = stocks expensive relative to bonds.",
   forward_pe:"Price vs next-12-month expected earnings. More timely than CAPE. Long-run mean ~16x; above 20–22x is historically tied to elevated drawdown risk.",
   ad_line_proxy:"Equal-weight vs cap-weight S&P. When equal-weight lags, a few megacaps are masking weaker breadth — a divergence that often precedes turns.",
-  yield_curve_10y3m:"10yr minus 3mo Treasury yield. Inversion (below zero) has preceded every US recession since the 1950s, 6–18 months ahead — the most reliable recession signal available.",
+  yield_curve_10y3m:"10yr minus 3mo Treasury yield. TRACK RECORD: inversion has preceded every US recession since the 1950s with a median lead of ~15 months (range 6-24); the un-inversion often coincides with onset. One false positive (1998); the 2022 inversion is the longest on record without an NBER recession yet. The most reliable single lead signal, but a calendar warning, not a trade trigger. (Congress CRS; Lambda Finance.)",
   hy_oas:"Extra yield demanded to hold risky corporate bonds over Treasuries. Widening spreads signal credit stress and usually lead equity weakness — the bond market sniffs trouble first.",
   ig_oas:"Investment-grade credit spread. A calmer cousin of high-yield; widening signals broad credit tightening.",
   lei:"OECD Composite Leading Indicator for the US — forward-looking inputs. Direction matters more than level: rising points to expansion, falling to softening.",
   unemployment:"The unemployment rate. Very low is late-cycle; the danger is the turn — a rise of ~0.5pt from lows (Sahm rule) has reliably marked recession onset.",
   core_pce:"The Fed's preferred inflation gauge, ex food & energy. Direction vs the 2% target drives policy; re-acceleration pressures rates and stocks.",
+  ppi:"Producer Price Index (Final Demand) — what producers receive. Leads CPI by 1-3 months because input costs flow downstream to consumer prices, so a PPI turn often precedes a CPI turn. Source: FRED PPIFIS.",
   core_cpi:"Core consumer inflation, ex food & energy. Persistent high readings push the Fed toward tighter policy.",
   fed_funds:"The Fed's policy rate. Rate-cut cycles have preceded recent recessions — easing isn't always bullish, since the Fed usually cuts because something is breaking.",
   umich_sentiment:"University of Michigan consumer mood survey. Sharp drops signal spending pullbacks; extreme lows can be contrarian buy signals.",
@@ -169,16 +170,17 @@ const PRIMERS={
   debt_service:"Household debt payments as a share of disposable income. High readings leave less cushion for shocks.",
   vix:"The market's expected volatility — the 'fear index.' Mostly concurrent: spikes with selloffs, not before. Above 40 often marks capitulation bottoms and contrarian entry points.",
   put_call:"Put-to-call option volume ratio. Very low = euphoria (contrarian warning); very high = fear (contrarian opportunity).",
-  pct_above_200dma:"Share of S&P 500 stocks above their 200-day average. Above 60% = healthy broad participation; below 40% while the index is near highs signals distribution beneath the surface.",
+  pct_above_200dma:"Share of S&P 500 stocks above their 200-day average. Above 60% = healthy broad participation; below 40% while the index is near highs signals distribution beneath the surface. Confirming/coincident, not leading — use as breadth context, not a timing trigger.",
   mcclellan:"Breadth-momentum oscillator from advancers vs decliners. Negative = deteriorating internal momentum. (S&P 500 proxy; sharpens after ~40 daily runs.)",
-  hindenburg_omen_confirmed:"CONFIRMED when 2+ raw same-day flags occur within 30 days. This is the actionable signal. (S&P 500 proxy for NYSE-wide indicator.)",
+  zweig_adv_ratio:"Feeds the Zweig Breadth Thrust (bullish): a rare bottom signal when the 10-day adv/(adv+dec) EMA rockets from <0.40 to >0.615 in 10 days. TRACK RECORD: ~19 signals since WWII, S&P 500 higher 6 AND 12 months later EVERY time, avg ~+23% at 12mo (Zweig; SentimenTrader; Detrick/Carson). Small sample, some 2022 misfires, NYSE-data-dependent. (S&P 500 proxy here.)",
+  hindenburg_omen_confirmed:"CONFIRMED when 2+ raw flags occur within 30 days. TRACK RECORD: preceded the 1987, 2000 and 2008 tops, but ~75-80% of confirmed signals are false alarms — only ~25% are followed by a 5%+ decline and ~10% by 15%+ (DayTrading.com; SentimenTrader/Goepfert). Treat as a high-false-positive early warning that needs confirmation, NOT a standalone sell. (S&P 500 proxy.)",
   hindenburg_omen_today:"RAW same-day flag: fires when new highs AND new lows each exceed 2.2% of issues, index in uptrend, McClellan negative. Not actionable alone — watch for confirmation.",
-  titanic_syndrome_confirmed:"CONFIRMED when 2+ raw flags occur within 30 days. This is the actionable signal. (S&P 500 proxy.)",
+  titanic_syndrome_confirmed:"CONFIRMED when 2+ raw flags occur within 30 days. TRACK RECORD: thinly documented vs Hindenburg — no robust published hit-rate study, so weight it as corroboration only, not a primary trigger. [Unverified hit rate] (S&P 500 proxy.)",
   titanic_syndrome_today:"RAW same-day flag: fires when new lows outnumber new highs. Not actionable alone — watch for confirmation.",
   spx_vs_200dma:"Where the S&P 500 sits vs its 200-day average — the most-watched trend line. Breaks below a flat or falling 200-DMA have preceded every bear since 2000.",
   dma200_slope:"Direction of the 200-day average. Rising = dips usually buyable; flat/falling turns breaks into structural warnings.",
   weekly_macd:"Weekly trend-momentum. Daily MACD is noisy; the weekly turning negative has preceded every sustained bear since 2000.",
-  goldman_composite:"Percentile-ranked composite of five recession/bear-market inputs: valuation, yield curve, unemployment, inflation, and LEI. Above 70 = historically high-risk; below 40 = favorable.",
+  goldman_composite:"Percentile-ranked composite of five recession/bear-market inputs: valuation, yield curve, unemployment, inflation, and LEI. Above 70 = historically high-risk; below 40 = favorable. A summary gauge, not a timing trigger.",
   cycle_phase:"Business-cycle phase derived from LEI direction and yield-curve level. Early cycle favors financials/discretionary; mid cycle tech/industrials; late cycle energy/materials; contraction defensives.",
 };
 
@@ -432,8 +434,15 @@ function panelOverview(){
     <div class="meter"><div class="meter-marker" style="left:calc(${pos}% - 1.5px)"></div></div>
     <div class="meter-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
   </div>`));
-  // confidence
-  c.appendChild(confCard());
+  // alerts (moved up — most actionable, deserves prominence)
+  const alerts=deriveAlerts(DATA);
+  const a=el(`<div class="card"><h2>Active Alerts</h2></div>`);
+  if(!alerts.length)a.appendChild(el(`<div class="empty">No alerts firing — conditions within normal ranges.</div>`));
+  else alerts.forEach(x=>{
+    const col=x.pri==="HIGH"?"var(--high)":x.pri==="LOW"?"var(--moderate)":"var(--moderate)";
+    a.appendChild(el(`<div class="alert"><span class="adot" style="background:${col}"></span><div style="font-size:13.5px">${esc(x.txt)}</div><span class="pri ${x.pri}">${x.pri}</span></div>`));
+  });
+  c.appendChild(a);
   // summary
   const itp=DATA.interpretation||{};
   if(itp.summary)c.appendChild(el(`<div class="card"><h2>Where It Stands</h2><div class="summary">${esc(itp.summary)}</div></div>`));
@@ -450,15 +459,8 @@ function panelOverview(){
   </div>`));
   // score contributors
   const cc2=contribCard();if(cc2)c.appendChild(cc2);
-  // alerts
-  const alerts=deriveAlerts(DATA);
-  const a=el(`<div class="card"><h2>Active Alerts</h2></div>`);
-  if(!alerts.length)a.appendChild(el(`<div class="empty">No alerts firing — conditions within normal ranges.</div>`));
-  else alerts.forEach(x=>{
-    const col=x.pri==="HIGH"?"var(--high)":"var(--moderate)";
-    a.appendChild(el(`<div class="alert"><span class="adot" style="background:${col}"></span><div style="font-size:13.5px">${esc(x.txt)}</div><span class="pri ${x.pri}">${x.pri}</span></div>`));
-  });
-  c.appendChild(a);
+  // model confidence (moved down — diagnostic, not headline)
+  c.appendChild(confCard());
   // catalysts
   const cats=((DATA.catalysts||{}).upcoming||[]).filter(x=>x.days_away<=10);
   if(cats.length){
@@ -479,13 +481,16 @@ function panelValuation(){return mList([
 ]);}
 
 function panelCycle(){return mList([
-  {h:"Leading & Rates",first:true},
+  {h:"Recession Composite",first:true},
+  {sec:"scores",key:"goldman_composite",label:"Goldman Bear-Market Risk",fmt:v=>num(v,0)+" / 100",rk:"goldman_composite"},
+  {h:"Leading & Rates"},
   {sec:"macro",key:"lei",label:"Leading Indicator (OECD CLI)",fmt:v=>num(v,1),stale:75},
   {sec:"macro",key:"yield_curve_10y3m",label:"Yield Curve 10y–3m",fmt:v=>num(v,2),stale:14},
   {sec:"macro",key:"hy_oas",label:"Credit Spread (HY OAS)",fmt:v=>num(v,2)+"%",stale:14},
   {sec:"macro",key:"ig_oas",label:"Credit Spread (IG OAS)",fmt:v=>num(v,2)+"%",stale:14},
   {sec:"macro",key:"fed_funds",label:"Fed Funds Rate",fmt:v=>num(v,2)+"%",stale:30},
   {h:"Inflation & Labor"},
+  {sec:"macro",key:"ppi",label:"PPI — Final Demand (leads CPI)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:45},
   {sec:"macro",key:"core_pce",label:"Core PCE (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
   {sec:"macro",key:"core_cpi",label:"Core CPI (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
   {sec:"macro",key:"unemployment",label:"Unemployment",fmt:v=>num(v,1)+"%",stale:75},
