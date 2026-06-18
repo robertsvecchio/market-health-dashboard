@@ -1,8 +1,8 @@
 {
-  "last_run_utc": "2026-06-18T22:07:04.127913+00:00",
+  "last_run_utc": "2026-06-18T22:40:47.739547+00:00",
   "mcclellan": {
-    "ema19": 17.579811845272857,
-    "ema39": 61.31048878547209
+    "ema19": 21.821830660745572,
+    "ema39": 61.244964346198486
   },
   "alerts": {
     "last_snapshot": {
@@ -17,7 +17,7 @@
       "hindenburg_confirmed": true,
       "titanic_confirmed": true
     },
-    "last_sent_utc": "2026-06-18T22:07:33.141775+00:00",
+    "last_sent_utc": "2026-06-18T22:41:08.032894+00:00",
     "last_send_ok": true
   },
   "history": [
