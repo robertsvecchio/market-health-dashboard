@@ -881,57 +881,83 @@ def pull_put_call():
 # Google Trends
 # ---------------------------------------------------------------------------
 
-def _pytrends_fetch(py, terms, retries=3):
-    """Fetch one theme with exponential backoff on 429. Returns DataFrame or raises."""
-    for attempt in range(retries):
-        try:
-            py.build_payload(terms, timeframe="today 3-m")
-            df = py.interest_over_time()
-            return df
-        except Exception as e:
-            is_429 = "429" in str(e) or "Too Many Requests" in str(e)
-            if is_429 and attempt < retries - 1:
-                wait = 15 * (2 ** attempt)   # 15s, 30s, 60s
-                print(f"  GoogleTrends 429 on {terms}; retrying in {wait}s", flush=True)
-                time.sleep(wait)
-            else:
-                raise
+def compute_fear_greed(result):
+    """
+    Compute a Fear & Greed composite (0=Extreme Fear, 100=Extreme Greed)
+    from six of CNN's seven equally-weighted inputs. Put/call (7th input)
+    is excluded — CBOE endpoint returns 403.
 
-
-def pull_google_trends():
-    out = {}
+    Components:
+      1. Momentum:   SPX % above/below its 200-DMA (proxy for CNN's 125-DMA)
+      2. Strength:   (new_high_pct - new_low_pct) balance
+      3. Breadth:    McClellan Oscillator, normalized
+      4. Volatility: VIX vs its 20-DMA (proxy for CNN's 50-DMA)
+      5. HY Demand:  HY OAS inverted — tight spreads = greed
+      6. Safe Haven: SPX 3-month return vs TLT proxy (SPX vs 200-DMA slope)
+    """
+    scores = {}
     try:
-        from pytrends.request import TrendReq
-        py = TrendReq(hl="en-US", tz=480)
-        for theme, terms in TRENDS_THEMES.items():
-            try:
-                df = _pytrends_fetch(py, terms)
-                if df is None or df.empty:
-                    # Rate-limited or empty — mark stale (proxy) not unavailable
-                    # so it costs -4 on confidence, not -8
-                    out[theme] = metric(None, status="proxy", source="GoogleTrends",
-                                        notes=f"No data returned for {terms}; stale.")
-                    time.sleep(8.0)
-                    continue
-                latest = {t: int(df[t].iloc[-1]) for t in terms if t in df}
-                mom = {}
-                for t in terms:
-                    if t in df:
-                        trail = df[t].iloc[-5:-1].mean() or 1
-                        mom[t] = round((df[t].iloc[-1] / trail - 1) * 100, 1)
-                out[theme] = metric(latest, source="GoogleTrends",
-                                    notes=f"interest 0-100 for {terms}", momentum_pct=mom)
-                time.sleep(8.0)   # spacing between themes reduces 429 risk
-            except Exception as e:
-                # Still failed after retries — mark proxy (stale) not unavailable
-                print(f"  GoogleTrends failed for {theme}: {e}", flush=True)
-                out[theme] = metric(None, status="proxy", source="GoogleTrends",
-                                    notes=f"Rate-limited or error for {terms}; stale.")
-                time.sleep(8.0)
+        # 1. Momentum: SPX vs 200-DMA — range roughly -20% to +20%
+        spx_dma = (result.get("trend") or {}).get("spx_vs_200dma") or {}
+        m1 = spx_dma.get("value")
+        if m1 is not None:
+            scores["momentum"] = max(0, min(100, (m1 + 15) / 30 * 100))
+
+        # 2. Price Strength: (NH% - NL%) balance — range -10 to +10
+        ho = (result.get("breadth") or {}).get("hindenburg_omen_today") or {}
+        nh = ho.get("new_high_pct", 0) or 0
+        nl = ho.get("new_low_pct", 0) or 0
+        bal = nh - nl
+        scores["strength"] = max(0, min(100, (bal + 6) / 12 * 100))
+
+        # 3. Breadth: McClellan Oscillator — range roughly -300 to +300
+        mc = (result.get("breadth") or {}).get("mcclellan") or {}
+        m3 = mc.get("value")
+        if m3 is not None:
+            scores["breadth"] = max(0, min(100, (m3 + 200) / 400 * 100))
+
+        # 4. Volatility: VIX inverted (high VIX = fear) — range 10–50
+        vx = (result.get("sentiment") or {}).get("vix") or {}
+        vix = vx.get("value")
+        ma20 = vx.get("ma20")
+        if vix is not None:
+            # Use VIX vs MA if available (CNN uses VIX vs 50-DMA)
+            ref = ma20 if ma20 else vix
+            diff = ref - vix   # positive = VIX below MA = greed
+            scores["volatility"] = max(0, min(100, (diff + 10) / 20 * 100))
+
+        # 5. Junk Bond Demand: HY OAS inverted — tight = greed, wide = fear
+        # Typical range: 2.5 (greed) to 9.0 (fear)
+        hy = (result.get("macro") or {}).get("hy_oas") or {}
+        hy_v = hy.get("value")
+        if hy_v is not None:
+            scores["junk_demand"] = max(0, min(100, (9.0 - hy_v) / 6.5 * 100))
+
+        # 6. Safe Haven: SPX 3-month return proxy (slope of 200-DMA)
+        slope = (result.get("trend") or {}).get("dma200_slope") or {}
+        sl = slope.get("value")
+        if sl is not None:
+            scores["safe_haven"] = max(0, min(100, (float(sl == "rising") * 60 +
+                                                    float(sl == "flat") * 40 +
+                                                    float(sl == "falling") * 20)))
+
     except Exception as e:
-        return {"google_trends": metric(None, status="proxy", source="GoogleTrends",
-                notes=f"pytrends import/init failed: {str(e)[:100]}")}
-    return out
+        print(f"WARN: fear_greed computation failed: {e}", file=sys.stderr)
+
+    if not scores:
+        return metric(None, status="unavailable", source="computed",
+                      notes="Insufficient inputs for Fear & Greed score")
+    composite = round(sum(scores.values()) / len(scores), 1)
+    label = ("Extreme Fear" if composite < 25 else
+             "Fear"         if composite < 45 else
+             "Neutral"      if composite < 55 else
+             "Greed"        if composite < 75 else
+             "Extreme Greed")
+    return metric(composite, source="computed (6/7 CNN inputs)",
+                  notes="0=Extreme Fear 100=Extreme Greed. Components: momentum, "
+                        "price strength, breadth, volatility, HY demand, safe haven. "
+                        "Put/call excluded (source 403).",
+                  label=label, components=scores, n_inputs=len(scores))
 
 
 # ---------------------------------------------------------------------------
@@ -1599,9 +1625,10 @@ def run(no_breadth=False):
     if breadth_state:
         new_state.update(breadth_state)
 
-    # ---- Sentiment: put/call + trends ----
+    # ---- Sentiment: put/call + Fear & Greed ----
     result["sentiment"]["put_call"] = pull_put_call()
-    result["sentiment"]["google_trends"] = pull_google_trends()
+    # Fear & Greed computed AFTER breadth/trend/macro are assembled
+    result["sentiment"]["fear_greed"] = compute_fear_greed(result)
 
     # ---- Sectors ----
     result["sectors"]["relative_strength"] = pull_sectors()
