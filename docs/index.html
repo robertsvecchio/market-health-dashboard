@@ -93,6 +93,10 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .sbar i{position:absolute;top:0;bottom:0;border-radius:4px}
 .sbar .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--border)}
 .sval{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.spark{opacity:.6;flex:none}
+.srow.lead .stk,.srow.lag .stk{color:var(--text);font-weight:600}
+.srow.mute{opacity:.4}
+.stag{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:4px;margin-left:6px}
 /* catalysts */
 .cat{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
 .cat:first-of-type{border-top:none;padding-top:2px}
@@ -153,6 +157,7 @@ const PRIMERS={
   excess_cape_yield:"CAPE earnings yield minus the real bond yield — how much extra you're paid to own stocks over bonds. Low or negative = stocks expensive relative to bonds.",
   forward_pe:"Price vs next-12-month expected earnings. More timely than CAPE. Long-run mean ~16x; above 20–22x is historically tied to elevated drawdown risk.",
   ad_line_proxy:"Equal-weight vs cap-weight S&P. When equal-weight lags, a few megacaps are masking weaker breadth — a divergence that often precedes turns.",
+  lending_standards:"SLOOS net % of banks tightening C&I loan standards — measures credit AVAILABILITY (vs spreads, which measure price). Leads the real economy and credit spreads by 1–3 quarters; readings above +30% have preceded every US recession since 1990 by 2–4 quarters. Source: FRED DRTSCILM, quarterly.",
   yield_curve_10y3m:"10yr minus 3mo Treasury yield. TRACK RECORD: inversion has preceded every US recession since the 1950s with a median lead of ~15 months (range 6-24); the un-inversion often coincides with onset. One false positive (1998); the 2022 inversion is the longest on record without an NBER recession yet. The most reliable single lead signal, but a calendar warning, not a trade trigger. (Congress CRS; Lambda Finance.)",
   hy_oas:"Extra yield demanded to hold risky corporate bonds over Treasuries. Widening spreads signal credit stress and usually lead equity weakness — the bond market sniffs trouble first.",
   ig_oas:"Investment-grade credit spread. A calmer cousin of high-yield; widening signals broad credit tightening.",
@@ -284,6 +289,8 @@ function metric(section,key,label,fmt,readingKey,staleDays){
     valHtml=`<span style="${valColor?`color:${valColor}`:""}">${fmt?fmt(m.value,m):esc(m.value)}</span>${aChar?`<span class="marrow" style="color:${aColor}">${aChar}</span>`:""}`;
   }
 
+  const _sf=HIST_FIELD[rk]||HIST_FIELD[key];
+  if(_sf&&m&&m.value!=null){const _sp=sparkline(_sf);if(_sp)valHtml=_sp+valHtml;}
   const bdg=badge(status,stale);
   // Order: name | ⓘ | badge | value+arrow
   const card=el(`<div class="metric">
@@ -309,6 +316,34 @@ function metric(section,key,label,fmt,readingKey,staleDays){
   return card;
 }
 
+const HIST_FIELD={composite:"composite",structural_score:"structural",cycle_score:"cycle",
+  goldman_composite:"goldman",cape:"cape",buffett_indicator:"buffett_z",
+  yield_curve_10y3m:"yield_curve",hy_oas:"hy_oas",vix:"vix",pct_above_200dma:"pct_above_200"};
+function sparkSeries(field){
+  const hist=DATA.history||[];const out=[];
+  for(const h of hist){const v=h[field];if(v!=null&&!isNaN(v))out.push(+v);}
+  return out;
+}
+function sparkline(field){
+  const v=sparkSeries(field);
+  if(v.length<4)return "";
+  const w=58,h=16,p=2,n=v.length,mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1;
+  let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(w-2*p);const y=p+(1-(v[i]-mn)/rg)*(h-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
+  const lx=(w-p).toFixed(1),ly=(p+(1-(v[n-1]-mn)/rg)*(h-2*p)).toFixed(1);
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--muted)" stroke-width="1.2"/><circle cx="${lx}" cy="${ly}" r="1.5" fill="var(--text)"/></svg>`;
+}
+function compositeStrip(){
+  const v=sparkSeries("composite");
+  if(v.length<4)return null;
+  const n=v.length,w=320,h=42,p=3,mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1;
+  let line="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(w-2*p);const y=p+(1-(v[i]-mn)/rg)*(h-2*p);line+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
+  const last=v[n-1],first=v[0],col=riskColor(last);
+  const dir=last>first+1?"rising":last<first-1?"falling":"flat";
+  return el(`<div class="card"><h2>Composite Risk — last ${n} readings</h2>
+    <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block"><polyline points="${line}" fill="none" stroke="${col}" stroke-width="1.8"/></svg>
+    <div class="phase-sub" style="margin-top:6px">Range ${num(mn,0)}–${num(mx,0)} · now <b style="color:${col}">${num(last,0)}</b> · trend ${dir}</div>
+  </div>`);
+}
 function mList(specs){
   const c=el(`<div class="card"></div>`);
   specs.forEach(s=>{
@@ -434,6 +469,8 @@ function panelOverview(){
     <div class="meter"><div class="meter-marker" style="left:calc(${pos}% - 1.5px)"></div></div>
     <div class="meter-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
   </div>`));
+  // composite risk-over-time strip
+  const _strip=compositeStrip();if(_strip)c.appendChild(_strip);
   // alerts (moved up — most actionable, deserves prominence)
   const alerts=deriveAlerts(DATA);
   const a=el(`<div class="card"><h2>Active Alerts</h2></div>`);
@@ -486,6 +523,7 @@ function panelCycle(){return mList([
   {h:"Leading & Rates"},
   {sec:"macro",key:"lei",label:"Leading Indicator (OECD CLI)",fmt:v=>num(v,1),stale:75},
   {sec:"macro",key:"yield_curve_10y3m",label:"Yield Curve 10y–3m",fmt:v=>num(v,2),stale:14},
+  {sec:"macro",key:"lending_standards",label:"Bank Lending Standards (SLOOS)",fmt:(v,m)=>(v>=0?"+":"")+num(v,0)+"% tightening",stale:100},
   {sec:"macro",key:"hy_oas",label:"Credit Spread (HY OAS)",fmt:v=>num(v,2)+"%",stale:14},
   {sec:"macro",key:"ig_oas",label:"Credit Spread (IG OAS)",fmt:v=>num(v,2)+"%",stale:14},
   {sec:"macro",key:"fed_funds",label:"Fed Funds Rate",fmt:v=>num(v,2)+"%",stale:30},
@@ -559,18 +597,32 @@ function panelSectors(){
     card.appendChild(el(`<div class="favored">${ph.favored_sectors.map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>`));
   const arr=Object.keys(rs).map(k=>({tk:k,...rs[k]})).filter(x=>x.value!=null).sort((a,b)=>b.value-a.value);
   if(arr.length){
+    // Rotation verdict: cyclical (risk-on) vs defensive (risk-off) leadership
+    const CYC=["XLK","XLY","XLF","XLI"],DEF=["XLU","XLP","XLV"];
+    const avg=set=>{const xs=arr.filter(x=>set.includes(x.tk)).map(x=>x.value);return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;};
+    const cy=avg(CYC),df=avg(DEF);
+    if(cy!=null&&df!=null){
+      let txt,col;
+      if(cy-df>1){txt="Risk-on — cyclicals leading";col="var(--low)";}
+      else if(df-cy>1){txt="Risk-off — defensives leading (late-cycle tell)";col="var(--high)";}
+      else{txt="Mixed / rotating — no clear leadership";col="var(--muted)";}
+      card.appendChild(el(`<div class="srow" style="grid-template-columns:1fr auto;padding:2px 0 8px"><div style="font-size:13px;font-weight:600;color:${col}">${esc(txt)}</div><div class="phase-sub">cyc ${cy>=0?"+":""}${num(cy,1)} vs def ${df>=0?"+":""}${num(df,1)}</div></div>`));
+    }
     const max=Math.max(...arr.map(x=>Math.abs(x.value)),1);
-    arr.forEach(x=>{
+    const n=arr.length;
+    arr.forEach((x,i)=>{
       const w=Math.abs(x.value)/max*50;
       const col=x.value>=0?"var(--low)":"var(--high)";
-      const rsiCol=x.rsi>70?"var(--high)":x.rsi>60?"var(--elevated)":x.rsi<40?"var(--low)":x.rsi<30?"var(--info)":"var(--muted)";
-      card.appendChild(el(`<div class="srow">
-        <div class="stk">${esc(x.tk)}</div>
+      const isLead=i<3,isLag=i>=n-3;
+      const cls=isLead?"srow lead":isLag?"srow lag":"srow mute";
+      const tag=isLead?`<span class="stag" style="background:var(--low);color:#04140b">LEAD</span>`:isLag?`<span class="stag" style="background:var(--high);color:#1a0606">LAG</span>`:"";
+      card.appendChild(el(`<div class="${cls}">
+        <div class="stk">${esc(x.tk)}${tag}</div>
         <div class="sbar"><i style="left:${x.value>=0?"50%":(50-w)+"%"};width:${w}%;background:${col}"></i><span class="mid"></span></div>
         <div class="sval" style="color:${col}">${x.value>=0?"+":""}${num(x.value,1)}</div>
       </div>`));
     });
-    card.appendChild(el(`<div class="phase-sub" style="margin-top:8px">3-month relative strength vs SPY (pct pts)</div>`));
+    card.appendChild(el(`<div class="phase-sub" style="margin-top:8px">3-month relative strength vs SPY (pct pts) · leaders/laggards highlighted, middle muted</div>`));
   }
   c.appendChild(card);
   return c;
