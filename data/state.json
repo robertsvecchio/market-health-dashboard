@@ -20,6 +20,375 @@
   },
   "history": [
     {
+      "date": "2026-04-15",
+      "pct_above_200": 54.4,
+      "new_high_pct": 2.6,
+      "new_low_pct": 0.4,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-16",
+      "pct_above_200": 52.8,
+      "new_high_pct": 3.8,
+      "new_low_pct": 0.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-17",
+      "pct_above_200": 59.6,
+      "new_high_pct": 10.2,
+      "new_low_pct": 0.0,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-20",
+      "pct_above_200": 58.6,
+      "new_high_pct": 9.8,
+      "new_low_pct": 0.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-21",
+      "pct_above_200": 56.0,
+      "new_high_pct": 5.6,
+      "new_low_pct": 0.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-22",
+      "pct_above_200": 56.2,
+      "new_high_pct": 6.8,
+      "new_low_pct": 0.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-23",
+      "pct_above_200": 55.2,
+      "new_high_pct": 7.4,
+      "new_low_pct": 1.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-24",
+      "pct_above_200": 54.2,
+      "new_high_pct": 5.4,
+      "new_low_pct": 2.0,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-27",
+      "pct_above_200": 54.8,
+      "new_high_pct": 3.2,
+      "new_low_pct": 2.8,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-28",
+      "pct_above_200": 54.8,
+      "new_high_pct": 1.4,
+      "new_low_pct": 3.4,
+      "hindenburg_raw": false,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-29",
+      "pct_above_200": 53.4,
+      "new_high_pct": 2.4,
+      "new_low_pct": 5.0,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-04-30",
+      "pct_above_200": 56.8,
+      "new_high_pct": 9.2,
+      "new_low_pct": 2.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-01",
+      "pct_above_200": 56.4,
+      "new_high_pct": 7.0,
+      "new_low_pct": 3.8,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-04",
+      "pct_above_200": 53.2,
+      "new_high_pct": 4.6,
+      "new_low_pct": 6.2,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-05",
+      "pct_above_200": 54.2,
+      "new_high_pct": 8.0,
+      "new_low_pct": 3.6,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-06",
+      "pct_above_200": 55.6,
+      "new_high_pct": 10.4,
+      "new_low_pct": 4.4,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-07",
+      "pct_above_200": 55.0,
+      "new_high_pct": 2.6,
+      "new_low_pct": 1.6,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-08",
+      "pct_above_200": 52.6,
+      "new_high_pct": 5.0,
+      "new_low_pct": 5.6,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-11",
+      "pct_above_200": 53.6,
+      "new_high_pct": 7.2,
+      "new_low_pct": 9.6,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-12",
+      "pct_above_200": 53.8,
+      "new_high_pct": 3.2,
+      "new_low_pct": 5.2,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-13",
+      "pct_above_200": 52.6,
+      "new_high_pct": 6.6,
+      "new_low_pct": 9.0,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-14",
+      "pct_above_200": 53.8,
+      "new_high_pct": 5.8,
+      "new_low_pct": 4.4,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-15",
+      "pct_above_200": 50.6,
+      "new_high_pct": 3.0,
+      "new_low_pct": 7.8,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-18",
+      "pct_above_200": 52.4,
+      "new_high_pct": 4.2,
+      "new_low_pct": 1.6,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-19",
+      "pct_above_200": 50.6,
+      "new_high_pct": 3.0,
+      "new_low_pct": 3.6,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-20",
+      "pct_above_200": 53.4,
+      "new_high_pct": 2.6,
+      "new_low_pct": 0.4,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-21",
+      "pct_above_200": 55.0,
+      "new_high_pct": 3.0,
+      "new_low_pct": 0.6,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-22",
+      "pct_above_200": 56.5,
+      "new_high_pct": 5.39,
+      "new_low_pct": 0.0,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-26",
+      "pct_above_200": 57.1,
+      "new_high_pct": 7.78,
+      "new_low_pct": 0.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-27",
+      "pct_above_200": 57.7,
+      "new_high_pct": 4.39,
+      "new_low_pct": 1.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-28",
+      "pct_above_200": 57.1,
+      "new_high_pct": 3.99,
+      "new_low_pct": 2.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-05-29",
+      "pct_above_200": 55.3,
+      "new_high_pct": 5.19,
+      "new_low_pct": 2.59,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-01",
+      "pct_above_200": 53.3,
+      "new_high_pct": 6.39,
+      "new_low_pct": 3.39,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-02",
+      "pct_above_200": 53.3,
+      "new_high_pct": 5.99,
+      "new_low_pct": 3.99,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-03",
+      "pct_above_200": 53.3,
+      "new_high_pct": 4.79,
+      "new_low_pct": 3.39,
+      "hindenburg_raw": true,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-04",
+      "pct_above_200": 56.1,
+      "new_high_pct": 4.59,
+      "new_low_pct": 1.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-05",
+      "pct_above_200": 57.9,
+      "new_high_pct": 2.79,
+      "new_low_pct": 1.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-08",
+      "pct_above_200": 55.1,
+      "new_high_pct": 1.8,
+      "new_low_pct": 1.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-09",
+      "pct_above_200": 57.5,
+      "new_high_pct": 5.19,
+      "new_low_pct": 0.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-10",
+      "pct_above_200": 56.1,
+      "new_high_pct": 2.4,
+      "new_low_pct": 2.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
+      "date": "2026-06-11",
+      "pct_above_200": 58.7,
+      "new_high_pct": 5.99,
+      "new_low_pct": 2.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
+    },
+    {
       "date": "2026-06-12",
       "composite": 68.5,
       "structural": 77.7,
@@ -30,7 +399,12 @@
       "hy_oas": 2.78,
       "vix": 17.68,
       "pct_above_200": 60.7,
-      "goldman": 56.3
+      "goldman": 56.3,
+      "new_high_pct": 7.58,
+      "new_low_pct": 1.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
     },
     {
       "date": "2026-06-13",
@@ -69,7 +443,12 @@
       "hy_oas": 2.71,
       "vix": 16.24,
       "pct_above_200": 60.9,
-      "goldman": 56.3
+      "goldman": 56.3,
+      "new_high_pct": 4.79,
+      "new_low_pct": 1.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
     },
     {
       "date": "2026-06-16",
@@ -82,7 +461,12 @@
       "hy_oas": 2.66,
       "vix": 15.81,
       "pct_above_200": 61.7,
-      "goldman": 55.6
+      "goldman": 55.6,
+      "new_high_pct": 4.59,
+      "new_low_pct": 0.8,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "backfilled": true
     },
     {
       "date": "2026-06-17",
@@ -95,7 +479,12 @@
       "hy_oas": 2.71,
       "vix": 18.44,
       "pct_above_200": 57.7,
-      "goldman": 55.4
+      "goldman": 55.4,
+      "new_high_pct": 3.59,
+      "new_low_pct": 5.19,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "backfilled": true
     }
   ]
 }
