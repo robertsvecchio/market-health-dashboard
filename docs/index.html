@@ -189,7 +189,7 @@ const PRIMERS={
   titanic_syndrome_today:"RAW flag — fires when new lows outnumber new highs. Not actionable alone.",
   ad_line_proxy:"Equal-weight vs cap-weight S&P 500. RSP lagging SPY = megacap masking = breadth warning.",
   // ---- Sentiment ----
-  fear_greed:"Computed from 6 of CNN's 7 equally-weighted inputs (momentum, price strength, breadth, volatility, HY demand, safe haven). 0=Extreme Fear, 100=Extreme Greed. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points, not trend confirmations.",
+  fear_greed:"CNN's official Fear & Greed Index, scraped directly from CNN's API. 0=Extreme Fear, 100=Extreme Greed. 7 equally-weighted inputs: momentum, price strength, breadth, put/call, volatility, HY demand, safe haven. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points. Falls back to z-score approximation if CNN is unreachable.",
   vix:"Expected 30-day S&P volatility. Concurrent, not leading — spikes with selloffs. Above 40 = capitulation zone (contrarian buy). Below 15 = complacency zone (contrarian warning).",
   put_call:"Puts ÷ calls volume. High = fear (contrarian buy signal). Low = euphoria (contrarian sell signal). Currently unavailable — CBOE endpoint down.",
   // ---- Sectors ----
