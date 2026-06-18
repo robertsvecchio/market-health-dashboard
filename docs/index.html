@@ -24,11 +24,12 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .refresh{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 13px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 .refresh:hover{border-color:var(--info)}
 .refresh svg{width:14px;height:14px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:4px 2px 10px}
-.tab{flex:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.tabs{display:flex;gap:5px;padding:4px 2px 10px}
+.tab{flex:1 1 0;min-width:0;justify-content:center}
+.tab{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;padding:8px 8px;border-radius:9px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tab[aria-selected="true"]{color:var(--text);border-color:var(--faint);background:var(--surface2)}
 .tab:focus-visible{outline:2px solid var(--info);outline-offset:3px}
-.tab .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.tab .dot{width:6px;height:6px;border-radius:50%;flex:none}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
 .card h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
 .score-num{font-family:var(--mono);font-size:54px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -610,11 +611,13 @@ function panelOverview(){
   };
 
   const compSpark=tileSparkSvg(compHist.slice(-20),riskColor(cv));
-  const fgHist=hist.map(h=>h.fear_greed).filter(v=>v!=null);
+  let fgHist=hist.map(h=>h.fear_greed).filter(v=>v!=null);
+  if(fgHist.length<4 && fg.spark && fg.spark.length>=4) fgHist=fg.spark;  // CNN embedded history
   const fgSpark=tileSparkSvg(fgHist.slice(-20),fgcol);
   const vxHist=hist.map(h=>h.vix).filter(v=>v!=null);
   const vxSpark=tileSparkSvg(vxHist.slice(-20),vxcol);
-  const umHist=hist.map(h=>h.umich).filter(v=>v!=null);
+  let umHist=hist.map(h=>h.umich).filter(v=>v!=null);
+  if(umHist.length<4 && um.spark && um.spark.length>=4) umHist=um.spark;  // FRED embedded history
   const umSpark=tileSparkSvg(umHist.slice(-20),umcol);
 
   const heroRow=el(`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px"></div>`);
@@ -648,14 +651,16 @@ function panelOverview(){
   wireTileInfo(t1,"goldman_composite");
   heroRow.appendChild(t1);
 
-  // Tile 2: Fear & Greed
+  // Tile 2: Fear & Greed — big-number format matching the other tiles
   const t2=el(`<div class="ov-score-card"></div>`);
   t2.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <div class="ov-score-label" style="margin-bottom:0">Fear &amp; Greed</div>
       <button class="info tile-info-btn" aria-label="Explain Fear and Greed" aria-expanded="false">i</button>
     </div>
-    ${odometer(fgv,fgLabel,fgcol)}
+    <div class="ov-big-num" style="color:${fgcol};font-size:42px">${fgv==null?"—":Math.round(fgv)}</div>
+    <div class="ov-risk-label" style="color:${fgcol};font-size:13px">${esc(fgLabel)}</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px">CNN Index / 100</div>
     ${fgSpark}
     <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.fear_greed||"CNN Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed.")}</div></div>`;
   wireTileInfo(t2,"fear_greed");
