@@ -24,8 +24,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .refresh{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 13px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 .refresh:hover{border-color:var(--info)}
 .refresh svg{width:14px;height:14px}
-.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:4px 2px 10px}
 .tab{flex:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{color:var(--text);border-color:var(--faint);background:var(--surface2)}
 .tab:focus-visible{outline:2px solid var(--info);outline-offset:3px}
@@ -534,8 +533,14 @@ function deriveKeyDrivers(){
 }
 
 function odometer(score,label,col){
+  // W=130, H=74, cx=65, cy=54, r=44, sw=10
+  // Arc runs left(180deg)->right(0deg) = semicircle flat at bottom
+  // Arc endpoints at y=cy=54 (sin180=sin0=0)
+  // Arc top at y=cy-r=10 (good clearance)
+  // Score at cy-10=44 (inside arc), label at cy+12=66, Fear/Greed at cy+4=58
+  // All inside H=74
   const v=score==null?50:Math.max(0,Math.min(100,score));
-  const W=130,H=76,r=50,cx=65,cy=68,sw=9;
+  const W=130,H=74,r=44,cx=65,cy=54,sw=10;
   const toRad=a=>a*Math.PI/180;
   const arcPath=(pct,clr)=>{
     const a1=toRad(180),a2=toRad(180-pct/100*180);
@@ -544,18 +549,17 @@ function odometer(score,label,col){
     return `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${pct>50?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)}" fill="none" stroke="${clr}" stroke-width="${sw}" stroke-linecap="round"/>`;
   };
   const ndeg=toRad(180-v/100*180);
-  const nl=36,nx=(cx+nl*Math.cos(ndeg)).toFixed(1),ny=(cy+nl*Math.sin(ndeg)).toFixed(1);
-  const lx=(cx+r*Math.cos(toRad(180))).toFixed(1);
-  const rx=(cx+r*Math.cos(toRad(0))).toFixed(1);
+  const nl=32,nx=(cx+nl*Math.cos(ndeg)).toFixed(1),ny=(cy+nl*Math.sin(ndeg)).toFixed(1);
+  const lx=(cx-r+2).toFixed(1),rx=(cx+r-2).toFixed(1);
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:${H}px;display:block;margin:0 auto">
     ${arcPath(100,"rgba(255,255,255,.09)")}
     ${arcPath(v,col)}
-    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="rgba(255,255,255,.9)" stroke-width="2.5" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3.5" fill="rgba(255,255,255,.9)"/>
-    <text x="${cx}" y="${cy-8}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="22" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
-    <text x="${cx}" y="${cy+10}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#8B949E">${esc(label||"")}</text>
-    <text x="${lx}" y="${cy+20}" text-anchor="start" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Fear</text>
-    <text x="${rx}" y="${cy+20}" text-anchor="end" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Greed</text>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="3" fill="rgba(255,255,255,.85)"/>
+    <text x="${cx}" y="${cy-10}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="22" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
+    <text x="${cx}" y="${cy+12}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#8B949E">${esc(label||"")}</text>
+    <text x="${lx}" y="${cy+4}" text-anchor="start" font-family="-apple-system,sans-serif" font-size="8" fill="#555E6B">Fear</text>
+    <text x="${rx}" y="${cy+4}" text-anchor="end" font-family="-apple-system,sans-serif" font-size="8" fill="#555E6B">Greed</text>
   </svg>`;
 }
 
@@ -639,7 +643,6 @@ function panelOverview(){
     </div>
     <div class="ov-big-num" style="color:${riskColor(cv)};font-size:42px">${cv==null?"—":Math.round(cv)}</div>
     <div class="ov-risk-label" style="color:${riskColor(cv)};font-size:13px">${esc(comp.label||"Unknown")}</div>
-    ${trendTag?`<div class="ov-trend-tag" style="font-size:10px;padding:3px 8px;margin-top:6px">${esc(trendTag)}</div>`:""}
     ${compSpark}
     <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.goldman_composite||"Composite risk score 0-100. Higher = more risk.")}</div></div>`;
   wireTileInfo(t1,"goldman_composite");
