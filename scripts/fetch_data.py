@@ -81,6 +81,7 @@ FRED_SERIES = {
     "lei":               ("USALOLITOAASTSAM",   "OECD Composite Leading Indicator, US (amplitude-adjusted) — current; replaces discontinued USSLIND"),
     "yield_curve_10y3m": ("T10Y3M",             "10yr minus 3mo Treasury spread"),
     "nfci_leverage":     ("NFCINONFINLEVERAGE", "Chicago Fed NFCI nonfinancial leverage subindex"),
+    "lending_standards": ("DRTSCILM",           "SLOOS: net % of banks tightening C&I loan standards — leads recessions 2-4 quarters"),
     "unemployment":      ("UNRATE",             "Civilian unemployment rate"),
     "cc_delinquency":    ("DRCCLACBS",          "Credit card delinquency rate, all commercial banks"),
     "auto_delinquency":  ("DRALACBN",           "Auto/other consumer loan delinquency rate"),
@@ -104,6 +105,7 @@ FRED_SERIES = {
 # How far back to look when computing a metric's trend, by series cadence.
 TREND_LOOKBACK = {
     "lei": 3, "yield_curve_10y3m": 21, "nfci_leverage": 4, "unemployment": 3,
+    "lending_standards": 1,
     "cc_delinquency": 1, "auto_delinquency": 1, "savings_rate": 3, "debt_service": 1,
     "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "ppi": 3, "fed_funds": 21,
     "umich_sentiment": 3, "avg_hourly_earnings": 3, "hy_oas": 21, "ig_oas": 21,
@@ -1679,6 +1681,8 @@ def run(no_breadth=False):
         hist = [h for h in hist if h.get("date") != today]
         hist.append(snap)
         new_state["history"] = hist[-460:]  # ~15 months of daily points
+        # Expose a compact recent window in latest.json so the dashboard can draw sparklines
+        result["history"] = new_state["history"][-90:]
         # Promote raw flags -> confirmed clusters using the freshly-updated history
         try:
             result["breadth"].update(confirm_clusters(new_state["history"]))
