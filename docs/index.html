@@ -686,9 +686,13 @@ function panelOverview(){
   });
   c.appendChild(a);
 
-  // ── what's changed (score deltas vs 7d ago or earliest available) ──
+  // ── what's changed + next catalysts (side by side) ──
+  const pairRow=el(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>`);
+  let pairHasContent=false;
+
+  // left tile: what's changed
   if(hist.length>=2){
-    const wc=el(`<div class="card"><h2>What's Changed</h2></div>`);
+    const wc=el(`<div class="card" style="margin-bottom:0;height:100%"><h2>What's Changed</h2></div>`);
     const lookback=Math.min(7,hist.length-1);
     const fields=[
       {k:"composite",label:"Market Health",highIsBad:true},
@@ -710,30 +714,36 @@ function panelOverview(){
       const worsening=f.highIsBad?delta>0:delta<0;
       const col=worsening?"var(--high)":"var(--low)";
       const arr=delta>0?"↑":"↓";
-      wc.appendChild(el(`<div class="wc-row"><span class="wc-arr" style="color:${col}">${arr}</span><span>${esc(f.label)}</span><span class="wc-delta" style="color:${col}">${delta>0?"+":""}${delta}</span></div>`));
+      wc.appendChild(el(`<div class="wc-row"><span class="wc-arr" style="color:${col}">${arr}</span><span style="flex:1">${esc(f.label)}</span><span class="wc-delta" style="color:${col}">${delta>0?"+":""}${delta}</span></div>`));
     });
     const lbl=lookback===1?"vs yesterday":`vs ${lookback}d ago`;
-    if(rows>0){const sub=el(`<div style="font-size:10px;color:var(--muted);margin-top:6px">${esc(lbl)}</div>`);wc.appendChild(sub);c.appendChild(wc);}
+    if(rows===0)wc.appendChild(el(`<div class="empty">No significant changes</div>`));
+    wc.appendChild(el(`<div style="font-size:10px;color:var(--muted);margin-top:6px">${esc(lbl)}</div>`));
+    pairRow.appendChild(wc);
+    pairHasContent=true;
   }
+
+  // right tile: next catalysts
+  const cats=((DATA.catalysts||{}).upcoming||[]).filter(x=>x.days_away<=45);
+  const cc3=el(`<div class="card" style="margin-bottom:0;height:100%"><h2>Next Catalysts</h2></div>`);
+  if(cats.length){
+    cats.forEach(ev=>{
+      const w=ev.days_away===0?"today":ev.days_away+"d";
+      const chip=el(`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-top:1px solid var(--border)"></div>`);
+      chip.innerHTML=`<div><div style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase">${esc(ev.date.slice(5))}</div><div style="font-size:13px;font-weight:600;margin-top:1px">${esc(ev.label)}</div></div><div style="font-size:11px;color:var(--faint);white-space:nowrap;margin-left:8px">${esc(w)}</div>`;
+      cc3.appendChild(chip);
+    });
+  } else {
+    cc3.appendChild(el(`<div class="empty">No events in next 45 days</div>`));
+  }
+  pairRow.appendChild(cc3);
+  pairHasContent=true;
+
+  if(pairHasContent)c.appendChild(pairRow);
 
   // ── summary ──
   const itp=DATA.interpretation||{};
   if(itp.summary)c.appendChild(el(`<div class="card"><h2>Where It Stands</h2><div class="summary">${esc(itp.summary)}</div></div>`));
-
-  // ── catalysts (next 45 days) ──
-  const cats=((DATA.catalysts||{}).upcoming||[]).filter(x=>x.days_away<=45);
-  if(cats.length){
-    const cc3=el(`<div class="card"><h2>Next Catalysts</h2></div>`);
-    const row=el(`<div class="cat-row"></div>`);
-    cats.forEach(ev=>{
-      const w=ev.days_away===0?"today":ev.days_away+"d";
-      const chip=el(`<div class="cat-chip"></div>`);
-      chip.innerHTML=`<div class="cat-date">${esc(ev.date.slice(5))}</div><div class="cat-name">${esc(ev.label)}</div><div class="cat-days">${w}</div>`;
-      row.appendChild(chip);
-    });
-    cc3.appendChild(row);
-    c.appendChild(cc3);
-  }
 
   // ── model confidence (bottom) ──
   c.appendChild(confCard());
