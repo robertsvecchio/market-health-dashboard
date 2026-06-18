@@ -152,41 +152,48 @@ const DATA_URL="./data/latest.json";
 
 /* ── static primers ── */
 const PRIMERS={
-  cape:"Price vs 10-year inflation-adjusted earnings. A long-run return gauge, not a timing tool — high CAPE means low expected 10-year returns. Long-run average ~17; above 30 has always eventually preceded a bear market.",
-  buffett_indicator:"Total US equity value ÷ GDP. Buffett called it the best single gauge of where valuations stand. Watch deviation from trend, not the absolute level (which drifts up over time).",
-  excess_cape_yield:"CAPE earnings yield minus the real bond yield — how much extra you're paid to own stocks over bonds. Low or negative = stocks expensive relative to bonds.",
-  forward_pe:"Price vs next-12-month expected earnings. More timely than CAPE. Long-run mean ~16x; above 20–22x is historically tied to elevated drawdown risk.",
-  ad_line_proxy:"Equal-weight vs cap-weight S&P. When equal-weight lags, a few megacaps are masking weaker breadth — a divergence that often precedes turns.",
-  lending_standards:"SLOOS net % of banks tightening C&I loan standards — measures credit AVAILABILITY (vs spreads, which measure price). Leads the real economy and credit spreads by 1–3 quarters; readings above +30% have preceded every US recession since 1990 by 2–4 quarters. Source: FRED DRTSCILM, quarterly.",
-  yield_curve_10y3m:"10yr minus 3mo Treasury yield. TRACK RECORD: inversion has preceded every US recession since the 1950s with a median lead of ~15 months (range 6-24); the un-inversion often coincides with onset. One false positive (1998); the 2022 inversion is the longest on record without an NBER recession yet. The most reliable single lead signal, but a calendar warning, not a trade trigger. (Congress CRS; Lambda Finance.)",
-  hy_oas:"Extra yield demanded to hold risky corporate bonds over Treasuries. Widening spreads signal credit stress and usually lead equity weakness — the bond market sniffs trouble first.",
-  ig_oas:"Investment-grade credit spread. A calmer cousin of high-yield; widening signals broad credit tightening.",
-  lei:"OECD Composite Leading Indicator for the US — forward-looking inputs. Direction matters more than level: rising points to expansion, falling to softening.",
-  unemployment:"The unemployment rate. Very low is late-cycle; the danger is the turn — a rise of ~0.5pt from lows (Sahm rule) has reliably marked recession onset.",
-  core_pce:"The Fed's preferred inflation gauge, ex food & energy. Direction vs the 2% target drives policy; re-acceleration pressures rates and stocks.",
-  ppi:"Producer Price Index (Final Demand) — what producers receive. Leads CPI by 1-3 months because input costs flow downstream to consumer prices, so a PPI turn often precedes a CPI turn. Source: FRED PPIFIS.",
-  core_cpi:"Core consumer inflation, ex food & energy. Persistent high readings push the Fed toward tighter policy.",
-  fed_funds:"The Fed's policy rate. Rate-cut cycles have preceded recent recessions — easing isn't always bullish, since the Fed usually cuts because something is breaking.",
-  umich_sentiment:"University of Michigan consumer mood survey. Sharp drops signal spending pullbacks; extreme lows can be contrarian buy signals.",
-  nfci_leverage:"Chicago Fed measure of financial-system leverage. Positive = tighter/more leveraged than average; a buildup raises fragility.",
-  cc_delinquency:"Share of credit-card balances past due. Rising delinquencies are an early, independent sign of consumer stress — they lead the economy by months.",
-  auto_delinquency:"Share of auto/consumer loans past due. Tends to crack before mortgages; an early consumer-stress tell.",
-  savings_rate:"Personal savings as a share of income. Falling savings + rising delinquencies = spending increasingly debt-funded — a fragile setup.",
-  debt_service:"Household debt payments as a share of disposable income. High readings leave less cushion for shocks.",
-  vix:"The market's expected volatility — the 'fear index.' Mostly concurrent: spikes with selloffs, not before. Above 40 often marks capitulation bottoms and contrarian entry points.",
-  put_call:"Put-to-call option volume ratio. Very low = euphoria (contrarian warning); very high = fear (contrarian opportunity).",
-  pct_above_200dma:"Share of S&P 500 stocks above their 200-day average. Above 60% = healthy broad participation; below 40% while the index is near highs signals distribution beneath the surface. Confirming/coincident, not leading — use as breadth context, not a timing trigger.",
-  mcclellan:"Breadth-momentum oscillator from advancers vs decliners. Negative = deteriorating internal momentum. (S&P 500 proxy; sharpens after ~40 daily runs.)",
-  zweig_adv_ratio:"Feeds the Zweig Breadth Thrust (bullish): a rare bottom signal when the 10-day adv/(adv+dec) EMA rockets from <0.40 to >0.615 in 10 days. TRACK RECORD: ~19 signals since WWII, S&P 500 higher 6 AND 12 months later EVERY time, avg ~+23% at 12mo (Zweig; SentimenTrader; Detrick/Carson). Small sample, some 2022 misfires, NYSE-data-dependent. (S&P 500 proxy here.)",
-  hindenburg_omen_confirmed:"CONFIRMED when 2+ raw flags occur within 30 days. TRACK RECORD: preceded the 1987, 2000 and 2008 tops, but ~75-80% of confirmed signals are false alarms — only ~25% are followed by a 5%+ decline and ~10% by 15%+ (DayTrading.com; SentimenTrader/Goepfert). Treat as a high-false-positive early warning that needs confirmation, NOT a standalone sell. (S&P 500 proxy.)",
-  hindenburg_omen_today:"RAW same-day flag: fires when new highs AND new lows each exceed 2.2% of issues, index in uptrend, McClellan negative. Not actionable alone — watch for confirmation.",
-  titanic_syndrome_confirmed:"CONFIRMED when 2+ raw flags occur within 30 days. TRACK RECORD: thinly documented vs Hindenburg — no robust published hit-rate study, so weight it as corroboration only, not a primary trigger. [Unverified hit rate] (S&P 500 proxy.)",
-  titanic_syndrome_today:"RAW same-day flag: fires when new lows outnumber new highs. Not actionable alone — watch for confirmation.",
-  spx_vs_200dma:"Where the S&P 500 sits vs its 200-day average — the most-watched trend line. Breaks below a flat or falling 200-DMA have preceded every bear since 2000.",
-  dma200_slope:"Direction of the 200-day average. Rising = dips usually buyable; flat/falling turns breaks into structural warnings.",
-  weekly_macd:"Weekly trend-momentum. Daily MACD is noisy; the weekly turning negative has preceded every sustained bear since 2000.",
-  goldman_composite:"Percentile-ranked composite of five recession/bear-market inputs: valuation, yield curve, unemployment, inflation, and LEI. Above 70 = historically high-risk; below 40 = favorable. A summary gauge, not a timing trigger.",
-  cycle_phase:"Business-cycle phase derived from LEI direction and yield-curve level. Early cycle favors financials/discretionary; mid cycle tech/industrials; late cycle energy/materials; contraction defensives.",
+  // ---- Valuation ----
+  cape:"CAPE = price ÷ 10yr avg real earnings. Long-run avg ~17; above 30 has always preceded a bear eventually. NOT a timing tool — can stay elevated for years. Predicts 10-yr forward returns, not next quarter.",
+  buffett_indicator:"US stock market cap ÷ GDP. Above +1 std dev from trend = expensive. Watch the deviation (z-score), not the raw level.",
+  excess_cape_yield:"CAPE earnings yield minus real bond yield. Negative = bonds beat stocks on a risk-adjusted basis. Lowest since the dot-com peak.",
+  forward_pe:"Price ÷ next-12-month earnings. Long-run mean ~16x. Above 22x = elevated drawdown risk historically. More timely than CAPE but subject to analyst optimism bias.",
+  ad_line_proxy:"Equal-weight vs cap-weight S&P. When RSP lags SPY, megacaps are masking weak breadth — a divergence that often precedes turns.",
+  // ---- Cycle ----
+  goldman_composite:"5-input percentile composite: valuation, yield curve, unemployment, inflation, LEI. Above 70 = high-risk historically. Summary gauge, not a timing trigger.",
+  lei:"OECD leading indicator for the US. Direction beats level: rising = expansion, falling = softening ahead.",
+  lending_standards:"Net % of banks tightening C&I lending — measures credit AVAILABILITY (vs HY spreads = credit price). Above +30% has preceded every US recession since 1990 by 2–4 quarters. Quarterly, lags ~1 month. (FRED DRTSCILM)",
+  yield_curve_10y3m:"10yr minus 3mo yield. HIT RATE: inversion preceded all 7 post-WWII recessions, median lead 15 months (range 6–24). One false positive (1998). Most reliable lead signal — but a calendar warning, not a trade trigger.",
+  unemployment:"Very low = late-cycle. The danger is the TURN: +0.5pt from 12-mo low triggers the Sahm Rule, which has called every recession onset since 1950.",
+  fed_funds:"Fed policy rate. Rate-cut cycles often precede recessions — the Fed cuts because something is breaking, not as a gift to bulls.",
+  ppi:"Producer prices (final demand). Leads CPI by 1–3 months — watch for a PPI turn to front-run the inflation narrative shift. (FRED PPIFIS)",
+  core_cpi:"Core consumer inflation ex food/energy. Persistent above 3% keeps the Fed tight, which pressures multiples.",
+  core_pce:"Fed's preferred inflation gauge. Direction vs 2% drives policy more than any other single number.",
+  nfci_leverage:"Chicago Fed financial leverage. Positive = tighter/more leveraged than avg. Buildup raises fragility.",
+  hy_oas:"Extra yield for holding junk bonds over Treasuries. Widening = credit stress. Bond market sniffs trouble before equities — watch for spread divergence from equity calm.",
+  ig_oas:"IG credit spread. Calmer than HY but widening alongside HY = broad credit tightening.",
+  umich_sentiment:"Consumer mood. Sharp drops signal spending pullbacks. Extreme lows (~50s) have historically been contrarian buy signals, not crash confirmations.",
+  cc_delinquency:"Credit card past-due rate. Leads the economy — consumer stress shows up here months before GDP.",
+  auto_delinquency:"Auto loan delinquencies. Cracks before mortgages; early consumer stress signal.",
+  savings_rate:"Personal savings ÷ income. Below 3% + rising delinquencies = spending increasingly debt-funded. Fragile.",
+  debt_service:"Household debt payments ÷ disposable income. High = less cushion for shocks.",
+  // ---- Trend & Breadth ----
+  spx_vs_200dma:"S&P 500 vs its 200-day average. Breaks below a flat or falling 200-DMA preceded every bear since 2000.",
+  dma200_slope:"Direction of the 200-DMA. Rising = dips buyable. Flat/falling = breaks become structural.",
+  weekly_macd:"Weekly trend-momentum. Daily MACD is noise; weekly turning negative preceded every sustained bear since 2000.",
+  pct_above_200dma:"% of S&P 500 above their 200-DMA. Above 60% = healthy. Below 40% while index near highs = distribution. Coincident, not leading.",
+  mcclellan:"Advances minus declines momentum oscillator. Negative = deteriorating internals. (S&P 500 proxy; needs ~40 days to stabilize.)",
+  zweig_adv_ratio:"HIT RATE: Zweig Breadth Thrust has fired ~19 times since WWII — S&P 500 higher 6 AND 12 months later every single time, avg +23% at 12mo. Rare (fires at bottoms), but the most reliable bullish signal in the set. (S&P 500 proxy.)",
+  hindenburg_omen_confirmed:"HIT RATE: ~25% preceded a 5%+ decline; ~10% preceded 15%+. 75–80% false alarms. Caught 1987, 2000, 2008 tops. High noise, useful only as cluster confirmation (2+/30d), never standalone. (S&P 500 proxy.)",
+  hindenburg_omen_today:"RAW flag — fires when new highs AND lows both exceed 2.2%, index in uptrend, McClellan negative. Not actionable alone.",
+  titanic_syndrome_confirmed:"No robust published hit-rate study. Weight as corroboration of Hindenburg only. (S&P 500 proxy.)",
+  titanic_syndrome_today:"RAW flag — fires when new lows outnumber new highs. Not actionable alone.",
+  ad_line_proxy:"Equal-weight vs cap-weight S&P 500. RSP lagging SPY = megacap masking = breadth warning.",
+  // ---- Sentiment ----
+  fear_greed:"Computed from 6 of CNN's 7 equally-weighted inputs (momentum, price strength, breadth, volatility, HY demand, safe haven). 0=Extreme Fear, 100=Extreme Greed. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points, not trend confirmations.",
+  vix:"Expected 30-day S&P volatility. Concurrent, not leading — spikes with selloffs. Above 40 = capitulation zone (contrarian buy). Below 15 = complacency zone (contrarian warning).",
+  put_call:"Puts ÷ calls volume. High = fear (contrarian buy signal). Low = euphoria (contrarian sell signal). Currently unavailable — CBOE endpoint down.",
+  // ---- Sectors ----
+  cycle_phase:"Business-cycle phase from LEI + yield curve. Early cycle: financials/discretionary. Mid: tech/industrials. Late: energy/materials. Contraction: defensives. Defensives leading = late-cycle tell.",
 };
 
 /* ── investor-risk color scale: each metric maps value → risk level → color ── */
@@ -316,7 +323,7 @@ function metric(section,key,label,fmt,readingKey,staleDays){
   return card;
 }
 
-const HIST_FIELD={composite:"composite",structural_score:"structural",cycle_score:"cycle",
+const HIST_FIELD={fear_greed:"composite",composite:"composite",structural_score:"structural",cycle_score:"cycle",
   goldman_composite:"goldman",cape:"cape",buffett_indicator:"buffett_z",
   yield_curve_10y3m:"yield_curve",hy_oas:"hy_oas",vix:"vix",pct_above_200dma:"pct_above_200"};
 function sparkSeries(field){
@@ -555,30 +562,51 @@ function panelTrend(){return mList([
   {sec:"breadth",key:"titanic_syndrome_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
 ]);}
 
-function panelSentiment(){
-  const c=mList([
-    {sec:"sentiment",key:"vix",label:"VIX",fmt:(v,m)=>num(v,1)+(m.ma20!=null?` (20d ${num(m.ma20,1)})`:"")},
-    {sec:"sentiment",key:"put_call",label:"Put/Call Ratio",fmt:v=>num(v,2),rk:"put_call"},
-  ]);
-  // Google Trends with arrows
-  const gt=(DATA.sentiment||{}).google_trends||{};
-  const gkeys=Object.keys(gt).filter(k=>gt[k]&&gt[k].value&&typeof gt[k].value==="object");
-  if(gkeys.length){
-    const gc=el(`<div class="card"><h2>Google Trends — Search Interest</h2></div>`);
-    gkeys.forEach(theme=>{
-      const t=gt[theme];
-      const mom=t.momentum_pct||{};
-      const parts=Object.keys(t.value).map(term=>{
-        const v=t.value[term];
-        const m=mom[term];
-        const aChar=m==null?"":m>5?"↑":m<-5?"↓":"→";
-        const aCol=m==null?"":m>5?"var(--low)":m<-5?"var(--high)":"var(--faint)";
-        return`${esc(term.split(" ")[0])}&nbsp;<span style="font-family:var(--mono)">${v}</span>${aChar?`<span style="color:${aCol};font-size:11px">${aChar}</span>`:""}`;
-      }).join(" &nbsp;·&nbsp; ");
-      gc.appendChild(el(`<div class="metric"><div class="mhead"><span class="mname" style="font-size:13px">${esc(theme.replace(/_/g," "))}</span><span class="mval" style="font-size:12px;color:var(--muted);gap:6px">${parts}</span></div></div>`));
+function fearGreedGauge(){
+  const fg=(DATA.sentiment||{}).fear_greed||{};
+  const v=fg.value,lbl=fg.label||"",comps=fg.components||{};
+  if(v==null)return null;
+  const col=v<25?"var(--high)":v<45?"var(--elevated)":v<55?"var(--moderate)":v<75?"var(--low)":"#00c896";
+  const compNames={momentum:"Momentum",strength:"Price Strength",breadth:"Breadth",
+    volatility:"Volatility",junk_demand:"HY Demand",safe_haven:"Safe Haven"};
+  const c=el(`<div class="card"><h2>Fear & Greed</h2></div>`);
+  // Big dial display
+  c.appendChild(el(`<div style="display:flex;align-items:center;gap:16px;padding:8px 0 4px">
+    <div style="width:72px;height:72px;border-radius:50%;border:5px solid ${col};display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none">
+      <span style="font-family:var(--mono);font-size:22px;font-weight:700;color:${col}">${Math.round(v)}</span>
+    </div>
+    <div>
+      <div style="font-size:18px;font-weight:700;color:${col}">${esc(lbl)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">0 = Extreme Fear · 100 = Extreme Greed</div>
+      <div style="font-size:11px;color:var(--faint);margin-top:2px">6/7 CNN inputs · put/call excluded (source down)</div>
+    </div>
+  </div>`));
+  // Component bars
+  const keys=Object.keys(comps);
+  if(keys.length){
+    const barsDiv=el(`<div style="margin-top:6px;display:grid;gap:3px">`);
+    keys.forEach(k=>{
+      const cv=comps[k];
+      const cc=cv<25?"var(--high)":cv<45?"var(--elevated)":cv<55?"var(--moderate)":cv<75?"var(--low)":"#00c896";
+      barsDiv.appendChild(el(`<div style="display:grid;grid-template-columns:90px 1fr 30px;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--muted)">${esc(compNames[k]||k)}</span>
+        <div style="height:5px;background:var(--surface2);border-radius:3px">
+          <div style="height:100%;width:${cv}%;background:${cc};border-radius:3px"></div>
+        </div>
+        <span style="font-family:var(--mono);font-size:11px;color:${cc};text-align:right">${Math.round(cv)}</span>
+      </div>`));
     });
-    c.appendChild(gc);
+    c.appendChild(barsDiv);
   }
+  return c;
+}
+function panelSentiment(){
+  const c=document.createDocumentFragment();
+  const fg=fearGreedGauge();if(fg)c.appendChild(fg);
+  c.appendChild(mList([
+    {sec:"sentiment",key:"vix",label:"VIX",fmt:(v,m)=>num(v,1)+(m.ma20!=null?` / 20d avg ${num(m.ma20,1)}`:"")},
+    {sec:"sentiment",key:"put_call",label:"Put/Call Ratio",fmt:v=>num(v,2),rk:"put_call"},
+  ]));
   return c;
 }
 
