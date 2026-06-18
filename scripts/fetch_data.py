@@ -933,127 +933,93 @@ def pull_put_call():
 # Google Trends
 # ---------------------------------------------------------------------------
 
-def _fg_zscore(val, mean, std, invert=False, sigma_clip=3.0):
-    """
-    CNN Fear & Greed normalization: score current value relative to its
-    historical distribution. Deviation in std units, clipped at sigma_clip,
-    then scaled to 0-100.  invert=True for components where high = fear.
-    """
-    if std == 0 or std is None:
-        return 50.0
-    z = (val - mean) / std
-    if invert:
-        z = -z
-    score = 50.0 + (z / sigma_clip) * 50.0
-    return max(0.0, min(100.0, score))
-
-
 def compute_fear_greed(result):
     """
-    Fear & Greed composite (0=Extreme Fear, 100=Extreme Greed) using
-    CNN's z-score methodology: each component is scored relative to its
-    historical distribution (how far it has veered vs how far it normally veers).
-
-    Components (7 CNN inputs where available):
-      1. Momentum:   SPX vs 125-DMA (pulled fresh) — CNN's exact input
-      2. Strength:   (new_high_pct - new_low_pct) balance
-      3. Breadth:    McClellan Oscillator (proxy for Summation Index)
-      4. Volatility: VIX, inverted
-      5. HY Demand:  HY OAS, inverted
-      6. Safe Haven: 20-day SPX return vs 20-day T-bill yield change (proxy)
-      7. Put/Call:   CBOE ratio, inverted (included if available)
-
-    Historical distribution params sourced from multi-year empirical ranges.
+    Fetch CNN's Fear & Greed Index directly from their API.
+    Falls back to z-score approximation if CNN is unreachable.
+    Endpoint: https://production.dataviz.cnn.io/index/fearandgreed/graphdata
+    Response: {fear_and_greed: {score, rating, timestamp},
+               fear_and_greed_historical: {data: [{x: unix_ms, y: score, rating}]}}
     """
+    CNN_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.cnn.com/markets/fear-and-greed",
+    }
+    try:
+        r = requests.get(CNN_URL, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        j = r.json()
+        fg = j.get("fear_and_greed", {})
+        score = fg.get("score")
+        rating = fg.get("rating", "")
+        ts = fg.get("timestamp", "")
+        if score is None:
+            raise ValueError("score missing from CNN response")
+        score = round(float(score), 1)
+        # Normalize label to title case
+        label = rating.replace("_", " ").title() if rating else (
+            "Extreme Fear" if score < 25 else
+            "Fear"         if score < 45 else
+            "Neutral"      if score < 55 else
+            "Greed"        if score < 75 else
+            "Extreme Greed")
+        print(f"  CNN Fear & Greed: {score} ({label})", flush=True)
+        return metric(score, source="CNN (production.dataviz.cnn.io)",
+                      notes="CNN's official Fear & Greed Index. "
+                            "0=Extreme Fear, 100=Extreme Greed. "
+                            "Updated by CNN throughout the trading day.",
+                      label=label, timestamp=str(ts))
+    except Exception as e:
+        print(f"  CNN Fear & Greed fetch failed ({e}); falling back to z-score", flush=True)
+
+    # ---- Fallback: z-score approximation from our own inputs ----
+    def _zs(val, mean, std, invert=False):
+        if not std: return 50.0
+        z = (val - mean) / std
+        if invert: z = -z
+        return max(0.0, min(100.0, 50.0 + (z / 3.0) * 50.0))
+
     scores = {}
     try:
-        # ---- 1. Momentum: SPX vs 125-DMA (CNN's exact period) ----
-        # Pull fresh — we compute 200-DMA elsewhere; need 125 specifically.
-        try:
-            import yfinance as _yf
-            _spx = _yf.download("^GSPC", period="9mo", interval="1d",
-                                 progress=False, auto_adjust=True)["Close"].dropna()
-            if len(_spx) >= 125:
-                _dma125 = float(_spx.iloc[-125:].mean())
-                _pct125 = float((_spx.iloc[-1] / _dma125 - 1) * 100)
-                # Historical: mean ~2%, std ~7% (based on post-2000 data)
-                scores["momentum"] = _fg_zscore(_pct125, mean=2.0, std=7.0)
-        except Exception:
-            # Fallback: use 200-DMA value we already have
-            spx_dma = (result.get("trend") or {}).get("spx_vs_200dma") or {}
-            m1 = spx_dma.get("value")
-            if m1 is not None:
-                scores["momentum"] = _fg_zscore(m1, mean=2.0, std=8.0)
-
-        # ---- 2. Price Strength: (NH% - NL%) ----
-        # Historical: mean ~0%, std ~5 pct pts
+        spx_dma = (result.get("trend") or {}).get("spx_vs_200dma") or {}
+        m1 = spx_dma.get("value")
+        if m1 is not None:
+            scores["momentum"] = _zs(m1, 2.0, 8.0)
         ho = (result.get("breadth") or {}).get("hindenburg_omen_today") or {}
-        nh = ho.get("new_high_pct", 0) or 0
-        nl = ho.get("new_low_pct", 0) or 0
-        scores["strength"] = _fg_zscore(nh - nl, mean=0.0, std=5.0)
-
-        # ---- 3. Breadth: McClellan Oscillator (inverted range: negative = fear) ----
-        # Historical oscillator: mean ~0, std ~60
+        scores["strength"] = _zs((ho.get("new_high_pct") or 0) - (ho.get("new_low_pct") or 0), 0.0, 5.0)
         mc = (result.get("breadth") or {}).get("mcclellan") or {}
-        m3 = mc.get("value")
-        if m3 is not None:
-            scores["breadth"] = _fg_zscore(m3, mean=0.0, std=60.0)
-
-        # ---- 4. Volatility: VIX inverted (high = fear) ----
-        # Historical VIX: mean ~18, std ~8
+        if mc.get("value") is not None:
+            scores["breadth"] = _zs(mc["value"], 0.0, 60.0)
         vx = (result.get("sentiment") or {}).get("vix") or {}
-        vix = vx.get("value")
-        if vix is not None:
-            scores["volatility"] = _fg_zscore(vix, mean=18.0, std=8.0, invert=True)
-
-        # ---- 5. HY Demand: OAS inverted (wide spread = fear) ----
-        # Historical HY OAS: mean ~4.5%, std ~2.5%
+        if vx.get("value") is not None:
+            scores["volatility"] = _zs(vx["value"], 18.0, 8.0, invert=True)
         hy = (result.get("macro") or {}).get("hy_oas") or {}
-        hy_v = hy.get("value")
-        if hy_v is not None:
-            scores["junk_demand"] = _fg_zscore(hy_v, mean=4.5, std=2.5, invert=True)
-
-        # ---- 6. Safe Haven: 20-day SPX return (stocks beating bonds = greed) ----
-        # Proxy: slope of 200-DMA + SPX vs 200-DMA directional score
-        # Binary proxy: rising=greed, falling=fear, scored around historical base
-        slope = (result.get("trend") or {}).get("dma200_slope") or {}
-        sl = slope.get("value")
-        if sl is not None:
-            _sh_raw = {"rising": 1.5, "flat": 0.0, "falling": -1.5}.get(str(sl), 0.0)
-            scores["safe_haven"] = _fg_zscore(_sh_raw, mean=0.0, std=1.0)
-
-        # ---- 7. Put/Call: inverted (high ratio = fear) ----
-        # Historical total put/call: mean ~0.85, std ~0.18
+        if hy.get("value") is not None:
+            scores["junk_demand"] = _zs(hy["value"], 4.5, 2.5, invert=True)
+        sl = ((result.get("trend") or {}).get("dma200_slope") or {}).get("value")
+        if sl:
+            scores["safe_haven"] = _zs({"rising":1.5,"flat":0.0,"falling":-1.5}.get(str(sl),0.0), 0.0, 1.0)
         pc = (result.get("sentiment") or {}).get("put_call") or {}
-        pc_v = pc.get("value")
-        if pc_v is not None and pc.get("status") == "ok":
-            scores["put_call"] = _fg_zscore(pc_v, mean=0.85, std=0.18, invert=True)
-
-    except Exception as e:
-        print(f"WARN: fear_greed computation failed: {e}", file=sys.stderr)
+        if pc.get("value") and pc.get("status") == "ok":
+            scores["put_call"] = _zs(pc["value"], 0.85, 0.18, invert=True)
+    except Exception as e2:
+        print(f"WARN: fear_greed fallback failed: {e2}", file=sys.stderr)
 
     if not scores:
-        return metric(None, status="unavailable", source="computed",
-                      notes="Insufficient inputs for Fear & Greed score")
+        return metric(None, status="unavailable", source="CNN / computed",
+                      notes="CNN unreachable and insufficient local inputs.")
+    composite = round(sum(scores.values()) / len(scores), 1)
+    label = ("Extreme Fear" if composite < 25 else "Fear" if composite < 45 else
+             "Neutral" if composite < 55 else "Greed" if composite < 75 else "Extreme Greed")
+    return metric(composite, source="computed fallback (CNN unreachable)",
+                  notes="CNN API unavailable. Z-score approximation from local inputs. "
+                        "Expect ~10-15pt divergence from official CNN score.",
+                  label=label, components=scores, n_inputs=len(scores))
 
-    n = len(scores)
-    composite = round(sum(scores.values()) / n, 1)
-    label = ("Extreme Fear" if composite < 25 else
-             "Fear"         if composite < 45 else
-             "Neutral"      if composite < 55 else
-             "Greed"        if composite < 75 else
-             "Extreme Greed")
-    return metric(composite, source=f"computed ({n}/7 CNN inputs, z-score method)",
-                  notes="CNN methodology: each component z-scored vs historical distribution. "
-                        "0=Extreme Fear, 100=Extreme Greed. Not identical to CNN — "
-                        "proxy inputs (McClellan oscillator vs Summation Index; "
-                        "200-DMA fallback for 125-DMA) introduce ~10-15pt divergence.",
-                  label=label, components=scores, n_inputs=n)
-
-
-# ---------------------------------------------------------------------------
-# Derived: Buffett indicator, Excess CAPE Yield, Goldman composite, cycle phase
-# ---------------------------------------------------------------------------
 
 def buffett_indicator(raw):
     try:
