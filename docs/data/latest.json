@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-17T22:35:29.010674+00:00",
-    "generated_display": "Jun 17 2026, 2:35 PM PT",
+    "generated_utc": "2026-06-18T08:00:39.029893+00:00",
+    "generated_display": "Jun 18 2026, 12:00 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -351,19 +351,32 @@
       "universe": 501,
       "below_40": false
     },
+    "mcclellan": {
+      "value": -74.34,
+      "status": "proxy",
+      "source": "Alpaca S&P500 internals",
+      "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
+      "ema19": 118.17,
+      "ema39": 192.511,
+      "negative": true
+    },
     "hindenburg_omen_today": {
       "value": true,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
-      "notes": "PROXY on S&P500 (true indicator is NYSE-wide). Single-day flag; cluster (2+/30d) is the real alert \u2014 tracked by alert script over time.",
+      "notes": "PROXY on S&P500 (true indicator is NYSE-wide). RAW same-day flag \u2014 not actionable alone. Confirmed signal = 2+ raw flags within 30 days (see hindenburg_omen_confirmed).",
       "new_high_pct": 3.59,
-      "new_low_pct": 5.19
+      "new_low_pct": 5.19,
+      "cond_counts": true,
+      "cond_ratio": true,
+      "cond_uptrend": true,
+      "cond_mcclellan": true
     },
     "titanic_syndrome_today": {
       "value": true,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
-      "notes": "PROXY on S&P500. Real signal needs a 52wk index high within 7 sessions; alert script confirms timing across runs.",
+      "notes": "PROXY on S&P500. RAW same-day flag. Confirmed signal requires a 52wk index high within ~7 sessions AND the flag (see titanic_syndrome_confirmed).",
       "new_highs": 18,
       "new_lows": 26
     },
@@ -373,24 +386,47 @@
       "source": "Alpaca S&P500 internals",
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
     },
-    "mcclellan": {
-      "value": -29.44,
+    "hindenburg_omen_confirmed": {
+      "value": true,
       "status": "proxy",
-      "source": "Alpaca S&P500 internals",
-      "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 210.918,
-      "ema39": 240.358,
-      "negative": true
+      "source": "Alpaca S&P500 internals (cluster)",
+      "notes": "CONFIRMED when 2+ raw flags occur within 30 days. This is the actionable signal; the daily flag is not.",
+      "derived": true,
+      "count": 7,
+      "window_days": 30,
+      "dates": [
+        "2026-05-19",
+        "2026-05-29",
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-17",
+        "2026-06-18"
+      ]
+    },
+    "titanic_syndrome_confirmed": {
+      "value": true,
+      "status": "proxy",
+      "source": "Alpaca S&P500 internals (cluster)",
+      "notes": "CONFIRMED when 2+ raw flags occur within 30 days.",
+      "derived": true,
+      "count": 3,
+      "window_days": 30,
+      "dates": [
+        "2026-05-19",
+        "2026-06-17",
+        "2026-06-18"
+      ]
     }
   },
   "sentiment": {
     "vix": {
-      "value": 18.44,
+      "value": 17.12,
       "status": "ok",
       "source": "yfinance:^VIX",
-      "asof": "2026-06-17",
+      "asof": "2026-06-18",
       "notes": "CBOE Volatility Index",
-      "ma20": 17.42,
+      "ma20": 17.44,
       "above_30": false,
       "above_40": false
     },
@@ -403,67 +439,39 @@
     },
     "google_trends": {
       "ai_tech": {
-        "value": {
-          "artificial intelligence stocks": 0,
-          "nvidia stock": 27
-        },
-        "status": "ok",
+        "value": null,
+        "status": "unavailable",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['artificial intelligence stocks', 'nvidia stock']",
-        "momentum_pct": {
-          "artificial intelligence stocks": -100.0,
-          "nvidia stock": 16.1
-        }
+        "error": "The request failed: Google returned a response with code 429",
+        "notes": "['artificial intelligence stocks', 'nvidia stock']"
       },
       "energy": {
-        "value": {
-          "oil stocks": 7,
-          "uranium stocks": 0
-        },
-        "status": "ok",
+        "value": null,
+        "status": "unavailable",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
-        "momentum_pct": {
-          "oil stocks": -31.7,
-          "uranium stocks": -100.0
-        }
+        "error": "The request failed: Google returned a response with code 429",
+        "notes": "['oil stocks', 'uranium stocks']"
       },
       "defense": {
-        "value": {
-          "defense stocks": 9
-        },
-        "status": "ok",
+        "value": null,
+        "status": "unavailable",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['defense stocks']",
-        "momentum_pct": {
-          "defense stocks": -14.3
-        }
+        "error": "The request failed: Google returned a response with code 429",
+        "notes": "['defense stocks']"
       },
       "financials": {
-        "value": {
-          "bank stocks": 3,
-          "interest rates": 49
-        },
-        "status": "ok",
+        "value": null,
+        "status": "unavailable",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
-        "momentum_pct": {
-          "bank stocks": 20.0,
-          "interest rates": 31.5
-        }
+        "error": "The request failed: Google returned a response with code 429",
+        "notes": "['bank stocks', 'interest rates']"
       },
       "fear_greed": {
-        "value": {
-          "stock market crash": 13,
-          "recession 2026": 10
-        },
-        "status": "ok",
+        "value": null,
+        "status": "unavailable",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
-        "momentum_pct": {
-          "stock market crash": 10.6,
-          "recession 2026": -14.9
-        }
+        "error": "The request failed: Google returned a response with code 429",
+        "notes": "['stock market crash', 'recession 2026']"
       }
     }
   },
@@ -586,24 +594,19 @@
   "catalysts": {
     "upcoming": [
       {
-        "date": "2026-06-17",
-        "label": "FOMC Meeting + Decision",
-        "days_away": 0
-      },
-      {
         "date": "2026-06-26",
         "label": "PCE Release",
-        "days_away": 9
+        "days_away": 8
       },
       {
         "date": "2026-07-02",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 15
+        "days_away": 14
       },
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 28
+        "days_away": 27
       }
     ]
   },
@@ -656,10 +659,10 @@
     }
   },
   "source_health": {
-    "ok": 52,
+    "ok": 47,
     "manual": 1,
     "proxy": 4,
-    "unavailable": 1
+    "unavailable": 6
   },
   "interpretation": {
     "readings": {
@@ -678,14 +681,13 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "18.4 \u2014 normal.",
+      "vix": "17.1 \u2014 normal.",
       "pct_above_200dma": "58% of the S&P 500 above its 200-DMA \u2014 narrowing \u2014 fewer names holding up the index.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
     "watch": [
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
-      "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone.",
-      "Next catalyst: FOMC Meeting + Decision on 2026-06-17 (0d)."
+      "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone."
     ],
     "summary": "Elevated Risk (69/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   }
