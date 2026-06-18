@@ -90,6 +90,7 @@ FRED_SERIES = {
     "gdp":               ("GDP",                "Nominal GDP"),
     "core_cpi":          ("CPILFESL",           "Core CPI (ex food & energy), index"),
     "core_pce":          ("PCEPILFE",           "Core PCE price index (Fed's preferred inflation gauge), index"),
+    "ppi":               ("PPIFIS",             "Producer Price Index, Final Demand (SA) — leads CPI by 1-3 months"),
     "fed_funds":         ("DFF",                "Effective federal funds rate"),
     "umich_sentiment":   ("UMCSENT",            "U. Michigan Consumer Sentiment"),
     "avg_hourly_earnings":("CES0500000003",     "Average hourly earnings, total private (for real wage growth)"),
@@ -104,7 +105,7 @@ FRED_SERIES = {
 TREND_LOOKBACK = {
     "lei": 3, "yield_curve_10y3m": 21, "nfci_leverage": 4, "unemployment": 3,
     "cc_delinquency": 1, "auto_delinquency": 1, "savings_rate": 3, "debt_service": 1,
-    "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "fed_funds": 21,
+    "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "ppi": 3, "fed_funds": 21,
     "umich_sentiment": 3, "avg_hourly_earnings": 3, "hy_oas": 21, "ig_oas": 21,
     "real_10y": 21, "equity_mktcap": 1,
 }
@@ -295,7 +296,7 @@ def pull_fred_all(api_key):
             if tr:
                 m["trend"] = tr
             # For inflation indices, surface YoY (the headline people read).
-            if key in ("core_cpi", "core_pce"):
+            if key in ("core_cpi", "core_pce", "ppi"):
                 yoy = yoy_pct(s)
                 if yoy is not None:
                     m["yoy_pct"] = yoy
