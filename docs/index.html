@@ -225,6 +225,9 @@ const PRIMERS={
   ad_line_proxy:"Equal-weight vs cap-weight S&P 500. RSP lagging SPY = megacap masking = breadth warning.",
   // ---- Sentiment ----
   fear_greed:"CNN's official Fear & Greed Index, scraped directly from CNN's API. 0=Extreme Fear, 100=Extreme Greed. 7 equally-weighted inputs: momentum, price strength, breadth, put/call, volatility, HY demand, safe haven. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points. Falls back to z-score approximation if CNN is unreachable.",
+  sahm_rule:"HIT RATE: triggered in every US recession since 1950, avg ~3 months in — well before NBER declares. Two false positives: 1959 (followed by recession 6mo later) and 2024 (post-pandemic labor supply surge). NOT a predictor — a recession-onset confirmation. Currently 0.23pp; trigger = 0.50pp. (FRED SAHMREALTIME)",
+  recession_prob:"Chauvet-Piger smoothed recession probability from a Markov-switching model applied to 4 coincident variables: payrolls, industrial production, real personal income, and real trade sales. Above 20% has coincided with every post-WWII recession. (FRED RECPROUSM156N)",
+  philly_coincident:"Philly Fed State Coincident Index (SCI) — national composite summarizing current economic activity across 4 factors: nonfarm payrolls, unemployment, manufacturing hours, wages. Direction matters: rising = expanding, falling = contracting. The 50-state diffusion version (% of states declining) has preceded every US recession since 1980 with very few false positives. (FRED USPHCI)",
   vix:"Expected 30-day S&P volatility. Concurrent, not leading — spikes with selloffs. Above 40 = capitulation zone (contrarian buy). Below 15 = complacency zone (contrarian warning).",
   put_call:"Puts ÷ calls volume. High = fear (contrarian buy signal). Low = euphoria (contrarian sell signal). Currently unavailable — CBOE endpoint down.",
   // ---- Sectors ----
@@ -532,27 +535,28 @@ function deriveKeyDrivers(){
 
 function odometer(score,label,col){
   const v=score==null?50:Math.max(0,Math.min(100,score));
-  const r=52,cx=68,cy=68,sw=9;
-  const toRad=deg=>deg*Math.PI/180;
-  const startDeg=180,endDeg=0;
-  const arc=(pct,color)=>{
-    const a1=toRad(180),a2=toRad(180-(pct/100)*180);
+  // Proper semicircle: left=fear(0), right=greed(100), flat side at bottom
+  const W=120,H=68,r=46,cx=60,cy=60,sw=8;
+  const toRad=a=>a*Math.PI/180;
+  const arcPath=(pct,clr)=>{
+    // 0% = left (180deg), 100% = right (0deg), sweep anticlockwise
+    const a1=toRad(180),a2=toRad(180-pct/100*180);
     const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
     const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
-    const lg=pct>50?1:0;
-    return `<path d="M${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"/>`;
+    return `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${pct>50?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)}" fill="none" stroke="${clr}" stroke-width="${sw}" stroke-linecap="round"/>`;
   };
-  const ndeg=180-(v/100)*180;
-  const nrad=toRad(ndeg);
-  const nl=38,nx=cx+nl*Math.cos(nrad),ny=cy+nl*Math.sin(nrad);
-  return `<svg viewBox="0 0 136 80" style="width:136px;height:80px;display:block;margin:0 auto">
-    ${arc(100,"rgba(255,255,255,.07)")}
-    ${arc(v,col)}
-    <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3.5" fill="#fff"/>
-    <text x="${cx}" y="${cy+18}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="22" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
-    <text x="${cx}" y="${cy+30}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#8B949E">${esc(label||"")}</text>
-    <text x="14" y="${cy+4}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#8B949E">0</text>
+  // Gradient track: fear(red)->neutral(amber)->greed(green), 3 segments
+  const arcGradient=`${arcPath(33,'rgba(248,81,73,.25)')}${arcPath(66,'rgba(216,166,87,.20)')}`;
+  const ndeg=toRad(180-v/100*180);
+  const nl=30,nx=(cx+nl*Math.cos(ndeg)).toFixed(1),ny=(cy+nl*Math.sin(ndeg)).toFixed(1);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;height:${H}px;display:block;margin:0 auto">
+    ${arcPath(100,"rgba(255,255,255,.08)")}
+    ${arcPath(v,col)}
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="3" fill="#fff"/>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="19" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
+    <text x="${cx}" y="${cy+26}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">${esc(label||"")}</text>
+    <text x="6" y="${cy-2}" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Fear</text>
     <text x="122" y="${cy+4}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#8B949E">100</text>
     <text x="16" y="${cy+16}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Fear</text>
     <text x="120" y="${cy+16}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Greed</text>
@@ -570,45 +574,102 @@ function panelOverview(){
   if(bu&&bu.universe&&bu.universe<400)issues.push(`breadth on ${bu.universe} names`);
   if(issues.length)c.appendChild(el(`<div class="banner"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5 15 14H1L8 1.5Z"/></svg><div class="bt"><b>Some inputs limited:</b> ${esc(issues.join("; "))}. Score weights only what's live.</div></div>`));
 
-  // ── hero: composite score + F&G odometer ──
+  // ── hero: 4 tiles across top ──
   const comp=(DATA.scores||{}).composite||{};
   const cv=comp.value,pos=cv==null?0:Math.max(0,Math.min(100,cv));
   const fg=(DATA.sentiment||{}).fear_greed||{};
-  const fgv=fg.value,fgcol=fgv==null?"var(--muted)":fgv<25?"var(--high)":fgv<45?"var(--elevated)":fgv<55?"var(--muted)":fgv<75?"var(--low)":"#00c896";
+  const fgv=fg.value;
+  const fgcol=fgv==null?"var(--muted)":fgv<25?"var(--high)":fgv<45?"var(--elevated)":fgv<55?"var(--muted)":fgv<75?"var(--low)":"#00c896";
   const fgLabel=fg.label||(fgv==null?"—":fgv<25?"Extreme Fear":fgv<45?"Fear":fgv<55?"Neutral":fgv<75?"Greed":"Extreme Greed");
-  // sparkline trend tag
+  const vx=(DATA.sentiment||{}).vix||{};
+  const vxv=vx.value;
+  const vxcol=vxv==null?"var(--muted)":vxv>40?"var(--high)":vxv>30?"var(--elevated)":vxv>20?"var(--moderate)":"var(--low)";
+  const vxlbl=vxv==null?"—":vxv>40?"Panic":vxv>30?"Fear":vxv>20?"Cautious":"Calm";
+  const um=(DATA.macro||{}).umich_sentiment||{};
+  const umv=um.value;
+  const umcol=umv==null?"var(--muted)":umv<60?"var(--high)":umv<75?"var(--elevated)":umv<90?"var(--moderate)":"var(--low)";
+  const umlbl=umv==null?"—":umv<60?"Pessimistic":umv<75?"Cautious":umv<90?"Moderate":"Confident";
   const hist=DATA.history||[];
   const compHist=hist.map(h=>h.composite).filter(v=>v!=null);
   const trendTag=compHist.length>=7?(()=>{
-    const recent=compHist.slice(-7),old=compHist.slice(-30,-23);
+    const recent=compHist.slice(-7),old7=compHist.slice(-30,-23);
     const rAvg=recent.reduce((a,b)=>a+b,0)/recent.length;
-    const oAvg=old.length?old.reduce((a,b)=>a+b,0)/old.length:rAvg;
+    const oAvg=old7.length?old7.reduce((a,b)=>a+b,0)/old7.length:rAvg;
     const diff=rAvg-oAvg;
-    return diff>2?"↑ Rising":diff<-2?"↓ Falling":"→ Stable last 30 days";
+    return diff>2?"↑ Rising":diff<-2?"↓ Falling":"→ Stable";
   })():"";
-  const hero=el(`<div class="ov-hero"></div>`);
-  // left: composite
-  const scoreCard=el(`<div class="ov-score-card"></div>`);
-  scoreCard.innerHTML=`<div class="ov-score-label">Market Health</div>
-    <div class="ov-big-num" style="color:${riskColor(cv)}">${cv==null?"—":Math.round(cv)}</div>
-    <div class="ov-risk-label" style="color:${riskColor(cv)}">${esc(comp.label||"Unknown")}</div>
-    ${trendTag?`<div class="ov-trend-tag">${esc(trendTag)}</div>`:""}
-    <div class="ov-meter" style="margin-top:14px"><div class="ov-marker" style="left:calc(${pos}% - 1.5px)"></div></div>
-    <div class="ov-meter-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>`;
-  hero.appendChild(scoreCard);
-  // right: F&G odometer
-  const odCard=el(`<div class="od-wrap"></div>`);
-  odCard.innerHTML=`<div class="od-title">Fear &amp; Greed</div>${odometer(fgv,fgLabel,fgcol)}`;
-  hero.appendChild(odCard);
-  c.appendChild(hero);
+
+  // sparkline helper for top tiles
+  const tileSparkSvg=(vals,col)=>{
+    if(!vals||vals.length<4)return "";
+    const n=vals.length,mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1;
+    const W=60,H=20,p=2;
+    let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(W-2*p);const y=p+(1-(vals[i]-mn)/rg)*(H-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
+    const lx=(W-p).toFixed(1),ly=(p+(1-(vals[n-1]-mn)/rg)*(H-2*p)).toFixed(1);
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;margin-top:6px"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.7"/><circle cx="${lx}" cy="${ly}" r="2" fill="${col}"/></svg>`;
+  };
+
+  const compSpark=tileSparkSvg(compHist.slice(-20),riskColor(cv));
+  const fgHist=hist.map(h=>h.fear_greed).filter(v=>v!=null);
+  const fgSpark=tileSparkSvg(fgHist.slice(-20),fgcol);
+
+  const heroRow=el(`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px"></div>`);
+
+  // Tile 1: Market Health score
+  const t1=el(`<div class="ov-score-card" title="${PRIMERS.goldman_composite||''}"></div>`);
+  t1.innerHTML=`<div class="ov-score-label">Market Health</div>
+    <div class="ov-big-num" style="color:${riskColor(cv)};font-size:42px">${cv==null?"—":Math.round(cv)}</div>
+    <div class="ov-risk-label" style="color:${riskColor(cv)};font-size:13px">${esc(comp.label||"Unknown")}</div>
+    ${trendTag?`<div class="ov-trend-tag" style="font-size:10px;padding:3px 8px;margin-top:6px">${esc(trendTag)}</div>`:""}
+    ${compSpark}`;
+  heroRow.appendChild(t1);
+
+  // Tile 2: F&G odometer
+  const t2=el(`<div class="ov-score-card" title="${PRIMERS.fear_greed||''}"></div>`);
+  t2.innerHTML=`<div class="ov-score-label">Fear &amp; Greed</div>${odometer(fgv,fgLabel,fgcol)}${fgSpark}`;
+  heroRow.appendChild(t2);
+
+  // Tile 3: VIX
+  const t3=el(`<div class="ov-score-card" title="${PRIMERS.vix||''}"></div>`);
+  t3.innerHTML=`<div class="ov-score-label">VIX</div>
+    <div class="ov-big-num" style="color:${vxcol};font-size:42px">${vxv==null?"—":num(vxv,1)}</div>
+    <div class="ov-risk-label" style="color:${vxcol};font-size:13px">${esc(vxlbl)}</div>
+    ${vx.ma20!=null?`<div style="font-size:10px;color:var(--muted);margin-top:4px">20d avg ${num(vx.ma20,1)}</div>`:""}`;
+  heroRow.appendChild(t3);
+
+  // Tile 4: Consumer Sentiment
+  const t4=el(`<div class="ov-score-card" title="${PRIMERS.umich_sentiment||''}"></div>`);
+  t4.innerHTML=`<div class="ov-score-label">Consumer Sentiment</div>
+    <div class="ov-big-num" style="color:${umcol};font-size:42px">${umv==null?"—":Math.round(umv)}</div>
+    <div class="ov-risk-label" style="color:${umcol};font-size:13px">${esc(umlbl)}</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px">UMich / 100</div>`;
+  heroRow.appendChild(t4);
+  c.appendChild(heroRow);
+
+  // gradient meter below market health tile (full width strip)
+  const meterStrip=el(`<div style="margin:-4px 0 10px;padding:0 2px"></div>`);
+  meterStrip.innerHTML=`<div class="ov-meter"><div class="ov-marker" style="left:calc(${pos}% - 1.5px)"></div></div><div class="ov-meter-scale"><span>0 Safe</span><span>25</span><span>50</span><span>75</span><span>100 Risk</span></div>`;
+  c.appendChild(meterStrip);
 
   // ── key drivers ──
   const drivers=deriveKeyDrivers();
   const kd=el(`<div class="kd-grid"></div>`);
-  drivers.forEach(d=>{
+  const kdSparkFields=["composite","composite","pct_above_200","hy_oas","composite"];
+  drivers.forEach((d,i)=>{
+    const fld=kdSparkFields[i];
+    const vals=fld?hist.map(h=>h[fld]).filter(v=>v!=null).slice(-20):[];
+    const spkCol=d.col||"var(--muted)";
+    let spkSvg="";
+    if(vals.length>=4){
+      const n=vals.length,mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1;
+      const W=50,H=16,p=1;
+      let pts="";for(let j=0;j<n;j++){const x=p+(j/(n-1))*(W-2*p);const y=p+(1-(vals[j]-mn)/rg)*(H-2*p);pts+=(j?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
+      spkSvg=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="margin-top:4px;opacity:.55"><polyline points="${pts}" fill="none" stroke="${spkCol}" stroke-width="1.2"/></svg>`;
+    }
     const tile=el(`<div class="kd-tile"></div>`);
     tile.innerHTML=`<div class="kd-name">${esc(d.name)}</div>
       <div class="kd-val" style="color:${d.col}">${esc(d.lbl)}</div>
+      ${spkSvg}
       <div class="kd-tooltip">${esc(d.tip)}</div>`;
     kd.appendChild(tile);
   });
@@ -625,31 +686,34 @@ function panelOverview(){
   });
   c.appendChild(a);
 
-  // ── what's changed (score deltas from 7d ago) ──
-  if(compHist.length>=7){
-    const wc=el(`<div class="card"><h2>What's Changed (7d)</h2></div>`);
+  // ── what's changed (score deltas vs 7d ago or earliest available) ──
+  if(hist.length>=2){
+    const wc=el(`<div class="card"><h2>What's Changed</h2></div>`);
+    const lookback=Math.min(7,hist.length-1);
     const fields=[
-      {k:"composite",label:"Market Health"},
-      {k:"cape",label:"CAPE"},
-      {k:"yield_curve",label:"Yield Curve"},
-      {k:"pct_above_200",label:"Breadth"},
-      {k:"hy_oas",label:"Credit Spreads"},
+      {k:"composite",label:"Market Health",highIsBad:true},
+      {k:"goldman",label:"Goldman Risk",highIsBad:true},
+      {k:"yield_curve",label:"Yield Curve",highIsBad:false},
+      {k:"pct_above_200",label:"Breadth",highIsBad:false},
+      {k:"hy_oas",label:"HY Spreads",highIsBad:true},
+      {k:"vix",label:"VIX",highIsBad:true},
+      {k:"cape",label:"CAPE",highIsBad:true},
     ];
-    let anyChange=false;
+    let rows=0;
     fields.forEach(f=>{
-      const cur=hist.length?hist[hist.length-1][f.k]:null;
-      const old7=hist.length>=7?hist[hist.length-7][f.k]:null;
+      const cur=hist[hist.length-1][f.k];
+      const old7=hist[hist.length-1-lookback][f.k];
       if(cur==null||old7==null)return;
       const delta=parseFloat((cur-old7).toFixed(1));
-      if(Math.abs(delta)<0.1)return;
-      anyChange=true;
-      const up=delta>0;
-      // for hy_oas: up is bad (wider spread); for everything else up is risk-increasing
-      const col=up?"var(--high)":"var(--low)";
-      const arr=up?"↑":"↓";
+      if(Math.abs(delta)<0.05)return;
+      rows++;
+      const worsening=f.highIsBad?delta>0:delta<0;
+      const col=worsening?"var(--high)":"var(--low)";
+      const arr=delta>0?"↑":"↓";
       wc.appendChild(el(`<div class="wc-row"><span class="wc-arr" style="color:${col}">${arr}</span><span>${esc(f.label)}</span><span class="wc-delta" style="color:${col}">${delta>0?"+":""}${delta}</span></div>`));
     });
-    if(anyChange)c.appendChild(wc);
+    const lbl=lookback===1?"vs yesterday":`vs ${lookback}d ago`;
+    if(rows>0){const sub=el(`<div style="font-size:10px;color:var(--muted);margin-top:6px">${esc(lbl)}</div>`);wc.appendChild(sub);c.appendChild(wc);}
   }
 
   // ── summary ──
@@ -687,6 +751,9 @@ function panelValuation(){return mList([
 function panelCycle(){return mList([
   {h:"Recession Composite",first:true},
   {sec:"scores",key:"goldman_composite",label:"Goldman Bear-Market Risk",fmt:v=>num(v,0)+" / 100",rk:"goldman_composite"},
+  {sec:"macro",key:"recession_prob",label:"Recession Probability (Chauvet-Piger)",fmt:v=>num(v,1)+"%",stale:75},
+  {sec:"macro",key:"sahm_rule",label:"Sahm Rule",fmt:v=>num(v,2)+"pp"+" (trigger ≥0.5)",stale:45},
+  {sec:"macro",key:"philly_coincident",label:"Philly Fed Coincident Index (SCI)",fmt:(v,m)=>num(v,1)+(m.trend&&m.trend.direction?" "+{rising:"↑",falling:"↓",flat:"→"}[m.trend.direction]:""),stale:45},
   {h:"Leading & Rates"},
   {sec:"macro",key:"lei",label:"Leading Indicator (OECD CLI)",fmt:v=>num(v,1),stale:75},
   {sec:"macro",key:"yield_curve_10y3m",label:"Yield Curve 10y–3m",fmt:v=>num(v,2),stale:14},
@@ -699,7 +766,6 @@ function panelCycle(){return mList([
   {sec:"macro",key:"core_pce",label:"Core PCE (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
   {sec:"macro",key:"core_cpi",label:"Core CPI (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
   {sec:"macro",key:"unemployment",label:"Unemployment",fmt:v=>num(v,1)+"%",stale:75},
-  {sec:"macro",key:"umich_sentiment",label:"Consumer Sentiment",fmt:v=>num(v,0),stale:75},
   {h:"Consumer Stress"},
   {sec:"macro",key:"cc_delinquency",label:"Credit-Card Delinquency",fmt:v=>num(v,2)+"%",stale:220},
   {sec:"macro",key:"auto_delinquency",label:"Auto-Loan Delinquency",fmt:v=>num(v,2)+"%",stale:220},
@@ -764,8 +830,9 @@ function panelSentiment(){
   const c=document.createDocumentFragment();
   const fg=fearGreedGauge();if(fg)c.appendChild(fg);
   c.appendChild(mList([
-    {sec:"sentiment",key:"vix",label:"VIX",fmt:(v,m)=>num(v,1)+(m.ma20!=null?` / 20d avg ${num(m.ma20,1)}`:"")},
+    {sec:"sentiment",key:"vix",label:"VIX (Volatility Index)",fmt:(v,m)=>num(v,1)+(m.ma20!=null?` / 20d avg ${num(m.ma20,1)}`:"")},
     {sec:"sentiment",key:"put_call",label:"Put/Call Ratio",fmt:v=>num(v,2),rk:"put_call"},
+    {sec:"macro",key:"umich_sentiment",label:"Consumer Sentiment (UMich)",fmt:v=>num(v,0),stale:75},
   ]));
   return c;
 }
