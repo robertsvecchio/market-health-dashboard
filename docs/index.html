@@ -155,8 +155,8 @@ footer{margin-top:18px;padding:0 2px;color:var(--faint);font-size:11px;line-heig
 <div class="wrap">
   <header>
     <div>
-      <div class="brand">Market Health Dashboard</div>
-      <h1 class="title">Market Health Dashboard</h1>
+      <div class="brand">Market Health</div>
+      <h1 class="title">Risk Dashboard</h1>
       <div class="updated" id="updated">Loading&hellip;</div>
     </div>
     <button class="refresh" id="refreshBtn">
@@ -535,31 +535,27 @@ function deriveKeyDrivers(){
 
 function odometer(score,label,col){
   const v=score==null?50:Math.max(0,Math.min(100,score));
-  // Proper semicircle: left=fear(0), right=greed(100), flat side at bottom
-  const W=120,H=68,r=46,cx=60,cy=60,sw=8;
+  const W=130,H=76,r=50,cx=65,cy=68,sw=9;
   const toRad=a=>a*Math.PI/180;
   const arcPath=(pct,clr)=>{
-    // 0% = left (180deg), 100% = right (0deg), sweep anticlockwise
     const a1=toRad(180),a2=toRad(180-pct/100*180);
     const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
     const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
     return `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${pct>50?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)}" fill="none" stroke="${clr}" stroke-width="${sw}" stroke-linecap="round"/>`;
   };
-  // Gradient track: fear(red)->neutral(amber)->greed(green), 3 segments
-  const arcGradient=`${arcPath(33,'rgba(248,81,73,.25)')}${arcPath(66,'rgba(216,166,87,.20)')}`;
   const ndeg=toRad(180-v/100*180);
-  const nl=30,nx=(cx+nl*Math.cos(ndeg)).toFixed(1),ny=(cy+nl*Math.sin(ndeg)).toFixed(1);
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;height:${H}px;display:block;margin:0 auto">
-    ${arcPath(100,"rgba(255,255,255,.08)")}
+  const nl=36,nx=(cx+nl*Math.cos(ndeg)).toFixed(1),ny=(cy+nl*Math.sin(ndeg)).toFixed(1);
+  const lx=(cx+r*Math.cos(toRad(180))).toFixed(1);
+  const rx=(cx+r*Math.cos(toRad(0))).toFixed(1);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:${H}px;display:block;margin:0 auto">
+    ${arcPath(100,"rgba(255,255,255,.09)")}
     ${arcPath(v,col)}
-    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3" fill="#fff"/>
-    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="19" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
-    <text x="${cx}" y="${cy+26}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">${esc(label||"")}</text>
-    <text x="6" y="${cy-2}" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Fear</text>
-    <text x="122" y="${cy+4}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#8B949E">100</text>
-    <text x="16" y="${cy+16}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Fear</text>
-    <text x="120" y="${cy+16}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Greed</text>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="rgba(255,255,255,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="3.5" fill="rgba(255,255,255,.9)"/>
+    <text x="${cx}" y="${cy-8}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="22" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
+    <text x="${cx}" y="${cy+10}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#8B949E">${esc(label||"")}</text>
+    <text x="${lx}" y="${cy+20}" text-anchor="start" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Fear</text>
+    <text x="${rx}" y="${cy+20}" text-anchor="end" font-family="-apple-system,sans-serif" font-size="8" fill="#8B949E">Greed</text>
   </svg>`;
 }
 
@@ -612,25 +608,30 @@ function panelOverview(){
   const compSpark=tileSparkSvg(compHist.slice(-20),riskColor(cv));
   const fgHist=hist.map(h=>h.fear_greed).filter(v=>v!=null);
   const fgSpark=tileSparkSvg(fgHist.slice(-20),fgcol);
+  const vxHist=hist.map(h=>h.vix).filter(v=>v!=null);
+  const vxSpark=tileSparkSvg(vxHist.slice(-20),vxcol);
+  const umHist=hist.map(h=>h.umich).filter(v=>v!=null);
+  const umSpark=tileSparkSvg(umHist.slice(-20),umcol);
 
   const heroRow=el(`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px"></div>`);
 
   // Tile 1: Market Health score
-  const t1=el(`<div class="ov-score-card" title="${PRIMERS.goldman_composite||''}"></div>`);
+  const t1=el(`<div class="ov-score-card kd-tile"></div>`);
   t1.innerHTML=`<div class="ov-score-label">Market Health</div>
     <div class="ov-big-num" style="color:${riskColor(cv)};font-size:42px">${cv==null?"—":Math.round(cv)}</div>
     <div class="ov-risk-label" style="color:${riskColor(cv)};font-size:13px">${esc(comp.label||"Unknown")}</div>
     ${trendTag?`<div class="ov-trend-tag" style="font-size:10px;padding:3px 8px;margin-top:6px">${esc(trendTag)}</div>`:""}
-    ${compSpark}`;
+    ${compSpark}
+    <div class="kd-tooltip">${esc(PRIMERS.composite||PRIMERS.goldman_composite||"Market Health composite risk score (0-100). Higher = more risk.")}</div>`;
   heroRow.appendChild(t1);
 
   // Tile 2: F&G odometer
-  const t2=el(`<div class="ov-score-card" title="${PRIMERS.fear_greed||''}"></div>`);
-  t2.innerHTML=`<div class="ov-score-label">Fear &amp; Greed</div>${odometer(fgv,fgLabel,fgcol)}${fgSpark}`;
+  const t2=el(`<div class="ov-score-card kd-tile"></div>`);
+  t2.innerHTML=`<div class="ov-score-label">Fear &amp; Greed</div>${odometer(fgv,fgLabel,fgcol)}${fgSpark}<div class="kd-tooltip">${esc(PRIMERS.fear_greed||"CNN Fear & Greed Index")}</div>`;
   heroRow.appendChild(t2);
 
   // Tile 3: VIX
-  const t3=el(`<div class="ov-score-card" title="${PRIMERS.vix||''}"></div>`);
+  const t3=el(`<div class="ov-score-card kd-tile"></div>`);
   t3.innerHTML=`<div class="ov-score-label">VIX</div>
     <div class="ov-big-num" style="color:${vxcol};font-size:42px">${vxv==null?"—":num(vxv,1)}</div>
     <div class="ov-risk-label" style="color:${vxcol};font-size:13px">${esc(vxlbl)}</div>
@@ -638,7 +639,7 @@ function panelOverview(){
   heroRow.appendChild(t3);
 
   // Tile 4: Consumer Sentiment
-  const t4=el(`<div class="ov-score-card" title="${PRIMERS.umich_sentiment||''}"></div>`);
+  const t4=el(`<div class="ov-score-card kd-tile"></div>`);
   t4.innerHTML=`<div class="ov-score-label">Consumer Sentiment</div>
     <div class="ov-big-num" style="color:${umcol};font-size:42px">${umv==null?"—":Math.round(umv)}</div>
     <div class="ov-risk-label" style="color:${umcol};font-size:13px">${esc(umlbl)}</div>
