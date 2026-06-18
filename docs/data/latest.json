@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-18T21:58:02.930501+00:00",
-    "generated_display": "Jun 18 2026, 1:58 PM PT",
+    "generated_utc": "2026-06-18T22:07:04.127913+00:00",
+    "generated_display": "Jun 18 2026, 2:07 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -419,12 +419,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -48.51,
+      "value": -43.73,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 12.866,
-      "ema39": 61.379,
+      "ema19": 17.58,
+      "ema39": 61.31,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -512,7 +512,7 @@
       "source": "CNN (production.dataviz.cnn.io)",
       "notes": "CNN's official Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed. Updated by CNN throughout the trading day.",
       "label": "Fear",
-      "timestamp": "2026-06-18T21:39:35+00:00"
+      "timestamp": "2026-06-18T21:49:37+00:00"
     }
   },
   "sectors": {
