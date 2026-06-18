@@ -670,7 +670,7 @@ def compute_breadth(bars):
     }
 
 
-def breadth_signals(breadth):
+def breadth_signals(breadth, mcclellan_val=None, spx_50d_ret=None):
     """Hindenburg/Titanic/Zweig proxies computed on the S&P 500 universe.
     Clearly labeled as proxies for the true NYSE-wide indicators."""
     n = breadth.get("universe_counted") or 0
@@ -681,21 +681,30 @@ def breadth_signals(breadth):
     if n > 0:
         nh_pct = nh / n * 100
         nl_pct = nl / n * 100
-        # Hindenburg Omen (classic): both new highs AND new lows each > ~2.2% of issues
-        hindenburg = bool(nh_pct >= 2.2 and nl_pct >= 2.2 and min(nh, nl) > 0
-                          and max(nh_pct, nl_pct) < 2.8 * min(nh_pct, nl_pct) + 5)
+        # ---- Hindenburg Omen: ALL FOUR classic same-day conditions ----
+        # 1) new highs AND new lows each >= 2.2% of issues
+        # 2) neither side overwhelms the other (ratio guard)
+        # 3) index in an uptrend: above its level ~50 sessions ago (spx_50d_ret > 0)
+        # 4) McClellan Oscillator negative (deteriorating internals)
+        cond_counts    = nh_pct >= 2.2 and nl_pct >= 2.2 and min(nh, nl) > 0
+        cond_ratio     = max(nh_pct, nl_pct) < 2.8 * min(nh_pct, nl_pct) + 5
+        cond_uptrend   = (spx_50d_ret is None) or (spx_50d_ret > 0)
+        cond_mcclellan = (mcclellan_val is None) or (mcclellan_val < 0)
+        hindenburg_raw = bool(cond_counts and cond_ratio and cond_uptrend and cond_mcclellan)
         signals["hindenburg_omen_today"] = metric(
-            hindenburg, status="proxy", source="Alpaca S&P500 internals",
-            notes="PROXY on S&P500 (true indicator is NYSE-wide). Single-day flag; "
-                  "cluster (2+/30d) is the real alert — tracked by alert script over time.",
-            new_high_pct=round(nh_pct, 2), new_low_pct=round(nl_pct, 2))
-        # Titanic Syndrome: new lows exceed new highs within ~7d of a 52wk high.
-        # Single-run approximation: new_lows > new_highs while index near highs.
+            hindenburg_raw, status="proxy", source="Alpaca S&P500 internals",
+            notes="PROXY on S&P500 (true indicator is NYSE-wide). RAW same-day flag — "
+                  "not actionable alone. Confirmed signal = 2+ raw flags within 30 days "
+                  "(see hindenburg_omen_confirmed).",
+            new_high_pct=round(nh_pct, 2), new_low_pct=round(nl_pct, 2),
+            cond_counts=bool(cond_counts), cond_ratio=bool(cond_ratio),
+            cond_uptrend=bool(cond_uptrend), cond_mcclellan=bool(cond_mcclellan))
+        # ---- Titanic Syndrome: new lows exceed new highs (raw same-day) ----
         signals["titanic_syndrome_today"] = metric(
             bool(nl > nh and nh > 0), status="proxy",
             source="Alpaca S&P500 internals",
-            notes="PROXY on S&P500. Real signal needs a 52wk index high within 7 sessions; "
-                  "alert script confirms timing across runs.",
+            notes="PROXY on S&P500. RAW same-day flag. Confirmed signal requires a 52wk "
+                  "index high within ~7 sessions AND the flag (see titanic_syndrome_confirmed).",
             new_highs=nh, new_lows=nl)
     if (adv + dec) > 0:
         zweig_ratio = adv / (adv + dec)
@@ -729,6 +738,55 @@ def mcclellan_oscillator(prev_state, breadth):
                   negative=bool(osc < 0), _state={"ema19": ema19, "ema39": ema39})
 
 
+def _spx_50d_return():
+    """SPX % change vs ~50 trading sessions ago. Powers the Hindenburg uptrend filter."""
+    try:
+        close = _yf_history("^GSPC", period="6mo", interval="1d")["Close"].dropna()
+        if len(close) < 51:
+            return None
+        return float(close.iloc[-1] / close.iloc[-51] - 1) * 100
+    except Exception:
+        return None
+
+
+def confirm_clusters(history, window_days=30, min_count=2):
+    """Promote RAW daily breadth flags to CONFIRMED signals using rolling history.
+    `history` must already include today's snapshot (with hindenburg_raw/titanic_raw).
+    Returns dict of confirmed metrics to merge into result['breadth']. These are
+    marked derived=True so they are NOT double-counted in source-health/confidence."""
+    today = datetime.now(timezone.utc).date()
+    cutoff = today - timedelta(days=window_days)
+
+    def _cluster(flag_key):
+        dates = []
+        for h in history:
+            if not h.get(flag_key):
+                continue
+            try:
+                d = datetime.fromisoformat(h["date"]).date()
+            except Exception:
+                continue
+            if cutoff <= d <= today:
+                dates.append(h["date"])
+        return sorted(set(dates))
+
+    hind_dates = _cluster("hindenburg_raw")
+    tit_dates = _cluster("titanic_raw")
+    return {
+        "hindenburg_omen_confirmed": metric(
+            bool(len(hind_dates) >= min_count), status="proxy",
+            source="Alpaca S&P500 internals (cluster)", derived=True,
+            notes=f"CONFIRMED when {min_count}+ raw flags occur within {window_days} days. "
+                  "This is the actionable signal; the daily flag is not.",
+            count=len(hind_dates), window_days=window_days, dates=hind_dates),
+        "titanic_syndrome_confirmed": metric(
+            bool(len(tit_dates) >= min_count), status="proxy",
+            source="Alpaca S&P500 internals (cluster)", derived=True,
+            notes=f"CONFIRMED when {min_count}+ raw flags occur within {window_days} days.",
+            count=len(tit_dates), window_days=window_days, dates=tit_dates),
+    }
+
+
 def pull_breadth(api_key, api_secret, prev_state, enabled=True):
     if not enabled:
         return {"breadth": unavailable(source="Alpaca", notes="breadth pull disabled (--no-breadth)")}, None
@@ -750,9 +808,12 @@ def pull_breadth(api_key, api_secret, prev_state, enabled=True):
                 universe=breadth["universe_counted"],
                 below_40=bool((breadth["pct_above_200dma"] or 100) < 40)),
         }
-        out.update(breadth_signals(breadth))
+        # McClellan first, so its value can feed the Hindenburg same-day filter
         out["mcclellan"] = mcclellan_oscillator(prev_state, breadth)
         mc_state = out["mcclellan"].pop("_state", None) if isinstance(out["mcclellan"], dict) else None
+        mc_val = out["mcclellan"].get("value") if isinstance(out["mcclellan"], dict) else None
+        spx_50d_ret = _spx_50d_return()
+        out.update(breadth_signals(breadth, mcclellan_val=mc_val, spx_50d_ret=spx_50d_ret))
         return out, {"mcclellan": mc_state} if mc_state else None
     except Exception as e:
         # Fallback: Finviz for % above 200-DMA only
@@ -1586,11 +1647,20 @@ def run(no_breadth=False):
             "vix": mval_path(result, "sentiment", "vix", "value"),
             "pct_above_200": mval_path(result, "breadth", "pct_above_200dma", "value"),
             "goldman": mval_path(result, "scores", "goldman_composite", "value"),
+            "hindenburg_raw": bool(mval_path(result, "breadth", "hindenburg_omen_today", "value")),
+            "titanic_raw": bool(mval_path(result, "breadth", "titanic_syndrome_today", "value")),
+            "new_high_pct": mval_path(result, "breadth", "hindenburg_omen_today", "new_high_pct"),
+            "new_low_pct": mval_path(result, "breadth", "hindenburg_omen_today", "new_low_pct"),
         }
         # one entry per day (replace today's if re-run)
         hist = [h for h in hist if h.get("date") != today]
         hist.append(snap)
         new_state["history"] = hist[-460:]  # ~15 months of daily points
+        # Promote raw flags -> confirmed clusters using the freshly-updated history
+        try:
+            result["breadth"].update(confirm_clusters(new_state["history"]))
+        except Exception as e:
+            print(f"WARN: cluster confirmation failed: {e}", file=sys.stderr)
     except Exception as e:
         print(f"WARN: history log failed: {e}", file=sys.stderr)
 
@@ -1598,7 +1668,8 @@ def run(no_breadth=False):
     def walk_status(node, acc):
         if isinstance(node, dict):
             if "status" in node and "value" in node:
-                acc[node["status"]] = acc.get(node["status"], 0) + 1
+                if not node.get("derived"):   # derived signals don't count vs confidence
+                    acc[node["status"]] = acc.get(node["status"], 0) + 1
             else:
                 for v in node.values():
                     walk_status(v, acc)
