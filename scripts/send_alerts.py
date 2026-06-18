@@ -95,6 +95,8 @@ def snapshot(data):
         "pct_above_200": _g(data, "breadth", "pct_above_200dma", "value"),
         "hindenburg": _g(data, "breadth", "hindenburg_omen_today", "value"),
         "titanic": _g(data, "breadth", "titanic_syndrome_today", "value"),
+        "hindenburg_confirmed": _g(data, "breadth", "hindenburg_omen_confirmed", "value"),
+        "titanic_confirmed": _g(data, "breadth", "titanic_syndrome_confirmed", "value"),
     }
 
 
@@ -146,10 +148,10 @@ def detect_crossings(prev, cur):
         out.append({"txt": f"% of S&P 500 above 200-DMA dropped below 40% ({cur['pct_above_200']:.0f}%)", "pri": "HIGH"})
 
     # Breadth alert flags newly tripped
-    if cur.get("hindenburg") and not prev.get("hindenburg"):
-        out.append({"txt": "Hindenburg Omen flag tripped (S&P 500 proxy; watch for a cluster)", "pri": "MED"})
-    if cur.get("titanic") and not prev.get("titanic"):
-        out.append({"txt": "Titanic Syndrome flag tripped (S&P 500 proxy)", "pri": "MED"})
+    if cur.get("hindenburg_confirmed") and not prev.get("hindenburg_confirmed"):
+        out.append({"txt": "Hindenburg Omen CONFIRMED — cluster of 2+ within 30 days (S&P 500 proxy)", "pri": "HIGH"})
+    if cur.get("titanic_confirmed") and not prev.get("titanic_confirmed"):
+        out.append({"txt": "Titanic Syndrome CONFIRMED — cluster within 30 days (S&P 500 proxy)", "pri": "HIGH"})
 
     order = {"HIGH": 0, "MED": 1}
     out.sort(key=lambda x: order.get(x["pri"], 9))
@@ -180,10 +182,10 @@ def active_alerts(data):
     pa = _g(data, "breadth", "pct_above_200dma")
     if pa and pa.get("below_40"):
         out.append(("HIGH", f"Only {pa['value']:.0f}% of S&P 500 above 200-DMA"))
-    if _g(data, "breadth", "hindenburg_omen_today", "value"):
-        out.append(("MED", "Hindenburg Omen flag today"))
-    if _g(data, "breadth", "titanic_syndrome_today", "value"):
-        out.append(("MED", "Titanic Syndrome flag today"))
+    if _g(data, "breadth", "hindenburg_omen_confirmed", "value"):
+        out.append(("HIGH", "Hindenburg Omen confirmed (cluster 2+/30d)"))
+    if _g(data, "breadth", "titanic_syndrome_confirmed", "value"):
+        out.append(("HIGH", "Titanic Syndrome confirmed (cluster)"))
     if _g(data, "structural", "ad_line_proxy", "bearish_divergence"):
         out.append(("MED", "Breadth divergence (equal-weight lagging)"))
     if _g(data, "structural", "excess_cape_yield", "low"):
