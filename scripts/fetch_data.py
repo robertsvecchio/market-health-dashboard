@@ -1764,6 +1764,8 @@ def run(no_breadth=False):
             "titanic_raw": bool(mval_path(result, "breadth", "titanic_syndrome_today", "value")),
             "new_high_pct": mval_path(result, "breadth", "hindenburg_omen_today", "new_high_pct"),
             "new_low_pct": mval_path(result, "breadth", "hindenburg_omen_today", "new_low_pct"),
+            "fear_greed": mval_path(result, "sentiment", "fear_greed", "value"),
+            "umich": mval_path(result, "macro", "umich_sentiment", "value"),
         }
         # one entry per day (replace today's if re-run)
         hist = [h for h in hist if h.get("date") != today]
