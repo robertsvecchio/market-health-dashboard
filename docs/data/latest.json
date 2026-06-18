@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-18T08:16:03.724658+00:00",
-    "generated_display": "Jun 18 2026, 12:16 AM PT",
+    "generated_utc": "2026-06-18T08:36:39.198472+00:00",
+    "generated_display": "Jun 18 2026, 12:36 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -352,12 +352,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -112.36,
+      "value": -144.31,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 34.696,
-      "ema39": 147.057,
+      "ema19": -40.43,
+      "ema39": 103.876,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -421,7 +421,7 @@
   },
   "sentiment": {
     "vix": {
-      "value": 17.03,
+      "value": 17.01,
       "status": "ok",
       "source": "yfinance:^VIX",
       "asof": "2026-06-18",
@@ -445,54 +445,28 @@
         "notes": "Rate-limited or error for ['artificial intelligence stocks', 'nvidia stock']; stale."
       },
       "energy": {
-        "value": {
-          "oil stocks": 9,
-          "uranium stocks": 1
-        },
-        "status": "ok",
+        "value": null,
+        "status": "proxy",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['oil stocks', 'uranium stocks']",
-        "momentum_pct": {
-          "oil stocks": -18.2,
-          "uranium stocks": 0.0
-        }
+        "notes": "Rate-limited or error for ['oil stocks', 'uranium stocks']; stale."
       },
       "defense": {
-        "value": {
-          "defense stocks": 11
-        },
-        "status": "ok",
+        "value": null,
+        "status": "proxy",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['defense stocks']",
-        "momentum_pct": {
-          "defense stocks": 0.0
-        }
+        "notes": "Rate-limited or error for ['defense stocks']; stale."
       },
       "financials": {
-        "value": {
-          "bank stocks": 3,
-          "interest rates": 57
-        },
-        "status": "ok",
+        "value": null,
+        "status": "proxy",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['bank stocks', 'interest rates']",
-        "momentum_pct": {
-          "bank stocks": 9.1,
-          "interest rates": 34.1
-        }
+        "notes": "Rate-limited or error for ['bank stocks', 'interest rates']; stale."
       },
       "fear_greed": {
-        "value": {
-          "stock market crash": 12,
-          "recession 2026": 11
-        },
-        "status": "ok",
+        "value": null,
+        "status": "proxy",
         "source": "GoogleTrends",
-        "notes": "interest 0-100 for ['stock market crash', 'recession 2026']",
-        "momentum_pct": {
-          "stock market crash": -5.9,
-          "recession 2026": -8.3
-        }
+        "notes": "Rate-limited or error for ['stock market crash', 'recession 2026']; stale."
       }
     }
   },
@@ -680,9 +654,9 @@
     }
   },
   "source_health": {
-    "ok": 51,
+    "ok": 47,
     "manual": 1,
-    "proxy": 5,
+    "proxy": 9,
     "unavailable": 1
   },
   "interpretation": {
