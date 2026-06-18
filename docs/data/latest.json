@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-18T08:36:39.198472+00:00",
-    "generated_display": "Jun 18 2026, 12:36 AM PT",
+    "generated_utc": "2026-06-18T09:00:43.840510+00:00",
+    "generated_display": "Jun 18 2026, 1:00 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -164,6 +164,21 @@
         "periods": 3
       },
       "yoy_pct": 3.29,
+      "yoy_direction": "accelerating"
+    },
+    "ppi": {
+      "value": 157.659,
+      "status": "ok",
+      "source": "FRED:PPIFIS",
+      "asof": "2026-05-01",
+      "notes": "Producer Price Index, Final Demand (SA) \u2014 leads CPI by 1-3 months",
+      "trend": {
+        "direction": "rising",
+        "change": 4.423,
+        "pct": 2.89,
+        "periods": 3
+      },
+      "yoy_pct": 6.42,
       "yoy_direction": "accelerating"
     },
     "fed_funds": {
@@ -352,12 +367,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -144.31,
+      "value": -170.9,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": -40.43,
-      "ema39": 103.876,
+      "ema19": -108.044,
+      "ema39": 62.854,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -421,7 +436,7 @@
   },
   "sentiment": {
     "vix": {
-      "value": 17.01,
+      "value": 17.04,
       "status": "ok",
       "source": "yfinance:^VIX",
       "asof": "2026-06-18",
@@ -654,7 +669,7 @@
     }
   },
   "source_health": {
-    "ok": 47,
+    "ok": 48,
     "manual": 1,
     "proxy": 9,
     "unavailable": 1
