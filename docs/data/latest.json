@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-18T22:40:47.739547+00:00",
-    "generated_display": "Jun 18 2026, 2:40 PM PT",
+    "generated_utc": "2026-06-19T05:41:43.655982+00:00",
+    "generated_display": "Jun 18 2026, 9:41 PM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -257,7 +257,33 @@
         "change": -6.6,
         "pct": -11.7,
         "periods": 3
-      }
+      },
+      "spark": [
+        69.1,
+        68.2,
+        66.4,
+        67.9,
+        70.1,
+        70.5,
+        71.8,
+        74.0,
+        71.7,
+        64.7,
+        57.0,
+        52.2,
+        52.2,
+        60.7,
+        61.7,
+        58.2,
+        55.1,
+        53.6,
+        51.0,
+        52.9,
+        56.4,
+        56.6,
+        53.3,
+        49.8
+      ]
     },
     "avg_hourly_earnings": {
       "value": 37.53,
@@ -419,12 +445,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -39.42,
+      "value": -35.54,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 21.822,
-      "ema39": 61.245,
+      "ema19": 25.64,
+      "ema39": 61.183,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -462,13 +488,13 @@
       "count": 7,
       "window_days": 30,
       "dates": [
-        "2026-05-19",
         "2026-05-29",
         "2026-06-01",
         "2026-06-02",
         "2026-06-03",
         "2026-06-17",
-        "2026-06-18"
+        "2026-06-18",
+        "2026-06-19"
       ]
     },
     "titanic_syndrome_confirmed": {
@@ -480,9 +506,9 @@
       "count": 3,
       "window_days": 30,
       "dates": [
-        "2026-05-19",
         "2026-06-17",
-        "2026-06-18"
+        "2026-06-18",
+        "2026-06-19"
       ]
     }
   },
@@ -507,12 +533,54 @@
       "fear": false
     },
     "fear_greed": {
-      "value": 37.5,
+      "value": 37.3,
       "status": "ok",
       "source": "CNN (production.dataviz.cnn.io)",
       "notes": "CNN's official Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed. Updated by CNN throughout the trading day.",
       "label": "Fear",
-      "timestamp": "2026-06-18T22:24:26+00:00"
+      "timestamp": "2026-06-19T00:59:47+00:00",
+      "spark": [
+        66.3,
+        67.4,
+        66.2,
+        69.5,
+        71.2,
+        66.9,
+        67.3,
+        68.7,
+        66.4,
+        66.7,
+        65.4,
+        65.1,
+        64.0,
+        65.0,
+        63.0,
+        61.5,
+        59.4,
+        60.2,
+        57.9,
+        59.0,
+        60.9,
+        60.5,
+        60.0,
+        59.5,
+        56.5,
+        56.1,
+        53.0,
+        53.9,
+        41.8,
+        39.9,
+        32.4,
+        26.9,
+        31.6,
+        35.5,
+        41.6,
+        39.1,
+        32.2,
+        37.3,
+        37.3,
+        37.3
+      ]
     }
   },
   "sectors": {
@@ -636,17 +704,17 @@
       {
         "date": "2026-06-26",
         "label": "PCE Release",
-        "days_away": 8
+        "days_away": 7
       },
       {
         "date": "2026-07-02",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 14
+        "days_away": 13
       },
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 27
+        "days_away": 26
       }
     ]
   },
@@ -726,7 +794,8 @@
     },
     "watch": [
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
-      "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone."
+      "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone.",
+      "Next catalyst: PCE Release on 2026-06-26 (7d)."
     ],
     "summary": "Elevated Risk (69/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
@@ -1215,6 +1284,25 @@
       "new_high_pct": 3.79,
       "new_low_pct": 4.39,
       "fear_greed": 37.5,
+      "umich": 49.8
+    },
+    {
+      "date": "2026-06-19",
+      "composite": 69.2,
+      "structural": 79.0,
+      "cycle": 59.4,
+      "cape": 41.71,
+      "buffett_z": 2.46,
+      "yield_curve": 0.63,
+      "hy_oas": 2.63,
+      "vix": 16.4,
+      "pct_above_200": 57.7,
+      "goldman": 56.0,
+      "hindenburg_raw": true,
+      "titanic_raw": true,
+      "new_high_pct": 3.79,
+      "new_low_pct": 4.39,
+      "fear_greed": 37.3,
       "umich": 49.8
     }
   ]
