@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-19T05:41:43.655982+00:00",
-    "generated_display": "Jun 18 2026, 9:41 PM PT",
+    "generated_utc": "2026-06-19T16:31:53.884748+00:00",
+    "generated_display": "Jun 19 2026, 8:31 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -445,12 +445,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -35.54,
+      "value": -32.05,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 25.64,
-      "ema39": 61.183,
+      "ema19": 29.076,
+      "ema39": 61.124,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -514,12 +514,12 @@
   },
   "sentiment": {
     "vix": {
-      "value": 16.4,
+      "value": 16.78,
       "status": "ok",
       "source": "yfinance:^VIX",
-      "asof": "2026-06-18",
+      "asof": "2026-06-19",
       "notes": "CBOE Volatility Index",
-      "ma20": 17.4,
+      "ma20": 17.41,
       "above_30": false,
       "above_40": false
     },
@@ -788,7 +788,7 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "16.4 \u2014 normal.",
+      "vix": "16.8 \u2014 normal.",
       "pct_above_200dma": "58% of the S&P 500 above its 200-DMA \u2014 narrowing \u2014 fewer names holding up the index.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
@@ -1295,7 +1295,7 @@
       "buffett_z": 2.46,
       "yield_curve": 0.63,
       "hy_oas": 2.63,
-      "vix": 16.4,
+      "vix": 16.78,
       "pct_above_200": 57.7,
       "goldman": 56.0,
       "hindenburg_raw": true,
