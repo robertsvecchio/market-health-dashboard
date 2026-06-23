@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-22T18:12:41.102321+00:00",
-    "generated_display": "Jun 22 2026, 10:12 AM PT",
+    "generated_utc": "2026-06-23T16:26:55.252257+00:00",
+    "generated_display": "Jun 23 2026, 8:26 AM PT",
     "schema_version": 2,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -20,15 +20,15 @@
       }
     },
     "yield_curve_10y3m": {
-      "value": 0.63,
+      "value": 0.66,
       "status": "ok",
       "source": "FRED:T10Y3M",
-      "asof": "2026-06-18",
+      "asof": "2026-06-22",
       "notes": "10yr minus 3mo Treasury spread",
       "trend": {
         "direction": "falling",
-        "change": -0.37,
-        "pct": -37.0,
+        "change": -0.26,
+        "pct": -28.26,
         "periods": 21
       }
     },
@@ -237,7 +237,7 @@
       "value": 3.63,
       "status": "ok",
       "source": "FRED:DFF",
-      "asof": "2026-06-17",
+      "asof": "2026-06-19",
       "notes": "Effective federal funds rate",
       "trend": {
         "direction": "rising",
@@ -299,15 +299,15 @@
       }
     },
     "hy_oas": {
-      "value": 2.66,
+      "value": 2.65,
       "status": "ok",
       "source": "FRED:BAMLH0A0HYM2",
-      "asof": "2026-06-19",
+      "asof": "2026-06-22",
       "notes": "ICE BofA US High-Yield option-adjusted credit spread",
       "trend": {
         "direction": "falling",
-        "change": -0.08,
-        "pct": -2.92,
+        "change": -0.09,
+        "pct": -3.28,
         "periods": 21
       }
     },
@@ -315,7 +315,7 @@
       "value": 0.74,
       "status": "ok",
       "source": "FRED:BAMLC0A0CM",
-      "asof": "2026-06-19",
+      "asof": "2026-06-22",
       "notes": "ICE BofA US Investment-Grade option-adjusted credit spread",
       "trend": {
         "direction": "flat",
@@ -338,25 +338,25 @@
       }
     },
     "real_10y": {
-      "value": 2.23,
+      "value": 2.21,
       "status": "ok",
       "source": "FRED:DFII10",
-      "asof": "2026-06-17",
+      "asof": "2026-06-18",
       "notes": "10yr TIPS yield (real) \u2014 for Excess CAPE Yield",
       "trend": {
         "direction": "rising",
-        "change": 0.1,
-        "pct": 4.69,
+        "change": 0.03,
+        "pct": 1.38,
         "periods": 21
       }
     }
   },
   "structural": {
     "cape": {
-      "value": 41.71,
+      "value": 41.58,
       "status": "ok",
       "source": "multpl.com (Shiller PE)",
-      "asof": "Jun 18, 2026",
+      "asof": "Jun 22, 2026",
       "notes": "Cyclically adjusted P/E (P/E10)"
     },
     "buffett_indicator": {
@@ -369,7 +369,7 @@
       "elevated": true
     },
     "excess_cape_yield": {
-      "value": 0.17,
+      "value": 0.2,
       "status": "ok",
       "source": "Shiller + FRED:DFII10 (computed)",
       "notes": "Excess CAPE Yield = CAPE earnings yield minus real 10yr. Lower = stocks less attractive vs bonds.",
@@ -383,50 +383,50 @@
       "vs_mean": 6.0
     },
     "ad_line_proxy": {
-      "value": 0.28156,
+      "value": 0.28415,
       "status": "ok",
       "source": "yfinance:RSP/SPY",
       "notes": "equal-weight/cap-weight ratio; proxy for NYSE A/D divergence",
-      "ratio_ma50": 0.2806,
-      "spy_21d_pct": 0.29,
-      "ratio_21d_pct": 2.15,
+      "ratio_ma50": 0.28049,
+      "spy_21d_pct": -1.15,
+      "ratio_21d_pct": 2.56,
       "bearish_divergence": false
     }
   },
   "trend": {
     "spx_price": {
-      "value": 7476.57,
+      "value": 7398.79,
       "status": "ok",
       "source": "yfinance:^GSPC",
-      "asof": "2026-06-22"
+      "asof": "2026-06-23"
     },
     "spx_vs_200dma": {
-      "value": 8.23,
+      "value": 7.04,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "percent above/below 200-day moving average",
-      "price": 7476.57,
-      "dma200": 6907.77
+      "price": 7398.79,
+      "dma200": 6912.24
     },
     "dma200_slope": {
       "value": "rising",
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "slope of 200-DMA over ~1 month",
-      "change_pct": 1.555
+      "change_pct": 1.536
     },
     "dma50": {
-      "value": 7328.67,
+      "value": 7340.23,
       "status": "ok",
       "source": "yfinance:^GSPC"
     },
     "weekly_macd": {
-      "value": 33.869,
+      "value": 28.906,
       "status": "ok",
       "source": "yfinance:^GSPC",
       "notes": "weekly MACD histogram; <0 = bearish momentum",
-      "macd_line": 213.965,
-      "signal_line": 180.096,
+      "macd_line": 207.761,
+      "signal_line": 178.855,
       "bearish": false
     }
   },
@@ -437,7 +437,7 @@
       "source": "github_csv"
     },
     "pct_above_200dma": {
-      "value": 58.5,
+      "value": 61.1,
       "status": "ok",
       "source": "Alpaca S&P500 internals",
       "notes": "percent of S&P 500 members above their 200-DMA",
@@ -445,22 +445,22 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -20.91,
+      "value": -7.12,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 42.656,
-      "ema39": 63.563,
+      "ema19": 68.131,
+      "ema39": 75.255,
       "negative": true
     },
     "hindenburg_omen_today": {
-      "value": true,
+      "value": false,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "PROXY on S&P500 (true indicator is NYSE-wide). RAW same-day flag \u2014 not actionable alone. Confirmed signal = 2+ raw flags within 30 days (see hindenburg_omen_confirmed).",
-      "new_high_pct": 7.19,
-      "new_low_pct": 6.99,
-      "cond_counts": true,
+      "new_high_pct": 4.39,
+      "new_low_pct": 1.8,
+      "cond_counts": false,
       "cond_ratio": true,
       "cond_uptrend": true,
       "cond_mcclellan": true
@@ -470,11 +470,11 @@
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "PROXY on S&P500. RAW same-day flag. Confirmed signal requires a 52wk index high within ~7 sessions AND the flag (see titanic_syndrome_confirmed).",
-      "new_highs": 36,
-      "new_lows": 35
+      "new_highs": 22,
+      "new_lows": 9
     },
     "zweig_adv_ratio": {
-      "value": 0.556,
+      "value": 0.649,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Advancers/(Adv+Dec). Zweig Breadth Thrust = 10-day avg moving <0.40 to >0.615 within 10 days; needs multi-day history (alert script)."
@@ -519,12 +519,12 @@
   },
   "sentiment": {
     "vix": {
-      "value": 17.18,
+      "value": 18.99,
       "status": "ok",
       "source": "yfinance:^VIX",
-      "asof": "2026-06-22",
+      "asof": "2026-06-23",
       "notes": "CBOE Volatility Index",
-      "ma20": 17.43,
+      "ma20": 17.55,
       "above_30": false,
       "above_40": false
     },
@@ -538,14 +538,13 @@
       "fear": false
     },
     "fear_greed": {
-      "value": 35.7,
+      "value": 28.7,
       "status": "ok",
       "source": "CNN (production.dataviz.cnn.io)",
       "notes": "CNN's official Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed. Updated by CNN throughout the trading day.",
       "label": "Fear",
-      "timestamp": "2026-06-22T18:05:49+00:00",
+      "timestamp": "2026-06-23T16:20:36+00:00",
       "spark": [
-        67.4,
         66.2,
         69.5,
         71.2,
@@ -583,111 +582,112 @@
         32.2,
         37.6,
         31.6,
-        35.5,
-        35.7
+        32.0,
+        28.7,
+        28.7
       ]
     }
   },
   "sectors": {
     "relative_strength": {
       "XLK": {
-        "value": 26.45,
+        "value": 23.72,
         "status": "ok",
         "source": "yfinance:XLK",
         "notes": "Technology: 3-month relative strength vs SPY (pct pts)",
         "name": "Technology",
-        "rsi": 60.1,
-        "sector_3m_pct": 40.12
+        "rsi": 53.2,
+        "sector_3m_pct": 36.58
       },
       "XLF": {
-        "value": -4.64,
+        "value": -3.31,
         "status": "ok",
         "source": "yfinance:XLF",
         "notes": "Financials: 3-month relative strength vs SPY (pct pts)",
         "name": "Financials",
-        "rsi": 62.5,
-        "sector_3m_pct": 9.02
+        "rsi": 64.5,
+        "sector_3m_pct": 9.55
       },
       "XLE": {
-        "value": -23.45,
+        "value": -23.54,
         "status": "ok",
         "source": "yfinance:XLE",
         "notes": "Energy: 3-month relative strength vs SPY (pct pts)",
         "name": "Energy",
-        "rsi": 34.1,
-        "sector_3m_pct": -9.79
+        "rsi": 37.5,
+        "sector_3m_pct": -10.68
       },
       "XLV": {
-        "value": -9.85,
+        "value": -8.26,
         "status": "ok",
         "source": "yfinance:XLV",
         "notes": "Health Care: 3-month relative strength vs SPY (pct pts)",
         "name": "Health Care",
-        "rsi": 50.4,
-        "sector_3m_pct": 3.81
+        "rsi": 53.8,
+        "sector_3m_pct": 4.61
       },
       "XLI": {
-        "value": -2.21,
+        "value": -3.42,
         "status": "ok",
         "source": "yfinance:XLI",
         "notes": "Industrials: 3-month relative strength vs SPY (pct pts)",
         "name": "Industrials",
-        "rsi": 64.4,
-        "sector_3m_pct": 11.45
+        "rsi": 58.3,
+        "sector_3m_pct": 9.44
       },
       "XLB": {
-        "value": -5.09,
+        "value": -6.99,
         "status": "ok",
         "source": "yfinance:XLB",
         "notes": "Materials: 3-month relative strength vs SPY (pct pts)",
         "name": "Materials",
-        "rsi": 52.1,
-        "sector_3m_pct": 8.57
+        "rsi": 49.7,
+        "sector_3m_pct": 5.87
       },
       "XLU": {
-        "value": -13.47,
+        "value": -12.95,
         "status": "ok",
         "source": "yfinance:XLU",
         "notes": "Utilities: 3-month relative strength vs SPY (pct pts)",
         "name": "Utilities",
-        "rsi": 52.6,
-        "sector_3m_pct": 0.19
+        "rsi": 54.5,
+        "sector_3m_pct": -0.09
       },
       "XLP": {
-        "value": -12.2,
+        "value": -9.87,
         "status": "ok",
         "source": "yfinance:XLP",
         "notes": "Consumer Staples: 3-month relative strength vs SPY (pct pts)",
         "name": "Consumer Staples",
-        "rsi": 41.1,
-        "sector_3m_pct": 1.47
+        "rsi": 48.1,
+        "sector_3m_pct": 2.99
       },
       "XLRE": {
-        "value": -5.01,
+        "value": -2.09,
         "status": "ok",
         "source": "yfinance:XLRE",
         "notes": "Real Estate: 3-month relative strength vs SPY (pct pts)",
         "name": "Real Estate",
-        "rsi": 48.2,
-        "sector_3m_pct": 8.65
+        "rsi": 53.2,
+        "sector_3m_pct": 10.77
       },
       "XLY": {
-        "value": -8.79,
+        "value": -8.83,
         "status": "ok",
         "source": "yfinance:XLY",
         "notes": "Consumer Discretionary: 3-month relative strength vs SPY (pct pts)",
         "name": "Consumer Discretionary",
-        "rsi": 45.5,
-        "sector_3m_pct": 4.87
+        "rsi": 42.2,
+        "sector_3m_pct": 4.03
       },
       "XLC": {
-        "value": -18.79,
+        "value": -16.13,
         "status": "ok",
         "source": "yfinance:XLC",
         "notes": "Communication Services: 3-month relative strength vs SPY (pct pts)",
         "name": "Communication Services",
-        "rsi": 26.8,
-        "sector_3m_pct": -5.13
+        "rsi": 30.2,
+        "sector_3m_pct": -3.27
       }
     },
     "cycle_phase": {
@@ -696,7 +696,7 @@
       "source": "derived: LEI + yield curve",
       "notes": "business-cycle phase heuristic",
       "lei_direction": "rising",
-      "yield_curve": 0.63,
+      "yield_curve": 0.66,
       "favored_sectors": [
         "XLK",
         "XLI",
@@ -709,29 +709,29 @@
       {
         "date": "2026-06-26",
         "label": "PCE Release",
-        "days_away": 4
+        "days_away": 3
       },
       {
         "date": "2026-07-02",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 10
+        "days_away": 9
       },
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 23
+        "days_away": 22
       }
     ]
   },
   "scores": {
     "goldman_composite": {
-      "value": 56.0,
+      "value": 55.5,
       "status": "ok",
       "source": "Goldman-style composite (self-calc)",
       "notes": "percentile-ranked composite; >70 historically high-risk, <40 favorable",
       "inputs": {
-        "valuation": 94.0,
-        "yield_curve": 11.5,
+        "valuation": 93.5,
+        "yield_curve": 9.75,
         "unemployment": 76.75,
         "core_inflation": 83.24742268041237,
         "lei": 14.5
@@ -741,31 +741,31 @@
       "above_50": true
     },
     "composite": {
-      "value": 68.9,
+      "value": 68.3,
       "status": "ok",
       "source": "derived",
       "notes": "average of structural & cycle sub-scores (available inputs only)",
       "label": "Elevated Risk",
       "structural_inputs": {
-        "cape": 94.0,
+        "cape": 93.5,
         "buffett": 99.2,
-        "ecy": 80.5,
-        "breadth": 41.5
+        "ecy": 80.0,
+        "breadth": 38.9
       },
       "cycle_inputs": {
-        "goldman": 56.0,
+        "goldman": 55.5,
         "nfci_leverage": 96.0,
         "debt_service": 24.705882352941178
       }
     },
     "structural_score": {
-      "value": 78.8,
+      "value": 77.9,
       "status": "ok",
       "source": "derived",
       "label": "High Risk"
     },
     "cycle_score": {
-      "value": 58.9,
+      "value": 58.7,
       "status": "ok",
       "source": "derived",
       "label": "Elevated Risk"
@@ -780,7 +780,7 @@
     "readings": {
       "cape": "At the 94th percentile of all history; among the most expensive readings ever recorded \u2014 deeply stretched. Says little about this month, a lot about the next decade.",
       "buffett_indicator": "Total market value vs GDP is at a record extreme versus its own trend (z = +2.5). Watch the deviation, not the level.",
-      "excess_cape_yield": "0.17% \u2014 low \u2014 thin compensation for holding stocks over bonds.",
+      "excess_cape_yield": "0.20% \u2014 low \u2014 thin compensation for holding stocks over bonds.",
       "forward_pe": "22.0x next-12-month earnings \u2014 elevated, +6.0 vs the ~16x long-run mean.",
       "yield_curve_10y3m": "Comfortably positive \u2014 no recession signal here; falling lately.",
       "hy_oas": "Very tight \u2014 credit markets are complacent, little stress priced in; spreads are tightening (risk appetite firm).",
@@ -793,16 +793,17 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "17.2 \u2014 normal.",
-      "pct_above_200dma": "58% of the S&P 500 above its 200-DMA \u2014 narrowing \u2014 fewer names holding up the index.",
+      "vix": "19.0 \u2014 normal.",
+      "pct_above_200dma": "61% of the S&P 500 above its 200-DMA \u2014 broad participation \u2014 healthy.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
     "watch": [
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
+      "Breadth is broad \u2014 the tape supports staying invested.",
       "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone.",
-      "Next catalyst: PCE Release on 2026-06-26 (4d)."
+      "Next catalyst: PCE Release on 2026-06-26 (3d)."
     ],
-    "summary": "Elevated Risk (69/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
+    "summary": "Elevated Risk (68/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
     {
@@ -1365,6 +1366,25 @@
       "new_high_pct": 7.19,
       "new_low_pct": 6.99,
       "fear_greed": 35.7,
+      "umich": 49.8
+    },
+    {
+      "date": "2026-06-23",
+      "composite": 68.3,
+      "structural": 77.9,
+      "cycle": 58.7,
+      "cape": 41.58,
+      "buffett_z": 2.46,
+      "yield_curve": 0.66,
+      "hy_oas": 2.65,
+      "vix": 18.99,
+      "pct_above_200": 61.1,
+      "goldman": 55.5,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 4.39,
+      "new_low_pct": 1.8,
+      "fear_greed": 28.7,
       "umich": 49.8
     }
   ]
