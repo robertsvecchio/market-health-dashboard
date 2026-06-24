@@ -93,10 +93,11 @@ def snapshot(data):
         "yield_curve": _g(data, "macro", "yield_curve_10y3m", "value"),
         "vix": _g(data, "sentiment", "vix", "value"),
         "pct_above_200": _g(data, "breadth", "pct_above_200dma", "value"),
-        "hindenburg": _g(data, "breadth", "hindenburg_omen_today", "value"),
-        "titanic": _g(data, "breadth", "titanic_syndrome_today", "value"),
-        "hindenburg_confirmed": _g(data, "breadth", "hindenburg_omen_confirmed", "value"),
-        "titanic_confirmed": _g(data, "breadth", "titanic_syndrome_confirmed", "value"),
+        "regime_count": _g(data, "regime", "conditions_active"),
+        "credit_score": _g(data, "scores", "credit_score", "value"),
+        "labor_score": _g(data, "scores", "labor_score", "value"),
+        "hy_oas": _g(data, "macro", "hy_oas", "value"),
+        "sahm_rule": _g(data, "macro", "sahm_rule", "value"),
     }
 
 
@@ -110,7 +111,7 @@ def crossed(prev, now, level, rising=True):
 def detect_crossings(prev, cur):
     """Compare prior snapshot to current; return list of {txt, pri} crossings."""
     out = []
-    if not prev:  # first run — no crossings, just a baseline digest
+    if not prev:
         return out
 
     # Composite risk band change
@@ -147,11 +148,21 @@ def detect_crossings(prev, cur):
     if crossed(prev.get("pct_above_200"), cur.get("pct_above_200"), 40, False):
         out.append({"txt": f"% of S&P 500 above 200-DMA dropped below 40% ({cur['pct_above_200']:.0f}%)", "pri": "HIGH"})
 
-    # Breadth alert flags newly tripped
-    if cur.get("hindenburg_confirmed") and not prev.get("hindenburg_confirmed"):
-        out.append({"txt": "Hindenburg Omen CONFIRMED — cluster of 2+ within 30 days (S&P 500 proxy)", "pri": "HIGH"})
-    if cur.get("titanic_confirmed") and not prev.get("titanic_confirmed"):
-        out.append({"txt": "Titanic Syndrome CONFIRMED — cluster within 30 days (S&P 500 proxy)", "pri": "HIGH"})
+    # Regime counter crossing into Caution or High Alert
+    prev_rc = prev.get("regime_count") or 0
+    cur_rc = cur.get("regime_count") or 0
+    if prev_rc < 3 <= cur_rc:
+        out.append({"txt": f"Regime counter hit {cur_rc}/5 conditions — Caution threshold", "pri": "HIGH"})
+    elif prev_rc < 1 <= cur_rc:
+        out.append({"txt": f"Regime counter now at {cur_rc}/5 conditions — Watch", "pri": "MED"})
+
+    # HY OAS crossing
+    if crossed(prev.get("hy_oas"), cur.get("hy_oas"), 5, True):
+        out.append({"txt": f"HY credit spreads crossed above 5% (now {cur['hy_oas']:.2f}%)", "pri": "HIGH"})
+
+    # Sahm Rule trigger
+    if crossed(prev.get("sahm_rule"), cur.get("sahm_rule"), 0.5, True):
+        out.append({"txt": f"Sahm Rule triggered — recession onset signal (now {cur['sahm_rule']:.2f}pp)", "pri": "HIGH"})
 
     order = {"HIGH": 0, "MED": 1}
     out.sort(key=lambda x: order.get(x["pri"], 9))
@@ -159,7 +170,9 @@ def detect_crossings(prev, cur):
 
 
 def active_alerts(data):
-    """Currently-firing conditions (point-in-time), independent of crossings."""
+    """Currently-firing conditions (point-in-time), independent of crossings.
+    NOTE: Hindenburg/Titanic are NOT included here (high false positive rate;
+    retained as breadth data only in the Technical tab)."""
     out = []
     yc = _g(data, "macro", "yield_curve_10y3m", "value")
     if yc is not None:
@@ -167,29 +180,62 @@ def active_alerts(data):
             out.append(("HIGH", "Yield curve inverted"))
         elif yc < 0.5:
             out.append(("MED", f"Yield curve flat ({yc:.2f})"))
+
     g = _g(data, "scores", "goldman_composite")
     if g and g.get("value") is not None:
         if g.get("above_70"):
             out.append(("HIGH", f"Goldman composite > 70 ({g['value']:.0f})"))
         elif g.get("above_50"):
             out.append(("MED", f"Goldman composite > 50 ({g['value']:.0f})"))
+
     vix = _g(data, "sentiment", "vix")
     if vix and vix.get("value") is not None:
         if vix.get("above_40"):
             out.append(("HIGH", f"VIX > 40 ({vix['value']:.1f})"))
         elif vix.get("above_30"):
             out.append(("MED", f"VIX > 30 ({vix['value']:.1f})"))
+
     pa = _g(data, "breadth", "pct_above_200dma")
     if pa and pa.get("below_40"):
         out.append(("HIGH", f"Only {pa['value']:.0f}% of S&P 500 above 200-DMA"))
-    if _g(data, "breadth", "hindenburg_omen_confirmed", "value"):
-        out.append(("HIGH", "Hindenburg Omen confirmed (cluster 2+/30d)"))
-    if _g(data, "breadth", "titanic_syndrome_confirmed", "value"):
-        out.append(("HIGH", "Titanic Syndrome confirmed (cluster)"))
+
+    # Regime counter
+    regime = _g(data, "regime") or {}
+    rc = regime.get("conditions_active", 0)
+    rl = regime.get("label", "")
+    if rc >= 4:
+        out.append(("HIGH", f"Regime: {rc}/5 conditions active — {rl}"))
+    elif rc >= 3:
+        out.append(("HIGH", f"Regime: {rc}/5 conditions active — {rl}"))
+    elif rc >= 1:
+        out.append(("MED", f"Regime: {rc}/5 conditions active — {rl}"))
+
+    # Sahm Rule
+    sahm = _g(data, "macro", "sahm_rule", "value")
+    if sahm is not None and sahm >= 0.5:
+        out.append(("HIGH", f"Sahm Rule triggered ({sahm:.2f}pp ≥ 0.5)"))
+
+    # HY OAS
+    hy = _g(data, "macro", "hy_oas", "value")
+    if hy is not None and hy >= 5:
+        out.append(("HIGH" if hy >= 7 else "MED", f"HY credit spreads elevated ({hy:.2f}%)"))
+
+    # Credit spreads / ECY / divergence
     if _g(data, "structural", "ad_line_proxy", "bearish_divergence"):
         out.append(("MED", "Breadth divergence (equal-weight lagging)"))
     if _g(data, "structural", "excess_cape_yield", "low"):
         out.append(("MED", "Excess CAPE Yield low — stocks expensive vs bonds"))
+
+    # Unemployment rising
+    un = _g(data, "macro", "unemployment")
+    if un and un.get("value") is not None and un.get("trend") and un["trend"].get("direction") == "rising" and un["value"] < 5:
+        out.append(("MED", f"Unemployment rising ({un['value']:.1f}%) — late-cycle signal"))
+
+    # Credit card delinquencies
+    cc = _g(data, "macro", "cc_delinquency")
+    if cc and cc.get("value") is not None and cc.get("trend") and cc["trend"].get("direction") == "rising" and cc["value"] > 2.5:
+        out.append(("MED", f"Credit-card delinquencies rising ({cc['value']:.2f}%)"))
+
     order = {"HIGH": 0, "MED": 1}
     out.sort(key=lambda x: order.get(x[0], 9))
     return out
@@ -220,6 +266,12 @@ def build_email(data, prev_snap):
     color = BAND_COLOR.get(label, "#8B949E")
     disp = _g(data, "meta", "generated_display", default="")
 
+    # Regime line for email header
+    regime = _g(data, "regime") or {}
+    rc = regime.get("conditions_active", 0)
+    rl = regime.get("label", "")
+    regime_color = "#3FB950" if rc == 0 else "#D8A657" if rc <= 2 else "#F85149"
+
     # Subject line
     hi = any(c["pri"] == "HIGH" for c in crossings)
     score_txt = f"{score:.0f}" if isinstance(score, (int, float)) else "—"
@@ -228,7 +280,6 @@ def build_email(data, prev_snap):
     if crossings:
         subject += f" · {len(crossings)} change{'s' if len(crossings) != 1 else ''}"
 
-    # HTML body (inline styles; email-client friendly, dark)
     def chip(pri):
         c = "#F85149" if pri == "HIGH" else "#D8A657"
         return (f'<span style="font:600 11px monospace;color:{c};'
@@ -245,9 +296,15 @@ def build_email(data, prev_snap):
           <span style="font:18px monospace;color:#6E7681"> / 100</span>
           <div style="font:700 15px sans-serif;color:{color};margin-top:2px">{label}</div>
         </div>
+        <div style="font-size:13px;color:{regime_color};margin-bottom:4px">
+          Regime: {rc}/5 conditions active · {rl}
+        </div>
         <div style="font-size:13px;color:#8B949E">
-          Structural {_fmt(_g(data,"scores","structural_score","value"))} ·
-          Cycle {_fmt(_g(data,"scores","cycle_score","value"))}
+          Credit {_fmt(_g(data,"scores","credit_score","value"))} ·
+          Cycle {_fmt(_g(data,"scores","cycle_score","value"))} ·
+          Valuation {_fmt(_g(data,"scores","valuation_score","value"))} ·
+          Breadth {_fmt(_g(data,"scores","breadth_score","value"))} ·
+          Labor {_fmt(_g(data,"scores","labor_score","value"))}
         </div>
     ''')
 
@@ -261,7 +318,6 @@ def build_email(data, prev_snap):
             {rows}
           </div>''')
 
-    # Plain-English summary + Watch/Consider (single source of truth from the pipeline)
     summary = _g(data, "interpretation", "summary", default="")
     watch = _g(data, "interpretation", "watch", default=[]) or []
     if summary:
@@ -318,7 +374,9 @@ def build_email(data, prev_snap):
 
     parts.append('''
         <div style="margin-top:20px;font-size:11px;color:#6E7681;line-height:1.5">
-          Breadth signals are S&amp;P 500 proxies for NYSE-wide indicators. Not investment advice.
+          Breadth signals are S&amp;P 500 proxies for NYSE-wide indicators.
+          Hindenburg/Titanic raw flags are retained as breadth data only (high false positive rate; removed from alerts).
+          Not investment advice.
         </div>
       </div>''')
 
@@ -370,7 +428,6 @@ def main(dry_run=False):
 
     ok = send_email(subject, html)
 
-    # Persist snapshot for next run's crossing detection (merge into shared state).
     state.setdefault("alerts", {})
     state["alerts"]["last_snapshot"] = cur
     state["alerts"]["last_sent_utc"] = datetime.now(timezone.utc).isoformat()
@@ -385,6 +442,5 @@ if __name__ == "__main__":
     try:
         main(dry_run=args.dry_run)
     except Exception as e:
-        # Never break the workflow over an alert failure.
         print(f"send_alerts non-fatal error: {e}", file=sys.stderr)
         sys.exit(0)
