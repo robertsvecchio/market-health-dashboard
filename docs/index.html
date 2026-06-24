@@ -24,74 +24,97 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .refresh{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 13px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 .refresh:hover{border-color:var(--info)}
 .refresh svg{width:14px;height:14px}
-.tabs{display:flex;gap:5px;padding:4px 2px 10px}
-.tab{flex:1 1 0;min-width:0;justify-content:center}
-.tab{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;padding:8px 8px;border-radius:9px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Top tabs (desktop ≥700px) ── */
+.tabs-top{display:flex;gap:5px;padding:4px 2px 10px}
+.tab{flex:1 1 0;min-width:0;justify-content:center;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;padding:8px 8px;border-radius:9px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tab[aria-selected="true"]{color:var(--text);border-color:var(--faint);background:var(--surface2)}
 .tab:focus-visible{outline:2px solid var(--info);outline-offset:3px}
 .tab .dot{width:6px;height:6px;border-radius:50%;flex:none}
+
+/* ── Bottom nav (mobile <700px) ── */
+.tabs-bottom{display:none;position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--surface);border-top:1px solid var(--border);padding:0 0 env(safe-area-inset-bottom)}
+.tabs-bottom .bnav{display:flex;justify-content:space-around}
+.tabs-bottom .btab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tabs-bottom .btab[aria-selected="true"]{color:var(--text)}
+.tabs-bottom .btab .dot{width:6px;height:6px;border-radius:50%}
+
+@media(max-width:699px){
+  .tabs-top{display:none}
+  .tabs-bottom{display:block}
+  body{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+}
+@media(min-width:700px){
+  .tabs-top{display:flex}
+  .tabs-bottom{display:none}
+}
+
+/* ── Cards ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
 .card h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
-.score-num{font-family:var(--mono);font-size:54px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.score-den{font-family:var(--mono);font-size:18px;color:var(--faint)}
-.score-label{font-size:15px;font-weight:700;margin-top:2px}
-.meter{position:relative;height:10px;border-radius:6px;margin:16px 0 6px;opacity:.9;background:linear-gradient(90deg,var(--low) 0 25%,var(--moderate) 25% 50%,var(--elevated) 50% 75%,var(--high) 75% 100%)}
-.meter-marker{position:absolute;top:-5px;width:3px;height:20px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px var(--surface),0 1px 4px rgba(0,0,0,.6)}
-.meter-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint)}
-.subs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-/* ── redesigned overview ── */
-.ov-hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.ov-score-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 16px 12px}
-.ov-score-label{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px}
-.ov-big-num{font-family:var(--mono);font-size:58px;font-weight:700;line-height:1;letter-spacing:-.02em}
-.ov-risk-label{font-size:16px;font-weight:700;margin:4px 0 10px}
-.ov-trend-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px}
-.ov-meter{position:relative;height:8px;border-radius:5px;margin:14px 0 5px;background:linear-gradient(90deg,var(--low) 0 25%,var(--moderate) 25% 50%,var(--elevated) 50% 75%,var(--high) 75% 100%)}
+
+/* ── Sub-score tiles (flex-grow weighted) ── */
+.sub-tiles{display:flex;gap:8px;margin-bottom:12px}
+.sub-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 10px 8px;min-width:0}
+.sub-tile .st-name{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-tile .st-val{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
+.sub-tile .st-lbl{font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-tile .st-wt{font-size:9px;color:var(--faint);margin-top:2px}
+
+/* ── High-signal cards (YC + HY momentum) ── */
+.hs-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.hs-label{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.hs-body{display:flex;align-items:center;gap:12px}
+.hs-num{font-family:var(--mono);font-size:32px;font-weight:700;line-height:1;flex:none}
+.hs-meta{flex:1;min-width:0}
+.hs-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.hs-bar-wrap{margin-top:8px}
+.hs-bar-track{height:6px;background:var(--surface2);border-radius:3px;position:relative;overflow:visible}
+.hs-bar-fill{height:100%;border-radius:3px;position:absolute;left:0;top:0}
+.hs-bar-marker{position:absolute;top:-4px;width:3px;height:14px;background:#fff;border-radius:2px;transform:translateX(-50%)}
+.hs-arrow{font-size:20px;flex:none}
+
+/* ── Medium-signal 2×2 grid ── */
+.med-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.med-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.med-tile .mt-name{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px}
+.med-tile .mt-val{font-family:var(--mono);font-size:22px;font-weight:700}
+.med-tile .mt-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── Signal board ── */
+.sig-board{display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;align-items:center}
+.sig-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sig-dot{width:12px;height:12px;border-radius:50%}
+.sig-dot-label{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* ── Composite hero ── */
+.comp-hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 16px 12px;margin-bottom:12px}
+.comp-hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+.comp-label{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.comp-num{font-family:var(--mono);font-size:58px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.comp-risk-lbl{font-size:16px;font-weight:700;margin:4px 0 6px}
+.comp-regime{font-size:12.5px;margin-bottom:8px}
+.comp-trend-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px}
+.ov-meter{position:relative;height:8px;border-radius:5px;margin:12px 0 5px;background:linear-gradient(90deg,var(--low) 0 25%,var(--moderate) 25% 50%,var(--elevated) 50% 75%,var(--high) 75% 100%)}
 .ov-marker{position:absolute;top:-5px;width:3px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px var(--surface)}
-.ov-meter-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:0}
-/* odometer */
-.od-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center}
-.od-title{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;align-self:flex-start;margin-bottom:8px}
-/* key drivers */
-.kd-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
-.kd-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 10px 8px;cursor:default}
-.kd-name{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:5px}
-.kd-val{font-size:13px;font-weight:700}
-.kd-spark{margin-top:5px;opacity:.5}
-/* what changed */
-.wc-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);font-size:13.5px}
-.wc-row:first-child{border-top:none;padding-top:2px}
-.wc-arr{font-size:15px;flex:none}
-.wc-delta{font-family:var(--mono);font-size:12px;margin-left:auto;flex:none}
-/* catalyst row */
-.cat-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.cat-row::-webkit-scrollbar{display:none}
-.cat-chip{flex:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;min-width:80px}
-.cat-date{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
-.cat-name{font-size:12.5px;font-weight:600;margin-bottom:2px}
-.cat-days{font-size:11px;color:var(--faint)}
-/* tooltip on kd-tile */
-.kd-tooltip{display:none;position:absolute;z-index:99;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5;color:var(--text);width:200px;pointer-events:none;top:calc(100% + 6px);left:50%;transform:translateX(-50%)}
-.kd-tile{position:relative}
-.kd-tile:hover .kd-tooltip{display:block}
-.sub{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
-.sub .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.sub .v{font-family:var(--mono);font-size:26px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums}
-.sub .l{font-size:11.5px;margin-top:2px}
-.summary{font-size:14.5px;line-height:1.55}
-.watch div{padding:8px 0;border-top:1px solid var(--border);font-size:13.5px;line-height:1.45}
-.watch div:first-child{border-top:none}
-.watch .arr{color:var(--info);margin-right:6px}
+.ov-meter-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--faint)}
+
+/* ── Contrib card ── */
+.contrib{margin-top:10px}
+.contrib-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
+.contrib-name{color:var(--muted);width:110px;flex:none;font-size:12px}
+.contrib-wt{font-size:10px;color:var(--faint);width:28px;flex:none;text-align:right}
+.contrib-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.contrib-fill{height:100%;border-radius:3px}
+.contrib-val{font-family:var(--mono);font-size:12px;width:32px;text-align:right;flex:none}
+
+/* ── Conf card ── */
 .conf{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:12px}
 .conf-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
 .conf-fill{height:100%;border-radius:3px}
 .conf-label{font-family:var(--mono);font-size:12px;white-space:nowrap}
-.contrib{margin-top:10px}
-.contrib-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
-.contrib-name{color:var(--muted);width:120px;flex:none;font-size:12px}
-.contrib-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.contrib-fill{height:100%;border-radius:3px}
-.contrib-val{font-family:var(--mono);font-size:12px;width:36px;text-align:right;flex:none}
+
+/* ── Alerts ── */
 .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)}
 .alert:first-of-type{border-top:none;padding-top:2px}
 .adot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none}
@@ -99,7 +122,13 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .pri.HIGH{color:var(--high);background:rgba(248,81,73,.12)}
 .pri.MED{color:var(--moderate);background:rgba(216,166,87,.12)}
 .empty{color:var(--muted);font-size:13px}
-/* metric rows */
+
+/* ── What's Changed ── */
+.wc-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);font-size:13.5px}
+.wc-row:first-child{border-top:none;padding-top:2px}
+.wc-delta{font-family:var(--mono);font-size:12px;margin-left:auto;flex:none}
+
+/* ── Metric rows ── */
 .metric{border-top:1px solid var(--border);padding:12px 0}
 .metric:first-child{border-top:none}
 .mhead{display:flex;align-items:center;gap:6px}
@@ -117,7 +146,9 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .mbody.open{display:block}
 .mbody .primer{color:var(--faint)}
 .mbody .reading{color:var(--text);margin-top:6px}
-/* sectors */
+.spark{opacity:.6;flex:none}
+
+/* ── Sectors ── */
 .phase{font-family:var(--mono);font-size:16px;font-weight:600}
 .phase-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
 .favored{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 14px}
@@ -128,18 +159,30 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .sbar i{position:absolute;top:0;bottom:0;border-radius:4px}
 .sbar .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--border)}
 .sval{font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
-.spark{opacity:.6;flex:none}
 .srow.lead .stk,.srow.lag .stk{color:var(--text);font-weight:600}
 .srow.mute{opacity:.4}
 .stag{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:4px;margin-left:6px}
-/* catalysts */
-.cat{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
-.cat:first-of-type{border-top:none;padding-top:2px}
-.cat .cd{font-family:var(--mono);font-size:12px;color:var(--muted);width:48px;flex:none}
-.cat .cw{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+/* ── Hindenburg/Titanic collapsed section ── */
+.ht-collapsed{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.ht-label{font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.ht-note{font-size:11.5px;color:var(--faint);line-height:1.45;margin-bottom:8px}
+
+/* ── Banner ── */
 .banner{display:flex;gap:10px;align-items:flex-start;background:rgba(216,166,87,.08);border:1px solid rgba(216,166,87,.25);border-radius:12px;padding:11px 13px;margin-bottom:14px}
 .banner svg{width:16px;height:16px;flex:none;margin-top:1px;color:var(--moderate)}
 .banner .bt{font-size:12.5px;line-height:1.45}
+
+/* ── Summary & Watch ── */
+.summary{font-size:14.5px;line-height:1.55}
+.watch div{padding:8px 0;border-top:1px solid var(--border);font-size:13.5px;line-height:1.45}
+.watch div:first-child{border-top:none}
+.watch .arr{color:var(--info);margin-right:6px}
+
+/* ── Catalyst chips ── */
+.cat-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-row::-webkit-scrollbar{display:none}
+
 footer{margin-top:18px;padding:0 2px;color:var(--faint);font-size:11px;line-height:1.6}
 .legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
 .legend span{display:inline-flex;align-items:center;gap:5px}
@@ -164,7 +207,7 @@ footer{margin-top:18px;padding:0 2px;color:var(--faint);font-size:11px;line-heig
       Refresh
     </button>
   </header>
-  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="tabs-top" id="tabs-top" role="tablist"></div>
   <div id="content"><div class="skeleton">Loading market data&hellip;</div></div>
   <footer>
     <div class="legend">
@@ -174,10 +217,13 @@ footer{margin-top:18px;padding:0 2px;color:var(--faint);font-size:11px;line-heig
       <span><i style="background:var(--high)"></i>stale</span>
     </div>
     <div id="health"></div>
-    <div style="margin-top:8px">Data via FRED, yfinance, Shiller/multpl, Alpaca (S&amp;P 500 internals), Google Trends. Breadth signals are S&amp;P 500 proxies for NYSE-wide indicators. Not investment advice.</div>
+    <div style="margin-top:8px">Data via FRED, yfinance, Shiller/multpl, Alpaca (S&amp;P 500 internals). Breadth signals are S&amp;P 500 proxies for NYSE-wide indicators. Not investment advice.</div>
     <div style="margin-top:8px"><button class="lk" id="resetToken">Reset refresh token</button></div>
   </footer>
 </div>
+<nav class="tabs-bottom" id="tabs-bottom" role="tablist">
+  <div class="bnav" id="bnav"></div>
+</nav>
 <div id="toast"></div>
 <script>
 "use strict";
@@ -185,15 +231,15 @@ const REPO="robertsvecchio/market-health-dashboard";
 const WORKFLOW="update_dashboard.yml";
 const DATA_URL="./data/latest.json";
 
-/* ── static primers ── */
+/* ── Static primers ── */
 const PRIMERS={
-  // ---- Valuation ----
+  // Valuation
   cape:"CAPE = price ÷ 10yr avg real earnings. Long-run avg ~17; above 30 has always preceded a bear eventually. NOT a timing tool — can stay elevated for years. Predicts 10-yr forward returns, not next quarter.",
   buffett_indicator:"US stock market cap ÷ GDP. Above +1 std dev from trend = expensive. Watch the deviation (z-score), not the raw level.",
   excess_cape_yield:"CAPE earnings yield minus real bond yield. Negative = bonds beat stocks on a risk-adjusted basis. Lowest since the dot-com peak.",
   forward_pe:"Price ÷ next-12-month earnings. Long-run mean ~16x. Above 22x = elevated drawdown risk historically. More timely than CAPE but subject to analyst optimism bias.",
   ad_line_proxy:"Equal-weight vs cap-weight S&P. When RSP lags SPY, megacaps are masking weak breadth — a divergence that often precedes turns.",
-  // ---- Cycle ----
+  // Cycle/Economy
   goldman_composite:"5-input percentile composite: valuation, yield curve, unemployment, inflation, LEI. Above 70 = high-risk historically. Summary gauge, not a timing trigger.",
   lei:"OECD leading indicator for the US. Direction beats level: rising = expansion, falling = softening ahead.",
   lending_standards:"Net % of banks tightening C&I lending — measures credit AVAILABILITY (vs HY spreads = credit price). Above +30% has preceded every US recession since 1990 by 2–4 quarters. Quarterly, lags ~1 month. (FRED DRTSCILM)",
@@ -211,36 +257,39 @@ const PRIMERS={
   auto_delinquency:"Auto loan delinquencies. Cracks before mortgages; early consumer stress signal.",
   savings_rate:"Personal savings ÷ income. Below 3% + rising delinquencies = spending increasingly debt-funded. Fragile.",
   debt_service:"Household debt payments ÷ disposable income. High = less cushion for shocks.",
-  // ---- Trend & Breadth ----
+  // Technical
   spx_vs_200dma:"S&P 500 vs its 200-day average. Breaks below a flat or falling 200-DMA preceded every bear since 2000.",
   dma200_slope:"Direction of the 200-DMA. Rising = dips buyable. Flat/falling = breaks become structural.",
   weekly_macd:"Weekly trend-momentum. Daily MACD is noise; weekly turning negative preceded every sustained bear since 2000.",
   pct_above_200dma:"% of S&P 500 above their 200-DMA. Above 60% = healthy. Below 40% while index near highs = distribution. Coincident, not leading.",
   mcclellan:"Advances minus declines momentum oscillator. Negative = deteriorating internals. (S&P 500 proxy; needs ~40 days to stabilize.)",
   zweig_adv_ratio:"HIT RATE: Zweig Breadth Thrust has fired ~19 times since WWII — S&P 500 higher 6 AND 12 months later every single time, avg +23% at 12mo. Rare (fires at bottoms), but the most reliable bullish signal in the set. (S&P 500 proxy.)",
-  hindenburg_omen_confirmed:"HIT RATE: ~25% preceded a 5%+ decline; ~10% preceded 15%+. 75–80% false alarms. Caught 1987, 2000, 2008 tops. High noise, useful only as cluster confirmation (2+/30d), never standalone. (S&P 500 proxy.)",
-  hindenburg_omen_today:"RAW flag — fires when new highs AND lows both exceed 2.2%, index in uptrend, McClellan negative. Not actionable alone.",
-  titanic_syndrome_confirmed:"No robust published hit-rate study. Weight as corroboration of Hindenburg only. (S&P 500 proxy.)",
-  titanic_syndrome_today:"RAW flag — fires when new lows outnumber new highs. Not actionable alone.",
-  ad_line_proxy:"Equal-weight vs cap-weight S&P 500. RSP lagging SPY = megacap masking = breadth warning.",
-  // ---- Sentiment ----
-  fear_greed:"CNN's official Fear & Greed Index, scraped directly from CNN's API. 0=Extreme Fear, 100=Extreme Greed. 7 equally-weighted inputs: momentum, price strength, breadth, put/call, volatility, HY demand, safe haven. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points. Falls back to z-score approximation if CNN is unreachable.",
-  sahm_rule:"HIT RATE: triggered in every US recession since 1950, avg ~3 months in — well before NBER declares. Two false positives: 1959 (followed by recession 6mo later) and 2024 (post-pandemic labor supply surge). NOT a predictor — a recession-onset confirmation. Currently 0.23pp; trigger = 0.50pp. (FRED SAHMREALTIME)",
-  recession_prob:"Chauvet-Piger smoothed recession probability from a Markov-switching model applied to 4 coincident variables: payrolls, industrial production, real personal income, and real trade sales. Above 20% has coincided with every post-WWII recession. (FRED RECPROUSM156N)",
-  philly_coincident:"Philly Fed State Coincident Index (SCI) — national composite summarizing current economic activity across 4 factors: nonfarm payrolls, unemployment, manufacturing hours, wages. Direction matters: rising = expanding, falling = contracting. The 50-state diffusion version (% of states declining) has preceded every US recession since 1980 with very few false positives. (FRED USPHCI)",
-  vix:"Expected 30-day S&P volatility. Concurrent, not leading — spikes with selloffs. Above 40 = capitulation zone (contrarian buy). Below 15 = complacency zone (contrarian warning).",
-  put_call:"Puts ÷ calls volume. High = fear (contrarian buy signal). Low = euphoria (contrarian sell signal). Currently unavailable — CBOE endpoint down.",
-  // ---- Sectors ----
-  cycle_phase:"Business-cycle phase from LEI + yield curve. Early cycle: financials/discretionary. Mid: tech/industrials. Late: energy/materials. Contraction: defensives. Defensives leading = late-cycle tell.",
+  hindenburg_omen_confirmed:"HIT RATE: ~25% preceded a 5%+ decline; ~10% preceded 15%+. 75–80% false alarms. High noise — retained as breadth data only, not an active alert.",
+  hindenburg_omen_today:"RAW flag — fires when new highs AND lows both exceed 2.2%, index in uptrend, McClellan negative. Not actionable alone. Retained as breadth data only.",
+  titanic_syndrome_confirmed:"No robust published hit-rate study. Retained as breadth data only, not an active alert.",
+  titanic_syndrome_today:"RAW flag — fires when new lows outnumber new highs. Retained as breadth data only.",
+  // Sentiment
+  fear_greed:"CNN's official Fear & Greed Index, scraped directly from CNN's API. 0=Extreme Fear, 100=Extreme Greed. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points.",
+  sahm_rule:"HIT RATE: triggered in every US recession since 1950, avg ~3 months in — well before NBER declares. NOT a predictor — a recession-onset confirmation. Trigger = 0.50pp. (FRED SAHMREALTIME)",
+  recession_prob:"Chauvet-Piger smoothed recession probability. Above 20% has coincided with every post-WWII recession. (FRED RECPROUSM156N)",
+  philly_coincident:"Philly Fed Coincident Index — 4-factor current economic activity. Rising = expanding, falling = contracting. (FRED USPHCI)",
+  vix:"Expected 30-day S&P volatility. Concurrent, not leading — spikes with selloffs. Above 40 = capitulation zone. Below 15 = complacency.",
+  put_call:"Puts ÷ calls volume. High = fear (contrarian buy). Low = euphoria (contrarian sell).",
+  cycle_phase:"Business-cycle phase from LEI + yield curve. Early cycle: financials/discretionary. Mid: tech/industrials. Late: energy/materials. Contraction: defensives.",
+  // NEW primers
+  margin_debt:"FINRA margin debt (Fed Flow of Funds, quarterly). Rapid YoY rise + rollover historically precedes bear markets — leverage buildup amplifies drawdowns. Quarterly lag ~2–3 months. (FRED BOGZ1FL663067003Q)",
+  hy_momentum:"HY OAS 90-day momentum score (0–100). Score above 50 = spreads have been widening (credit stress building). Score below 50 = spreads tightening (risk appetite). Widening >80bps over 90 days historically coincides with equity drawdowns.",
+  regime_indicator:"Regime Condition Counter: counts 5 structural stress conditions (credit stress, cycle breakdown, yield curve, leverage stress, labor). 0 = no signal; 1–2 = Watch; 3 = Caution; 4–5 = High Alert. 3+ conditions have historically preceded 20%+ drawdowns.",
+  credit_score:"Credit bucket (30% composite weight): SLOOS lending standards (40%), HY OAS 90d momentum (35%), NFCI leverage (25%). Reflects both credit availability and credit price stress.",
+  labor_score:"Labor bucket (10% composite weight): Sahm Rule (50%), unemployment trend (30%), credit card delinquency percentile (20%). The labor market is the last to turn — when it does, recessions are typically already underway.",
+  sloos:"Net % of banks tightening C&I lending standards (SLOOS). Measures credit availability. Above +20% = tightening conditions; above +30% has preceded every US recession since 1990 by 2–4 quarters.",
 };
 
-/* ── investor-risk color scale: each metric maps value → risk level → color ── */
+/* ── Investor-risk color scale ── */
 function metricRiskColor(key,value,m){
   if(value==null)return null;
   const v=parseFloat(value);
-  // Returns a CSS color string based on investor risk (not economic health).
   switch(key){
-    // Higher = more risky
     case"cape":return v>30?"var(--high)":v>22?"var(--elevated)":v>17?"var(--moderate)":"var(--low)";
     case"buffett_indicator":{const z=m&&m.deviation_z!=null?m.deviation_z:0;return z>2?"var(--high)":z>1?"var(--elevated)":z>0?"var(--moderate)":"var(--low)";}
     case"forward_pe":return v>22?"var(--high)":v>19?"var(--elevated)":v>16?"var(--moderate)":"var(--low)";
@@ -252,33 +301,27 @@ function metricRiskColor(key,value,m){
     case"auto_delinquency":return v>2.5?"var(--high)":v>1.5?"var(--elevated)":v>1?"var(--moderate)":"var(--low)";
     case"debt_service":return v>14?"var(--high)":v>12?"var(--elevated)":v>10?"var(--moderate)":"var(--low)";
     case"goldman_composite":return v>70?"var(--high)":v>50?"var(--elevated)":v>30?"var(--moderate)":"var(--low)";
-    // Higher = less risky (inverted)
+    case"margin_debt":{const yoy=m&&m.yoy_pct!=null?m.yoy_pct:0;return yoy>40?"var(--high)":yoy>20?"var(--elevated)":yoy>0?"var(--moderate)":"var(--low)";}
+    case"hy_momentum":return v>70?"var(--high)":v>55?"var(--elevated)":v>40?"var(--moderate)":"var(--low)";
     case"excess_cape_yield":return v<0?"var(--high)":v<1?"var(--elevated)":v<2?"var(--moderate)":"var(--low)";
     case"yield_curve_10y3m":return v<0?"var(--high)":v<0.5?"var(--elevated)":v<1.5?"var(--moderate)":"var(--low)";
-    case"lei":return null; // direction matters, not level — handled by arrow
+    case"lei":return null;
     case"savings_rate":return v<3?"var(--high)":v<5?"var(--elevated)":v<8?"var(--moderate)":"var(--low)";
     case"umich_sentiment":return v<60?"var(--high)":v<75?"var(--elevated)":v<90?"var(--moderate)":"var(--low)";
     case"pct_above_200dma":return v<40?"var(--high)":v<50?"var(--elevated)":v<60?"var(--moderate)":"var(--low)";
-    // Inflation: close to 2% is green, far in either direction is risky
     case"core_pce":case"core_cpi":{const yoy=m&&m.yoy_pct!=null?m.yoy_pct:v;return yoy>4?"var(--high)":yoy>2.5?"var(--elevated)":yoy>1.5?"var(--moderate)":"var(--low)";}
-    // Fed funds: cuts = easing (late cycle signal), hikes = tightening
     case"fed_funds":return v>5?"var(--elevated)":v>3?"var(--moderate)":"var(--low)";
-    // Unemployment: low but rising = risky
     case"unemployment":{const tr=m&&m.trend&&m.trend.direction;return(v<4.5&&tr==="rising")?"var(--elevated)":v>5.5?"var(--elevated)":v>4.5?"var(--moderate)":"var(--low)";}
-    // Trend
     case"spx_vs_200dma":return v<-5?"var(--high)":v<0?"var(--elevated)":v>5?"var(--low)":"var(--moderate)";
     case"weekly_macd":return(m&&m.bearish)?"var(--elevated)":"var(--low)";
     default:return null;
   }
 }
 
-/* Arrow color: green = moving toward safety, red = moving toward risk */
 function arrowColor(key,direction){
   if(!direction||direction==="flat")return"var(--faint)";
-  // Keys where rising = more risky
   const risingIsBad=["cape","hy_oas","ig_oas","vix","cc_delinquency","auto_delinquency",
-    "debt_service","nfci_leverage","unemployment","forward_pe","core_pce","core_cpi","fed_funds"];
-  // Keys where rising = less risky
+    "debt_service","nfci_leverage","unemployment","forward_pe","core_pce","core_cpi","fed_funds","hy_momentum","margin_debt"];
   const risingIsGood=["lei","yield_curve_10y3m","savings_rate","umich_sentiment",
     "pct_above_200dma","excess_cape_yield","spx_vs_200dma"];
   if(risingIsBad.includes(key))return direction==="rising"?"var(--high)":"var(--low)";
@@ -291,30 +334,43 @@ function num(x,dp){return(x==null||isNaN(x))?"—":Number(x).toFixed(dp==null?2:
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
 function el(h){const t=document.createElement("template");t.innerHTML=h.trim();return t.content.firstElementChild;}
 function daysBetween(a,b){const x=new Date(a),y=new Date(b);if(isNaN(x)||isNaN(y))return null;return Math.round((y-x)/86400000);}
-
-function arrowChar(m){
-  const d=m&&m.trend&&m.trend.direction;
-  return d==="rising"?"↑":d==="falling"?"↓":d==="flat"?"→":"";
-}
-
+function arrowChar(m){const d=m&&m.trend&&m.trend.direction;return d==="rising"?"↑":d==="falling"?"↓":d==="flat"?"→":"";}
 function badge(status,stale){
   if(stale)return`<span class="badge b-stale">stale</span>`;
   if(!status||status==="ok")return"";
   return`<span class="badge b-${status}">${status}</span>`;
 }
-
-function confidenceScore(h){
-  let c=100;
-  c-=(h.unavailable||0)*8;
-  c-=(h.proxy||0)*4;
-  c-=(h.manual||0)*3;
-  c=Math.max(0,Math.min(100,c));
-  return c;
-}
+function confidenceScore(h){let c=100;c-=(h.unavailable||0)*8;c-=(h.proxy||0)*4;c-=(h.manual||0)*3;return Math.max(0,Math.min(100,c));}
 
 let DATA=null;
 
-/* ── metric row ── */
+/* ── HIST_FIELD mapping ── */
+const HIST_FIELD={
+  fear_greed:"fear_greed",composite:"composite",structural_score:"structural",
+  valuation_score:"structural",cycle_score:"cycle",goldman_composite:"goldman",
+  cape:"cape",buffett_indicator:"buffett_z",yield_curve_10y3m:"yield_curve",
+  hy_oas:"hy_oas",vix:"vix",pct_above_200dma:"pct_above_200",
+  // new
+  sloos:"sloos",margin_debt:"margin_debt_yoy",hy_momentum:"hy_momentum",
+  regime_count:"regime_count",credit_score:"credit_score",labor_score:"labor_score",
+};
+
+function sparkSeries(field){
+  const hist=DATA.history||[];const out=[];
+  for(const h of hist){const v=h[field];if(v!=null&&!isNaN(v))out.push(+v);}
+  return out;
+}
+function sparkline(field,w,h,strokeColor){
+  const v=sparkSeries(field);
+  if(v.length<4)return "";
+  const W=w||58,H=h||16,p=2,n=v.length,mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1;
+  const sc=strokeColor||"var(--muted)";
+  let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(W-2*p);const y=p+(1-(v[i]-mn)/rg)*(H-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
+  const lx=(W-p).toFixed(1),ly=(p+(1-(v[n-1]-mn)/rg)*(H-2*p)).toFixed(1);
+  return `<svg class="spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${sc}" stroke-width="1.2"/><circle cx="${lx}" cy="${ly}" r="1.5" fill="var(--text)"/></svg>`;
+}
+
+/* ── Metric row ── */
 function metric(section,key,label,fmt,readingKey,staleDays){
   const m=(DATA[section]||{})[key];
   const rk=readingKey||key;
@@ -337,7 +393,6 @@ function metric(section,key,label,fmt,readingKey,staleDays){
   const _sf=HIST_FIELD[rk]||HIST_FIELD[key];
   if(_sf&&m&&m.value!=null){const _sp=sparkline(_sf);if(_sp)valHtml=_sp+valHtml;}
   const bdg=badge(status,stale);
-  // Order: name | ⓘ | badge | value+arrow
   const card=el(`<div class="metric">
     <div class="mhead">
       <span class="mname">${esc(label)}</span>
@@ -353,42 +408,11 @@ function metric(section,key,label,fmt,readingKey,staleDays){
 
   if(hasBody){
     const btn=card.querySelector(".info"),body=card.querySelector(".mbody");
-    btn.addEventListener("click",()=>{
-      const open=body.classList.toggle("open");
-      btn.setAttribute("aria-expanded",open);
-    });
+    btn.addEventListener("click",()=>{const open=body.classList.toggle("open");btn.setAttribute("aria-expanded",open);});
   }
   return card;
 }
 
-const HIST_FIELD={fear_greed:"composite",composite:"composite",structural_score:"structural",cycle_score:"cycle",
-  goldman_composite:"goldman",cape:"cape",buffett_indicator:"buffett_z",
-  yield_curve_10y3m:"yield_curve",hy_oas:"hy_oas",vix:"vix",pct_above_200dma:"pct_above_200"};
-function sparkSeries(field){
-  const hist=DATA.history||[];const out=[];
-  for(const h of hist){const v=h[field];if(v!=null&&!isNaN(v))out.push(+v);}
-  return out;
-}
-function sparkline(field){
-  const v=sparkSeries(field);
-  if(v.length<4)return "";
-  const w=58,h=16,p=2,n=v.length,mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1;
-  let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(w-2*p);const y=p+(1-(v[i]-mn)/rg)*(h-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
-  const lx=(w-p).toFixed(1),ly=(p+(1-(v[n-1]-mn)/rg)*(h-2*p)).toFixed(1);
-  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--muted)" stroke-width="1.2"/><circle cx="${lx}" cy="${ly}" r="1.5" fill="var(--text)"/></svg>`;
-}
-function compositeStrip(){
-  const v=sparkSeries("composite");
-  if(v.length<4)return null;
-  const n=v.length,w=320,h=42,p=3,mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1;
-  let line="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(w-2*p);const y=p+(1-(v[i]-mn)/rg)*(h-2*p);line+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
-  const last=v[n-1],first=v[0],col=riskColor(last);
-  const dir=last>first+1?"rising":last<first-1?"falling":"flat";
-  return el(`<div class="card"><h2>Composite Risk — last ${n} readings</h2>
-    <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block"><polyline points="${line}" fill="none" stroke="${col}" stroke-width="1.8"/></svg>
-    <div class="phase-sub" style="margin-top:6px">Range ${num(mn,0)}–${num(mx,0)} · now <b style="color:${col}">${num(last,0)}</b> · trend ${dir}</div>
-  </div>`);
-}
 function mList(specs){
   const c=el(`<div class="card"></div>`);
   specs.forEach(s=>{
@@ -398,7 +422,7 @@ function mList(specs){
   return c;
 }
 
-/* ── confidence card ── */
+/* ── Confidence card ── */
 function confCard(){
   const h=DATA.source_health||{};
   const score=confidenceScore(h);
@@ -417,24 +441,30 @@ function confCard(){
   return c;
 }
 
-/* ── score contribution waterfall ── */
+/* ── Score contribution waterfall (5-bucket) ── */
 function contribCard(){
-  const comp=(DATA.scores||{}).composite||{};
-  const si=comp.structural_inputs||{};
-  const ci=comp.cycle_inputs||{};
-  const all={...si,...ci};
-  const keys=Object.keys(all).filter(k=>all[k]!=null);
-  if(!keys.length)return null;
-  const max=Math.max(...keys.map(k=>all[k]),1);
-  const labels={cape:"CAPE",buffett:"Buffett",ecy:"Excess CAPE Yield",breadth:"Breadth",
-    goldman:"Goldman composite",nfci_leverage:"NFCI Leverage",debt_service:"Debt Service"};
+  const sc=DATA.scores||{};
+  const buckets=[
+    {key:"credit_score",  label:"Credit",    weight:30},
+    {key:"cycle_score",   label:"Cycle",     weight:25},
+    {key:"valuation_score",label:"Valuation",weight:20},
+    {key:"breadth_score", label:"Breadth",   weight:15},
+    {key:"labor_score",   label:"Labor",     weight:10},
+  ];
+  const available=buckets.filter(b=>sc[b.key]&&sc[b.key].value!=null);
+  if(!available.length)return null;
+  // Weighted contribution = score * weight / 100
+  const maxContrib=Math.max(...available.map(b=>b.weight/100*sc[b.key].value),1);
   const c=el(`<div class="card"><h2>Score Contributors</h2><div class="contrib"></div></div>`);
   const box=c.querySelector(".contrib");
-  keys.sort((a,b)=>all[b]-all[a]).forEach(k=>{
-    const v=all[k];const w=v/max*100;
+  available.forEach(b=>{
+    const v=sc[b.key].value;
+    const contrib=v*b.weight/100;
+    const w=contrib/maxContrib*100;
     const col=v>70?"var(--high)":v>50?"var(--elevated)":v>30?"var(--moderate)":"var(--low)";
     box.appendChild(el(`<div class="contrib-row">
-      <span class="contrib-name">${esc(labels[k]||k)}</span>
+      <span class="contrib-name">${esc(b.label)}</span>
+      <span class="contrib-wt">${b.weight}%</span>
       <div class="contrib-bar"><div class="contrib-fill" style="width:${w}%;background:${col}"></div></div>
       <span class="contrib-val" style="color:${col}">${num(v,0)}</span>
     </div>`));
@@ -442,7 +472,7 @@ function contribCard(){
   return c;
 }
 
-/* ── alerts from interpretation (single source of truth) ── */
+/* ── Derive alerts (Hindenburg/Titanic removed) ── */
 function deriveAlerts(d){
   const out=[];
   const m=d.macro||{},s=d.scores||{},se=d.sentiment||{},b=d.breadth||{},st=d.structural||{};
@@ -465,10 +495,14 @@ function deriveAlerts(d){
   }
   const pa=b.pct_above_200dma;
   if(pa&&pa.below_40)out.push({txt:`Only ${num(pa.value,0)}% of S&P 500 above 200-DMA`,pri:"HIGH"});
-  if(b.hindenburg_omen_confirmed&&b.hindenburg_omen_confirmed.value)out.push({txt:"Hindenburg Omen CONFIRMED (cluster 2+/30d — S&P 500 proxy)",pri:"HIGH"});
-  else if(b.hindenburg_omen_today&&b.hindenburg_omen_today.value)out.push({txt:"Hindenburg Omen raw flag today (not yet confirmed)",pri:"LOW"});
-  if(b.titanic_syndrome_confirmed&&b.titanic_syndrome_confirmed.value)out.push({txt:"Titanic Syndrome CONFIRMED (cluster — S&P 500 proxy)",pri:"HIGH"});
-  else if(b.titanic_syndrome_today&&b.titanic_syndrome_today.value)out.push({txt:"Titanic Syndrome raw flag today (not yet confirmed)",pri:"LOW"});
+  // Regime counter
+  const regime=d.regime||{};
+  const rc=regime.conditions_active||0;
+  if(rc>=3)out.push({txt:`Regime: ${rc}/5 conditions active — ${regime.label||""}`,pri:"HIGH"});
+  else if(rc>=1)out.push({txt:`Regime: ${rc}/5 conditions active — ${regime.label||""}`,pri:"MED"});
+  // Sahm Rule
+  const sahm=m.sahm_rule;
+  if(sahm&&sahm.value!=null&&sahm.value>=0.5)out.push({txt:`Sahm Rule triggered (${num(sahm.value,2)}pp ≥ 0.5)`,pri:"HIGH"});
   if(st.excess_cape_yield&&(st.excess_cape_yield.low||st.excess_cape_yield.value<1))
     out.push({txt:"Excess CAPE Yield low — stocks expensive vs bonds",pri:"MED"});
   if(st.ad_line_proxy&&st.ad_line_proxy.bearish_divergence)
@@ -484,90 +518,44 @@ function deriveAlerts(d){
   return out;
 }
 
-/* ── tab risk tints ── */
+/* ── Tab risk scores (mapped to new sub-scores) ── */
 function tabRisk(id){
   const g=(s,k)=>{const m=(DATA[s]||{})[k];return m?m.value:null;};
   if(id==="overview")return g("scores","composite");
-  if(id==="valuation")return g("scores","structural_score");
-  if(id==="cycle")return g("scores","cycle_score");
-  if(id==="trend"){const p=g("breadth","pct_above_200dma");return p==null?null:100-p;}
-  if(id==="sentiment"){const v=g("sentiment","vix");return v==null?null:v<15?25:v<20?42:v<30?68:88;}
+  if(id==="credit")return g("scores","credit_score");
+  if(id==="economy")return g("scores","cycle_score");
+  if(id==="valuation")return g("scores","valuation_score");
+  if(id==="technical")return g("scores","breadth_score");
   return null;
 }
 
-/* ── panels ── */
-function deriveKeyDrivers(){
-  const S=DATA.scores||{},M=DATA.macro||{},B=DATA.breadth||{},T=DATA.trend||{},St=DATA.structural||{};
-  const rc=v=>v==null?"var(--muted)":v>66?"var(--high)":v>40?"var(--elevated)":"var(--low)";
-  const label=v=>v==null?"—":v>66?"High Risk":v>50?"Elevated":v>33?"Moderate":"Healthy";
-  const drivers=[
-    {name:"Valuation", val:(St.cape||{}).value, score:(S.structural_score||{}).value,
-     tip:"CAPE "+num((St.cape||{}).value,1)+" · Buffett z "+num((St.buffett_indicator||{}).deviation_z,1)+"σ · Forward P/E "+num((St.forward_pe||{}).value,1)+"x"},
-    {name:"Sentiment", val:(DATA.sentiment&&DATA.sentiment.fear_greed||{}).value, score:null, isFG:true,
-     tip:"Fear & Greed "+num((DATA.sentiment&&DATA.sentiment.fear_greed||{}).value,0)+"/100 · VIX "+num((DATA.sentiment&&DATA.sentiment.vix||{}).value,1)},
-    {name:"Breadth",   val:null, score:null,
-     pct:(B.pct_above_200dma||{}).value, mc:(B.mcclellan||{}).value,
-     tip:"% above 200-DMA: "+num((B.pct_above_200dma||{}).value,1)+"% · McClellan "+num((B.mcclellan||{}).value,0)},
-    {name:"Credit",    val:(M.hy_oas||{}).value, score:null, isHY:true,
-     tip:"HY OAS "+num((M.hy_oas||{}).value,2)+"% · IG OAS "+num((M.ig_oas||{}).value,2)+"% · Yield curve "+num((M.yield_curve_10y3m||{}).value,2)},
-    {name:"Economy",   val:null, score:(S.cycle_score||{}).value,
-     tip:"Cycle score "+num((S.cycle_score||{}).value,0)+" · UMich "+num((M.umich_sentiment||{}).value,0)+" · Unemployment "+num((M.unemployment||{}).value,1)+"%"},
-  ];
-  return drivers.map(d=>{
-    let col,lbl;
-    if(d.isFG){
-      const fg=d.val;
-      col=fg==null?"var(--muted)":fg<25?"var(--high)":fg<45?"var(--elevated)":fg<55?"var(--muted)":fg<75?"var(--low)":"#00c896";
-      lbl=fg==null?"—":fg<25?"Ext. Fear":fg<45?"Fear":fg<55?"Neutral":fg<75?"Greed":"Ext. Greed";
-    } else if(d.isHY){
-      const v=d.val;
-      col=v==null?"var(--muted)":v>7?"var(--high)":v>5?"var(--elevated)":v>3.5?"var(--moderate)":"var(--low)";
-      lbl=v==null?"—":v>7?"Stressed":v>5?"Elevated":v>3.5?"Moderate":"Healthy";
-    } else if(d.pct!=null){
-      col=d.pct<40?"var(--high)":d.pct<55?"var(--elevated)":"var(--low)";
-      lbl=d.pct<40?"Weak":d.pct<55?"Mixed":"Healthy";
-    } else {
-      col=rc(d.score); lbl=label(d.score);
-    }
-    return {name:d.name,col,lbl,tip:d.tip||""};
-  });
+/* ── High-signal card (Yield Curve or HY Momentum) ── */
+function highSignalCard(title, value, unit, dirArrow, dirColor, sub, histField, lo, hi, primerKey){
+  const hist=sparkSeries(histField);
+  const pct=(value!=null&&hi>lo)?Math.max(0,Math.min(100,(value-lo)/(hi-lo)*100)):null;
+  const c=el(`<div class="hs-card"></div>`);
+  c.innerHTML=`<div class="hs-label">${esc(title)}</div>`;
+  const body=el(`<div class="hs-body"></div>`);
+  const col=dirColor||"var(--faint)";
+  body.innerHTML=`
+    <div class="hs-num" style="color:${col}">${value!=null?num(value,2)+"":"—"}<span style="font-size:14px;color:var(--muted)">${esc(unit||"")}</span></div>
+    <div class="hs-meta">
+      <div style="font-size:13px;color:${col};font-weight:600">${esc(sub||"")}</div>
+      ${hist.length>=4?`<svg width="100%" height="24" viewBox="0 0 120 24" preserveAspectRatio="none" style="display:block;margin-top:4px">${(()=>{const n=hist.length,mn=Math.min(...hist),mx=Math.max(...hist),rg=(mx-mn)||1,p=2;let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(120-2*p);const y=p+(1-(hist[i]-mn)/rg)*(24-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}return`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.4" opacity=".6"/>`;})()}</svg>`:""}
+      ${pct!=null?`<div class="hs-bar-wrap"><div class="hs-bar-track" style="background:var(--surface2)"><div class="hs-bar-fill" style="width:${pct}%;background:${col}"></div><div class="hs-bar-marker" style="left:${pct}%"></div></div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--faint);margin-top:2px"><span>${num(lo,2)}</span><span>${num(hi,2)}</span></div></div>`:""}
+    </div>
+    <div class="hs-arrow" style="color:${col}">${esc(dirArrow||"")}</div>`;
+  c.appendChild(body);
+  if(primerKey&&PRIMERS[primerKey]){
+    const pb=el(`<div style="margin-top:8px;font-size:11.5px;color:var(--faint);line-height:1.45">${esc(PRIMERS[primerKey])}</div>`);
+    c.appendChild(pb);
+  }
+  return c;
 }
 
-function odometer(score,label,col){
-  // W=130, H=74, cx=65, cy=54, r=44, sw=10
-  // Arc runs left(180deg)->right(0deg) = semicircle flat at bottom
-  // Arc endpoints at y=cy=54 (sin180=sin0=0)
-  // Arc top at y=cy-r=10 (good clearance)
-  // Score at cy-10=44 (inside arc), label at cy+12=66, Fear/Greed at cy+4=58
-  // All inside H=74
-  const v=score==null?50:Math.max(0,Math.min(100,score));
-  const W=130,H=74,r=44,cx=65,cy=54,sw=10;
-  const toRad=a=>a*Math.PI/180;
-  const arcPath=(pct,clr)=>{
-    const a1=toRad(180),a2=toRad(180-pct/100*180);
-    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
-    const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
-    return `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${pct>50?1:0},1 ${x2.toFixed(1)},${y2.toFixed(1)}" fill="none" stroke="${clr}" stroke-width="${sw}" stroke-linecap="round"/>`;
-  };
-  const ndeg=toRad(180-v/100*180);
-  const nl=32,nx=(cx+nl*Math.cos(ndeg)).toFixed(1),ny=(cy+nl*Math.sin(ndeg)).toFixed(1);
-  const lx=(cx-r+2).toFixed(1),rx=(cx+r-2).toFixed(1);
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:${H}px;display:block;margin:0 auto">
-    ${arcPath(100,"rgba(255,255,255,.09)")}
-    ${arcPath(v,col)}
-    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3" fill="rgba(255,255,255,.85)"/>
-    <text x="${cx}" y="${cy-10}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="22" font-weight="700" fill="${col}">${score==null?"—":Math.round(score)}</text>
-    <text x="${cx}" y="${cy+12}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#8B949E">${esc(label||"")}</text>
-    <text x="${lx}" y="${cy+4}" text-anchor="start" font-family="-apple-system,sans-serif" font-size="8" fill="#555E6B">Fear</text>
-    <text x="${rx}" y="${cy+4}" text-anchor="end" font-family="-apple-system,sans-serif" font-size="8" fill="#555E6B">Greed</text>
-  </svg>`;
-}
-
+/* ── Overview panel ── */
 function panelOverview(){
   const c=document.createDocumentFragment();
-
-  // ── banner (data issues) ──
   const issues=[];
   const cape=(DATA.structural||{}).cape;
   if(cape&&cape.status==="unavailable")issues.push("valuation layer limited");
@@ -575,21 +563,11 @@ function panelOverview(){
   if(bu&&bu.universe&&bu.universe<400)issues.push(`breadth on ${bu.universe} names`);
   if(issues.length)c.appendChild(el(`<div class="banner"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5 15 14H1L8 1.5Z"/></svg><div class="bt"><b>Some inputs limited:</b> ${esc(issues.join("; "))}. Score weights only what's live.</div></div>`));
 
-  // ── hero: 4 tiles across top ──
+  // ── Composite hero card ──
   const comp=(DATA.scores||{}).composite||{};
-  const cv=comp.value,pos=cv==null?0:Math.max(0,Math.min(100,cv));
-  const fg=(DATA.sentiment||{}).fear_greed||{};
-  const fgv=fg.value;
-  const fgcol=fgv==null?"var(--muted)":fgv<25?"var(--high)":fgv<45?"var(--elevated)":fgv<55?"var(--muted)":fgv<75?"var(--low)":"#00c896";
-  const fgLabel=fg.label||(fgv==null?"—":fgv<25?"Extreme Fear":fgv<45?"Fear":fgv<55?"Neutral":fgv<75?"Greed":"Extreme Greed");
-  const vx=(DATA.sentiment||{}).vix||{};
-  const vxv=vx.value;
-  const vxcol=vxv==null?"var(--muted)":vxv>40?"var(--high)":vxv>30?"var(--elevated)":vxv>20?"var(--moderate)":"var(--low)";
-  const vxlbl=vxv==null?"—":vxv>40?"Panic":vxv>30?"Fear":vxv>20?"Cautious":"Calm";
-  const um=(DATA.macro||{}).umich_sentiment||{};
-  const umv=um.value;
-  const umcol=umv==null?"var(--muted)":umv<60?"var(--high)":umv<75?"var(--elevated)":umv<90?"var(--moderate)":"var(--low)";
-  const umlbl=umv==null?"—":umv<60?"Pessimistic":umv<75?"Cautious":umv<90?"Moderate":"Confident";
+  const cv=comp.value;
+  const pos=cv==null?0:Math.max(0,Math.min(100,cv));
+  const compCol=riskColor(cv);
   const hist=DATA.history||[];
   const compHist=hist.map(h=>h.composite).filter(v=>v!=null);
   const trendTag=compHist.length>=7?(()=>{
@@ -600,134 +578,108 @@ function panelOverview(){
     return diff>2?"↑ Rising":diff<-2?"↓ Falling":"→ Stable";
   })():"";
 
-  // sparkline helper for top tiles
-  const tileSparkSvg=(vals,col)=>{
-    if(!vals||vals.length<4)return "";
-    const n=vals.length,mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1;
-    const W=60,H=20,p=2;
-    let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(W-2*p);const y=p+(1-(vals[i]-mn)/rg)*(H-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
-    const lx=(W-p).toFixed(1),ly=(p+(1-(vals[n-1]-mn)/rg)*(H-2*p)).toFixed(1);
-    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;margin-top:6px"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.7"/><circle cx="${lx}" cy="${ly}" r="2" fill="${col}"/></svg>`;
-  };
+  const regime=DATA.regime||{};
+  const rc=regime.conditions_active||0;
+  const rl=regime.label||"";
+  const regimeCol=rc===0?"var(--low)":rc<=2?"var(--moderate)":"var(--high)";
 
-  const compSpark=tileSparkSvg(compHist.slice(-20),riskColor(cv));
-  let fgHist=hist.map(h=>h.fear_greed).filter(v=>v!=null);
-  if(fgHist.length<4 && fg.spark && fg.spark.length>=4) fgHist=fg.spark;  // CNN embedded history
-  const fgSpark=tileSparkSvg(fgHist.slice(-20),fgcol);
-  const vxHist=hist.map(h=>h.vix).filter(v=>v!=null);
-  const vxSpark=tileSparkSvg(vxHist.slice(-20),vxcol);
-  let umHist=hist.map(h=>h.umich).filter(v=>v!=null);
-  if(umHist.length<4 && um.spark && um.spark.length>=4) umHist=um.spark;  // FRED embedded history
-  const umSpark=tileSparkSvg(umHist.slice(-20),umcol);
-
-  const heroRow=el(`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px"></div>`);
-
-  // Tile 1: Market Health score
-  // helper: wire an info button + mbody primer onto a tile element
-  function wireTileInfo(tile, primerKey){
-    const primerText=PRIMERS[primerKey]||"";
-    if(!primerText)return;
-    const btn=tile.querySelector(".tile-info-btn");
-    const body=tile.querySelector(".tile-mbody");
-    if(!btn||!body)return;
-    btn.addEventListener("click",e=>{
-      e.stopPropagation();
-      const o=body.classList.toggle("open");
-      btn.setAttribute("aria-expanded",o);
-    });
-  }
-
-  // Tile 1: Market Health
-  const t1=el(`<div class="ov-score-card"></div>`);
-  t1.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div class="ov-score-label" style="margin-bottom:0">Market Health</div>
-      <button class="info tile-info-btn" aria-label="Explain Market Health" aria-expanded="false">i</button>
+  const hero=el(`<div class="comp-hero"></div>`);
+  hero.innerHTML=`
+    <div class="comp-hero-top">
+      <div class="comp-label">Market Health</div>
+      ${trendTag?`<span class="comp-trend-tag">${esc(trendTag)}</span>`:""}
     </div>
-    <div class="ov-big-num" style="color:${riskColor(cv)};font-size:42px">${cv==null?"—":Math.round(cv)}</div>
-    <div class="ov-risk-label" style="color:${riskColor(cv)};font-size:13px">${esc(comp.label||"Unknown")}</div>
-    ${compSpark}
-    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.goldman_composite||"Composite risk score 0-100. Higher = more risk.")}</div></div>`;
-  wireTileInfo(t1,"goldman_composite");
-  heroRow.appendChild(t1);
+    <div class="comp-num" style="color:${compCol}">${cv==null?"—":Math.round(cv)}<span style="font-family:var(--mono);font-size:18px;color:var(--faint)"> / 100</span></div>
+    <div class="comp-risk-lbl" style="color:${compCol}">${esc(comp.label||"Unknown")}</div>
+    <div class="comp-regime" style="color:${regimeCol}">${rc}/5 conditions active · ${esc(rl)}</div>
+    <div class="ov-meter"><div class="ov-marker" style="left:calc(${pos}% - 1.5px)"></div></div>
+    <div class="ov-meter-scale"><span>0 Safe</span><span>25</span><span>50</span><span>75</span><span>100 Risk</span></div>`;
+  c.appendChild(hero);
 
-  // Tile 2: Fear & Greed — big-number format matching the other tiles
-  const t2=el(`<div class="ov-score-card"></div>`);
-  t2.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div class="ov-score-label" style="margin-bottom:0">Fear &amp; Greed</div>
-      <button class="info tile-info-btn" aria-label="Explain Fear and Greed" aria-expanded="false">i</button>
-    </div>
-    <div class="ov-big-num" style="color:${fgcol};font-size:42px">${fgv==null?"—":Math.round(fgv)}</div>
-    <div class="ov-risk-label" style="color:${fgcol};font-size:13px">${esc(fgLabel)}</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">CNN Index / 100</div>
-    ${fgSpark}
-    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.fear_greed||"CNN Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed.")}</div></div>`;
-  wireTileInfo(t2,"fear_greed");
-  heroRow.appendChild(t2);
-
-  // Tile 3: VIX
-  const t3=el(`<div class="ov-score-card"></div>`);
-  t3.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div class="ov-score-label" style="margin-bottom:0">VIX</div>
-      <button class="info tile-info-btn" aria-label="Explain VIX" aria-expanded="false">i</button>
-    </div>
-    <div class="ov-big-num" style="color:${vxcol};font-size:42px">${vxv==null?"—":num(vxv,1)}</div>
-    <div class="ov-risk-label" style="color:${vxcol};font-size:13px">${esc(vxlbl)}</div>
-    ${vx.ma20!=null?`<div style="font-size:10px;color:var(--muted);margin-top:4px">20d avg ${num(vx.ma20,1)}</div>`:""}
-    ${vxSpark}
-    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.vix||"Expected 30-day S&P volatility. Above 30=fear, above 40=capitulation.")}</div></div>`;
-  wireTileInfo(t3,"vix");
-  heroRow.appendChild(t3);
-
-  // Tile 4: Consumer Sentiment
-  const t4=el(`<div class="ov-score-card"></div>`);
-  t4.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div class="ov-score-label" style="margin-bottom:0">Consumer Sentiment</div>
-      <button class="info tile-info-btn" aria-label="Explain Consumer Sentiment" aria-expanded="false">i</button>
-    </div>
-    <div class="ov-big-num" style="color:${umcol};font-size:42px">${umv==null?"—":Math.round(umv)}</div>
-    <div class="ov-risk-label" style="color:${umcol};font-size:13px">${esc(umlbl)}</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">UMich / 100</div>
-    ${umSpark}
-    <div class="mbody tile-mbody"><div class="primer">${esc(PRIMERS.umich_sentiment||"University of Michigan consumer sentiment. Below 60=pessimistic.")}</div></div>`;
-  wireTileInfo(t4,"umich_sentiment");
-  heroRow.appendChild(t4);
-  c.appendChild(heroRow);
-
-  // gradient meter below market health tile (full width strip)
-  const meterStrip=el(`<div style="margin:-4px 0 10px;padding:0 2px"></div>`);
-  meterStrip.innerHTML=`<div class="ov-meter"><div class="ov-marker" style="left:calc(${pos}% - 1.5px)"></div></div><div class="ov-meter-scale"><span>0 Safe</span><span>25</span><span>50</span><span>75</span><span>100 Risk</span></div>`;
-  c.appendChild(meterStrip);
-
-  // ── key drivers ──
-  const drivers=deriveKeyDrivers();
-  const kd=el(`<div class="kd-grid"></div>`);
-  const kdSparkFields=["composite","composite","pct_above_200","hy_oas","composite"];
-  drivers.forEach((d,i)=>{
-    const fld=kdSparkFields[i];
-    const vals=fld?hist.map(h=>h[fld]).filter(v=>v!=null).slice(-20):[];
-    const spkCol=d.col||"var(--muted)";
-    let spkSvg="";
-    if(vals.length>=4){
-      const n=vals.length,mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1;
-      const W=50,H=16,p=1;
-      let pts="";for(let j=0;j<n;j++){const x=p+(j/(n-1))*(W-2*p);const y=p+(1-(vals[j]-mn)/rg)*(H-2*p);pts+=(j?" ":"")+x.toFixed(1)+","+y.toFixed(1);}
-      spkSvg=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="margin-top:4px;opacity:.55"><polyline points="${pts}" fill="none" stroke="${spkCol}" stroke-width="1.2"/></svg>`;
-    }
-    const tile=el(`<div class="kd-tile"></div>`);
-    tile.innerHTML=`<div class="kd-name">${esc(d.name)}</div>
-      <div class="kd-val" style="color:${d.col}">${esc(d.lbl)}</div>
-      ${spkSvg}
-      <div class="kd-tooltip">${esc(d.tip)}</div>`;
-    kd.appendChild(tile);
+  // ── 5 sub-score tiles (flex-grow weighted) ──
+  const buckets=[
+    {key:"credit_score",  label:"Credit",    weight:1.5, wlabel:"30%"},
+    {key:"cycle_score",   label:"Cycle",     weight:1.25,wlabel:"25%"},
+    {key:"valuation_score",label:"Valuation",weight:1.0, wlabel:"20%"},
+    {key:"breadth_score", label:"Breadth",   weight:0.75,wlabel:"15%"},
+    {key:"labor_score",   label:"Labor",     weight:0.5, wlabel:"10%"},
+  ];
+  const tilesRow=el(`<div class="sub-tiles"></div>`);
+  buckets.forEach(b=>{
+    const sm=((DATA.scores||{})[b.key])||{};
+    const sv=sm.value;
+    const sc=riskColor(sv);
+    const histKey=HIST_FIELD[b.key]||null;
+    const spk=histKey?sparkline(histKey,50,14,sc):"";
+    const tile=el(`<div class="sub-tile" style="flex:${b.weight}"></div>`);
+    tile.innerHTML=`<div class="st-name">${esc(b.label)}</div>
+      <div class="st-val" style="color:${sc}">${sv!=null?Math.round(sv):"—"}</div>
+      <div class="st-lbl" style="color:${sc}">${esc(sm.label||"")}</div>
+      <div class="st-wt">${esc(b.wlabel)}</div>
+      ${spk}`;
+    tilesRow.appendChild(tile);
   });
-  c.appendChild(el(`<div class="card" style="padding:12px 14px"><div class="ov-score-label" style="margin-bottom:10px">Key Drivers</div></div>`));
-  c.lastChild.appendChild(kd);
+  c.appendChild(tilesRow);
 
-  // ── alerts ──
+  // ── High-signal rows: Yield Curve + HY Spread Momentum ──
+  const yc=(DATA.macro||{}).yield_curve_10y3m||{};
+  const ycv=yc.value;
+  const ycCol=ycv==null?"var(--faint)":ycv<0?"var(--high)":ycv<0.5?"var(--elevated)":ycv<1.5?"var(--moderate)":"var(--low)";
+  const ycDir=ycv==null?"":ycv<0?"Inverted":ycv<0.5?"Flat":"Positive";
+  const ycArrow=yc.trend?{rising:"↑",falling:"↓",flat:"→"}[yc.trend.direction]||"":"";
+  c.appendChild(highSignalCard("Yield Curve 10y–3m",ycv,"%",ycArrow,ycCol,ycDir,"yield_curve",-2,4,"yield_curve_10y3m"));
+
+  const hym=(DATA.macro||{}).hy_momentum||{};
+  const hymv=hym.value;
+  const hymBps=hym.change_90d_bps;
+  const hymCol=hymv==null?"var(--faint)":hymv>70?"var(--high)":hymv>55?"var(--elevated)":hymv>40?"var(--moderate)":"var(--low)";
+  const hymSub=hymBps!=null?(hymBps>0?`+${Math.round(hymBps)}bps widening`:`${Math.round(hymBps)}bps tightening`):"";
+  c.appendChild(highSignalCard("HY Spread Momentum (90d)",hymv,"",hymBps>0?"↑":"↓",hymCol,hymSub,"hy_momentum",0,100,"hy_momentum"));
+
+  // ── Medium-signal 2×2 grid ──
+  const grid=el(`<div class="med-grid"></div>`);
+  function medTile(label, section, key, fmtFn, rk){
+    const m=(DATA[section]||{})[key]||{};
+    const v=m.value;
+    const rkk=rk||key;
+    const col=metricRiskColor(rkk,v,m)||"var(--faint)";
+    const spk=HIST_FIELD[rkk]?sparkline(HIST_FIELD[rkk],60,18,col):"";
+    const t=el(`<div class="med-tile"></div>`);
+    t.innerHTML=`<div class="mt-name">${esc(label)}</div>
+      <div class="mt-val" style="color:${col}">${v!=null?(fmtFn?fmtFn(v,m):num(v,2)):"—"}</div>
+      <div class="mt-sub">${spk}</div>`;
+    return t;
+  }
+  grid.appendChild(medTile("SLOOS","macro","lending_standards",(v)=>(v>=0?"+":"")+num(v,0)+"% tight","lending_standards"));
+  grid.appendChild(medTile("Margin Debt YoY","macro","margin_debt",(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"%":"—","margin_debt"));
+  grid.appendChild(medTile("CAPE","structural","cape",(v)=>num(v,1),"cape"));
+  grid.appendChild(medTile("% Above 200DMA","breadth","pct_above_200dma",(v)=>num(v,0)+"%","pct_above_200dma"));
+  c.appendChild(grid);
+
+  // ── Signal board ──
+  const sigDefs=[
+    {label:"Credit", scoreKey:"credit_score",  tabId:"credit"},
+    {label:"Yield Curve",scoreKey:null, valSec:"macro", valKey:"yield_curve_10y3m", tabId:"economy"},
+    {label:"Cycle",  scoreKey:"cycle_score",   tabId:"economy"},
+    {label:"Valuation",scoreKey:"valuation_score",tabId:"valuation"},
+    {label:"Breadth",scoreKey:"breadth_score", tabId:"technical"},
+    {label:"Labor",  scoreKey:"labor_score",   tabId:"technical"},
+  ];
+  const sb=el(`<div class="sig-board"></div>`);
+  sigDefs.forEach(sd=>{
+    let sv=null;
+    if(sd.scoreKey){sv=((DATA.scores||{})[sd.scoreKey]||{}).value;}
+    else if(sd.valSec){const mv=((DATA[sd.valSec]||{})[sd.valKey]||{}).value;if(mv!=null){sv=mv<0?90:mv<0.5?70:mv<1.5?40:10;}}
+    const col=sv==null?"var(--faint)":sv<40?"var(--low)":sv<65?"var(--moderate)":"var(--high)";
+    const dot=el(`<div class="sig-dot-wrap" role="button" tabindex="0" aria-label="Go to ${sd.label} tab"></div>`);
+    dot.innerHTML=`<div class="sig-dot" style="background:${col}"></div><div class="sig-dot-label">${esc(sd.label)}</div>`;
+    dot.addEventListener("click",()=>{activeTab=sd.tabId;renderAll();window.scrollTo(0,0);});
+    dot.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){activeTab=sd.tabId;renderAll();window.scrollTo(0,0);}});
+    sb.appendChild(dot);
+  });
+  c.appendChild(sb);
+
+  // ── Active Alerts ──
   const alerts=deriveAlerts(DATA);
   const a=el(`<div class="card"><h2>Active Alerts</h2></div>`);
   if(!alerts.length)a.appendChild(el(`<div class="empty">No alerts firing — conditions within normal ranges.</div>`));
@@ -737,11 +689,8 @@ function panelOverview(){
   });
   c.appendChild(a);
 
-  // ── what's changed + next catalysts (side by side) ──
+  // ── What's Changed + Next Catalysts ──
   const pairRow=el(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>`);
-  let pairHasContent=false;
-
-  // left tile: what's changed
   if(hist.length>=2){
     const wc=el(`<div class="card" style="margin-bottom:0;height:100%"><h2>What's Changed</h2></div>`);
     const lookback=Math.min(7,hist.length-1);
@@ -752,7 +701,7 @@ function panelOverview(){
       {k:"pct_above_200",label:"Breadth",highIsBad:false},
       {k:"hy_oas",label:"HY Spreads",highIsBad:true},
       {k:"vix",label:"VIX",highIsBad:true},
-      {k:"cape",label:"CAPE",highIsBad:true},
+      {k:"credit_score",label:"Credit Score",highIsBad:true},
     ];
     let rows=0;
     fields.forEach(f=>{
@@ -765,16 +714,13 @@ function panelOverview(){
       const worsening=f.highIsBad?delta>0:delta<0;
       const col=worsening?"var(--high)":"var(--low)";
       const arr=delta>0?"↑":"↓";
-      wc.appendChild(el(`<div class="wc-row"><span class="wc-arr" style="color:${col}">${arr}</span><span style="flex:1">${esc(f.label)}</span><span class="wc-delta" style="color:${col}">${delta>0?"+":""}${delta}</span></div>`));
+      wc.appendChild(el(`<div class="wc-row"><span style="color:${col};font-size:15px">${arr}</span><span style="flex:1">${esc(f.label)}</span><span class="wc-delta" style="color:${col}">${delta>0?"+":""}${delta}</span></div>`));
     });
     const lbl=lookback===1?"vs yesterday":`vs ${lookback}d ago`;
     if(rows===0)wc.appendChild(el(`<div class="empty">No significant changes</div>`));
     wc.appendChild(el(`<div style="font-size:10px;color:var(--muted);margin-top:6px">${esc(lbl)}</div>`));
     pairRow.appendChild(wc);
-    pairHasContent=true;
   }
-
-  // right tile: next catalysts
   const cats=((DATA.catalysts||{}).upcoming||[]).filter(x=>x.days_away<=45);
   const cc3=el(`<div class="card" style="margin-bottom:0;height:100%"><h2>Next Catalysts</h2></div>`);
   if(cats.length){
@@ -784,126 +730,70 @@ function panelOverview(){
       chip.innerHTML=`<div><div style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase">${esc(ev.date.slice(5))}</div><div style="font-size:13px;font-weight:600;margin-top:1px">${esc(ev.label)}</div></div><div style="font-size:11px;color:var(--faint);white-space:nowrap;margin-left:8px">${esc(w)}</div>`;
       cc3.appendChild(chip);
     });
-  } else {
-    cc3.appendChild(el(`<div class="empty">No events in next 45 days</div>`));
-  }
+  }else{cc3.appendChild(el(`<div class="empty">No events in next 45 days</div>`));}
   pairRow.appendChild(cc3);
-  pairHasContent=true;
+  c.appendChild(pairRow);
 
-  if(pairHasContent)c.appendChild(pairRow);
-
-  // ── summary ──
+  // ── Summary ──
   const itp=DATA.interpretation||{};
   if(itp.summary)c.appendChild(el(`<div class="card"><h2>Where It Stands</h2><div class="summary">${esc(itp.summary)}</div></div>`));
 
-  // ── model confidence (bottom) ──
   c.appendChild(confCard());
   return c;
 }
 
-function panelValuation(){return mList([
-  {sec:"structural",key:"cape",label:"CAPE (Shiller P/E)",fmt:v=>num(v,1)},
-  {sec:"structural",key:"buffett_indicator",label:"Buffett Indicator",fmt:(v,m)=>num(v,2)+(m.deviation_z!=null?` (z ${num(m.deviation_z,1)})`:"")} ,
-  {sec:"structural",key:"excess_cape_yield",label:"Excess CAPE Yield",fmt:v=>num(v,2)+"%"},
-  {sec:"structural",key:"forward_pe",label:"Forward P/E",fmt:(v,m)=>num(v,1)+(m.vs_mean!=null?` (+${num(m.vs_mean,1)})` :"")},
-  {sec:"structural",key:"ad_line_proxy",label:"Breadth divergence (RSP/SPY)",fmt:v=>num(v,3)},
-]);}
-
-function panelCycle(){return mList([
-  {h:"Recession Composite",first:true},
-  {sec:"scores",key:"goldman_composite",label:"Goldman Bear-Market Risk",fmt:v=>num(v,0)+" / 100",rk:"goldman_composite"},
-  {sec:"macro",key:"recession_prob",label:"Recession Probability (Chauvet-Piger)",fmt:v=>num(v,1)+"%",stale:75},
-  {sec:"macro",key:"sahm_rule",label:"Sahm Rule",fmt:v=>num(v,2)+"pp"+" (trigger ≥0.5)",stale:45},
-  {sec:"macro",key:"philly_coincident",label:"Philly Fed Coincident Index (SCI)",fmt:(v,m)=>num(v,1)+(m.trend&&m.trend.direction?" "+{rising:"↑",falling:"↓",flat:"→"}[m.trend.direction]:""),stale:45},
-  {h:"Leading & Rates"},
-  {sec:"macro",key:"lei",label:"Leading Indicator (OECD CLI)",fmt:v=>num(v,1),stale:75},
-  {sec:"macro",key:"yield_curve_10y3m",label:"Yield Curve 10y–3m",fmt:v=>num(v,2),stale:14},
-  {sec:"macro",key:"lending_standards",label:"Bank Lending Standards (SLOOS)",fmt:(v,m)=>(v>=0?"+":"")+num(v,0)+"% tightening",stale:100},
-  {sec:"macro",key:"hy_oas",label:"Credit Spread (HY OAS)",fmt:v=>num(v,2)+"%",stale:14},
-  {sec:"macro",key:"ig_oas",label:"Credit Spread (IG OAS)",fmt:v=>num(v,2)+"%",stale:14},
-  {sec:"macro",key:"fed_funds",label:"Fed Funds Rate",fmt:v=>num(v,2)+"%",stale:30},
-  {h:"Inflation & Labor"},
-  {sec:"macro",key:"ppi",label:"PPI — Final Demand (leads CPI)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:45},
-  {sec:"macro",key:"core_pce",label:"Core PCE (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
-  {sec:"macro",key:"core_cpi",label:"Core CPI (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
-  {sec:"macro",key:"unemployment",label:"Unemployment",fmt:v=>num(v,1)+"%",stale:75},
-  {h:"Consumer Stress"},
-  {sec:"macro",key:"cc_delinquency",label:"Credit-Card Delinquency",fmt:v=>num(v,2)+"%",stale:220},
-  {sec:"macro",key:"auto_delinquency",label:"Auto-Loan Delinquency",fmt:v=>num(v,2)+"%",stale:220},
-  {sec:"macro",key:"savings_rate",label:"Personal Savings Rate",fmt:v=>num(v,1)+"%",stale:75},
-  {sec:"macro",key:"debt_service",label:"Debt Service Ratio",fmt:v=>num(v,2)+"%",stale:220},
-  {sec:"macro",key:"nfci_leverage",label:"NFCI Leverage",fmt:v=>num(v,2),stale:30},
-]);}
-
-function panelTrend(){return mList([
-  {h:"Trend",first:true},
-  {sec:"trend",key:"spx_vs_200dma",label:"S&P 500 vs 200-DMA",fmt:v=>(v>=0?"+":"")+num(v,1)+"%"},
-  {sec:"trend",key:"dma200_slope",label:"200-DMA slope",fmt:v=>esc(v)},
-  {sec:"trend",key:"weekly_macd",label:"Weekly MACD",fmt:(v,m)=>num(v,1)+(m.bearish?" (bearish)":" (bullish)")},
-  {h:"Breadth"},
-  {sec:"breadth",key:"pct_above_200dma",label:"% above 200-DMA",fmt:(v,m)=>num(v,0)+"%"+(m.universe?` / ${m.universe}`:"")},
-  {sec:"breadth",key:"mcclellan",label:"McClellan Oscillator",fmt:v=>num(v,1)},
-  {sec:"breadth",key:"hindenburg_omen_confirmed",label:"Hindenburg Omen (confirmed)",fmt:(v,m)=>v?`CONFIRMED (${m.count||0} flags/${m.window_days||30}d)`:"not confirmed"},
-  {sec:"breadth",key:"hindenburg_omen_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
-  {sec:"breadth",key:"titanic_syndrome_confirmed",label:"Titanic Syndrome (confirmed)",fmt:(v,m)=>v?`CONFIRMED (${m.count||0} flags/${m.window_days||30}d)`:"not confirmed"},
-  {sec:"breadth",key:"titanic_syndrome_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
-]);}
-
-function fearGreedGauge(){
-  const fg=(DATA.sentiment||{}).fear_greed||{};
-  const v=fg.value,lbl=fg.label||"",comps=fg.components||{};
-  if(v==null)return null;
-  const col=v<25?"var(--high)":v<45?"var(--elevated)":v<55?"var(--moderate)":v<75?"var(--low)":"#00c896";
-  const compNames={momentum:"Momentum",strength:"Price Strength",breadth:"Breadth",
-    volatility:"Volatility",junk_demand:"HY Demand",safe_haven:"Safe Haven"};
-  const c=el(`<div class="card"><h2>Fear & Greed</h2></div>`);
-  // Big dial display
-  c.appendChild(el(`<div style="display:flex;align-items:center;gap:16px;padding:8px 0 4px">
-    <div style="width:72px;height:72px;border-radius:50%;border:5px solid ${col};display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none">
-      <span style="font-family:var(--mono);font-size:22px;font-weight:700;color:${col}">${Math.round(v)}</span>
-    </div>
-    <div>
-      <div style="font-size:18px;font-weight:700;color:${col}">${esc(lbl)}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:3px">0 = Extreme Fear · 100 = Extreme Greed</div>
-      <div style="font-size:11px;color:var(--faint);margin-top:2px">6/7 CNN inputs · put/call excluded (source down)</div>
-    </div>
-  </div>`));
-  // Component bars
-  const keys=Object.keys(comps);
-  if(keys.length){
-    const barsDiv=el(`<div style="margin-top:6px;display:grid;gap:3px">`);
-    keys.forEach(k=>{
-      const cv=comps[k];
-      const cc=cv<25?"var(--high)":cv<45?"var(--elevated)":cv<55?"var(--moderate)":cv<75?"var(--low)":"#00c896";
-      barsDiv.appendChild(el(`<div style="display:grid;grid-template-columns:90px 1fr 30px;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--muted)">${esc(compNames[k]||k)}</span>
-        <div style="height:5px;background:var(--surface2);border-radius:3px">
-          <div style="height:100%;width:${cv}%;background:${cc};border-radius:3px"></div>
-        </div>
-        <span style="font-family:var(--mono);font-size:11px;color:${cc};text-align:right">${Math.round(cv)}</span>
-      </div>`));
-    });
-    c.appendChild(barsDiv);
-  }
-  return c;
-}
-function panelSentiment(){
+/* ── Credit tab ── */
+function panelCredit(){
   const c=document.createDocumentFragment();
-  const fg=fearGreedGauge();if(fg)c.appendChild(fg);
+  // HY OAS with momentum score
   c.appendChild(mList([
-    {sec:"sentiment",key:"vix",label:"VIX (Volatility Index)",fmt:(v,m)=>num(v,1)+(m.ma20!=null?` / 20d avg ${num(m.ma20,1)}`:"")},
-    {sec:"sentiment",key:"put_call",label:"Put/Call Ratio",fmt:v=>num(v,2),rk:"put_call"},
-    {sec:"macro",key:"umich_sentiment",label:"Consumer Sentiment (UMich)",fmt:v=>num(v,0),stale:75},
+    {h:"Credit Spreads",first:true},
+    {sec:"macro",key:"hy_oas",label:"HY OAS (High Yield Spread)",fmt:v=>num(v,2)+"%",stale:14},
+    {sec:"macro",key:"hy_momentum",label:"HY Spread Momentum Score (90d)",fmt:(v,m)=>{
+      const s=v!=null?num(v,0)+"/100":"—";
+      return m&&m.change_90d_bps!=null?s+` (${m.change_90d_bps>0?"+":""}${Math.round(m.change_90d_bps)}bps)`:s;
+    },rk:"hy_momentum",stale:14},
+    {sec:"macro",key:"ig_oas",label:"IG OAS (Investment Grade Spread)",fmt:v=>num(v,2)+"%",stale:14},
+    {h:"Lending Conditions"},
+    {sec:"macro",key:"lending_standards",label:"SLOOS Lending Standards",fmt:(v,m)=>(v>=0?"+":"")+num(v,0)+"% tightening",rk:"sloos",stale:100},
+    {sec:"macro",key:"nfci_leverage",label:"NFCI Leverage",fmt:v=>num(v,2),stale:30},
+    {h:"Debt & Leverage"},
+    {sec:"macro",key:"margin_debt",label:"Margin Debt YoY",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":"—",rk:"margin_debt",stale:120},
+    {sec:"macro",key:"cc_delinquency",label:"Credit-Card Delinquency",fmt:v=>num(v,2)+"%",stale:220},
+    {sec:"macro",key:"debt_service",label:"Debt Service Ratio",fmt:v=>num(v,2)+"%",stale:220},
   ]));
+  const cb=contribCard();
+  if(cb)c.appendChild(cb);
   return c;
 }
 
-function panelSectors(){
+/* ── Economy tab (was Cycle — absorbs Sectors) ── */
+function panelEconomy(){
   const c=document.createDocumentFragment();
+  c.appendChild(mList([
+    {h:"Recession Composite",first:true},
+    {sec:"scores",key:"goldman_composite",label:"Goldman Bear-Market Risk",fmt:v=>num(v,0)+" / 100",rk:"goldman_composite"},
+    {sec:"macro",key:"recession_prob",label:"Recession Probability (Chauvet-Piger)",fmt:v=>num(v,1)+"%",stale:75},
+    {sec:"macro",key:"sahm_rule",label:"Sahm Rule",fmt:v=>num(v,2)+"pp"+" (trigger ≥0.5)",stale:45},
+    {sec:"macro",key:"philly_coincident",label:"Philly Fed Coincident Index (SCI)",fmt:(v,m)=>num(v,1)+(m.trend&&m.trend.direction?" "+{rising:"↑",falling:"↓",flat:"→"}[m.trend.direction]:""),stale:45},
+    {h:"Leading & Rates"},
+    {sec:"macro",key:"lei",label:"Leading Indicator (OECD CLI)",fmt:v=>num(v,1),stale:75},
+    {sec:"macro",key:"yield_curve_10y3m",label:"Yield Curve 10y–3m",fmt:v=>num(v,2),stale:14},
+    {sec:"macro",key:"fed_funds",label:"Fed Funds Rate",fmt:v=>num(v,2)+"%",stale:30},
+    {h:"Inflation & Labor"},
+    {sec:"macro",key:"ppi",label:"PPI — Final Demand (leads CPI)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:45},
+    {sec:"macro",key:"core_pce",label:"Core PCE (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
+    {sec:"macro",key:"core_cpi",label:"Core CPI (inflation)",fmt:(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"% YoY":num(v,1),stale:75},
+    {sec:"macro",key:"unemployment",label:"Unemployment",fmt:v=>num(v,1)+"%",stale:75},
+    {sec:"macro",key:"avg_hourly_earnings",label:"Avg Hourly Earnings",fmt:v=>num(v,2),stale:75},
+    {h:"Consumer Stress"},
+    {sec:"macro",key:"auto_delinquency",label:"Auto-Loan Delinquency",fmt:v=>num(v,2)+"%",stale:220},
+    {sec:"macro",key:"savings_rate",label:"Personal Savings Rate",fmt:v=>num(v,1)+"%",stale:75},
+  ]));
+  // Sector Rotation (moved here from its own tab)
   const ph=(DATA.sectors||{}).cycle_phase||{};
   const rs=(DATA.sectors||{}).relative_strength||{};
   const card=el(`<div class="card"><h2>Sector Rotation</h2></div>`);
-  // cycle phase with ⓘ
   const phDiv=el(`<div style="margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><span class="phase">${esc(ph.value||"—")}</span><button class="info" aria-label="Explain cycle phase" aria-expanded="false">i</button></div><div class="phase-sub">LEI ${esc(ph.lei_direction||"—")} · 10y–3m ${ph.yield_curve!=null?num(ph.yield_curve,2):"—"}</div></div>`);
   const phBtn=phDiv.querySelector(".info");
   const phBody=el(`<div class="mbody" style="margin-bottom:8px">${PRIMERS.cycle_phase?`<div class="primer">${esc(PRIMERS.cycle_phase)}</div>`:""}</div>`);
@@ -913,7 +803,6 @@ function panelSectors(){
     card.appendChild(el(`<div class="favored">${ph.favored_sectors.map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>`));
   const arr=Object.keys(rs).map(k=>({tk:k,...rs[k]})).filter(x=>x.value!=null).sort((a,b)=>b.value-a.value);
   if(arr.length){
-    // Rotation verdict: cyclical (risk-on) vs defensive (risk-off) leadership
     const CYC=["XLK","XLY","XLF","XLI"],DEF=["XLU","XLP","XLV"];
     const avg=set=>{const xs=arr.filter(x=>set.includes(x.tk)).map(x=>x.value);return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;};
     const cy=avg(CYC),df=avg(DEF);
@@ -938,36 +827,95 @@ function panelSectors(){
         <div class="sval" style="color:${col}">${x.value>=0?"+":""}${num(x.value,1)}</div>
       </div>`));
     });
-    card.appendChild(el(`<div class="phase-sub" style="margin-top:8px">3-month relative strength vs SPY (pct pts) · leaders/laggards highlighted, middle muted</div>`));
+    card.appendChild(el(`<div class="phase-sub" style="margin-top:8px">3-month relative strength vs SPY (pct pts)</div>`));
   }
   c.appendChild(card);
   return c;
 }
 
+/* ── Valuation tab ── */
+function panelValuation(){return mList([
+  {sec:"structural",key:"cape",label:"CAPE (Shiller P/E)",fmt:v=>num(v,1)},
+  {sec:"structural",key:"buffett_indicator",label:"Buffett Indicator",fmt:(v,m)=>num(v,2)+(m.deviation_z!=null?` (z ${num(m.deviation_z,1)})`:"")} ,
+  {sec:"structural",key:"excess_cape_yield",label:"Excess CAPE Yield",fmt:v=>num(v,2)+"%"},
+  {sec:"structural",key:"forward_pe",label:"Forward P/E",fmt:(v,m)=>num(v,1)+(m.vs_mean!=null?` (+${num(m.vs_mean,1)})` :"")},
+  {sec:"structural",key:"ad_line_proxy",label:"Breadth Divergence (RSP/SPY)",fmt:v=>num(v,3)},
+]);}
+
+/* ── Technical tab (merges Trend+Breadth+Sentiment) ── */
+function panelTechnical(){
+  const c=document.createDocumentFragment();
+  c.appendChild(mList([
+    {h:"Trend",first:true},
+    {sec:"trend",key:"spx_vs_200dma",label:"S&P 500 vs 200-DMA",fmt:v=>(v>=0?"+":"")+num(v,1)+"%"},
+    {sec:"trend",key:"dma200_slope",label:"200-DMA Slope",fmt:v=>esc(v)},
+    {sec:"trend",key:"weekly_macd",label:"Weekly MACD",fmt:(v,m)=>num(v,1)+(m.bearish?" (bearish)":" (bullish)")},
+    {h:"Breadth"},
+    {sec:"breadth",key:"pct_above_200dma",label:"% Above 200-DMA",fmt:(v,m)=>num(v,0)+"%"+(m.universe?` / ${m.universe}`:"")},
+    {sec:"breadth",key:"mcclellan",label:"McClellan Oscillator",fmt:v=>num(v,1)},
+    {h:"Sentiment"},
+    {sec:"sentiment",key:"put_call",label:"Put/Call Ratio",fmt:v=>num(v,2),rk:"put_call"},
+    {sec:"sentiment",key:"vix",label:"VIX (Volatility Index)",fmt:(v,m)=>num(v,1)+(m.ma20!=null?` / 20d avg ${num(m.ma20,1)}`:"")},
+    {sec:"sentiment",key:"fear_greed",label:"Fear & Greed (CNN)",fmt:(v,m)=>num(v,0)+"/100"+(m.label?` — ${m.label}`:""),rk:"fear_greed"},
+    {sec:"macro",key:"umich_sentiment",label:"Consumer Sentiment (UMich)",fmt:v=>num(v,0),stale:75},
+  ]));
+
+  // Hindenburg / Titanic — collapsed, labeled clearly
+  const htDiv=el(`<div class="card"></div>`);
+  htDiv.innerHTML=`<div class="ht-collapsed">
+    <div class="ht-label">Internal Divergence Signals — Breadth Data Only</div>
+    <div class="ht-note">Hindenburg Omen and Titanic Syndrome raw/confirmed flags are retained below as breadth data. High false positive rate (75–80%); removed from Active Alerts. Do not use as standalone signals.</div>
+  </div>`;
+  const htList=el(`<div></div>`);
+  [[
+    {sec:"breadth",key:"hindenburg_omen_confirmed",label:"Hindenburg Omen (confirmed)",fmt:(v,m)=>v?`CONFIRMED (${m.count||0} flags/${m.window_days||30}d)`:"not confirmed"},
+    {sec:"breadth",key:"hindenburg_omen_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
+    {sec:"breadth",key:"titanic_syndrome_confirmed",label:"Titanic Syndrome (confirmed)",fmt:(v,m)=>v?`CONFIRMED (${m.count||0} flags/${m.window_days||30}d)`:"not confirmed"},
+    {sec:"breadth",key:"titanic_syndrome_today",label:"↳ raw flag today",fmt:v=>v?"flag":"clear"},
+  ]].forEach(specs=>{specs.forEach(s=>htDiv.appendChild(metric(s.sec,s.key,s.label,s.fmt,s.rk,s.stale)));});
+  c.appendChild(htDiv);
+  return c;
+}
+
+/* ── Tab definitions ── */
 const TABS=[
-  {id:"overview",label:"Overview",render:panelOverview},
-  {id:"valuation",label:"Valuation",render:panelValuation},
-  {id:"cycle",label:"Cycle",render:panelCycle},
-  {id:"trend",label:"Trend & Breadth",render:panelTrend},
-  {id:"sentiment",label:"Sentiment",render:panelSentiment},
-  {id:"sectors",label:"Sectors",render:panelSectors},
+  {id:"overview",  label:"Overview",  render:panelOverview},
+  {id:"credit",    label:"Credit",    render:panelCredit},
+  {id:"economy",   label:"Economy",   render:panelEconomy},
+  {id:"valuation", label:"Valuation", render:panelValuation},
+  {id:"technical", label:"Technical", render:panelTechnical},
 ];
 let activeTab="overview";
 
-function renderTabs(){
-  const bar=document.getElementById("tabs");bar.innerHTML="";
+function renderAll(){
+  // Top tabs
+  const topBar=document.getElementById("tabs-top");
+  topBar.innerHTML="";
   TABS.forEach(t=>{
     const risk=tabRisk(t.id);
     const dot=risk==null?"var(--faint)":riskColor(risk);
     const b=el(`<button class="tab" role="tab" aria-selected="${t.id===activeTab}"><span class="dot" style="background:${dot}"></span>${t.label}</button>`);
-    b.addEventListener("click",()=>{activeTab=t.id;renderTabs();renderPanel();window.scrollTo(0,0);});
-    bar.appendChild(b);
+    b.addEventListener("click",()=>{activeTab=t.id;renderAll();window.scrollTo(0,0);});
+    topBar.appendChild(b);
   });
-}
-function renderPanel(){
-  const c=document.getElementById("content");c.innerHTML="";
-  const t=TABS.find(x=>x.id===activeTab)||TABS[0];
-  c.appendChild(t.render());
+  // Bottom nav
+  const bnav=document.getElementById("bnav");
+  bnav.innerHTML="";
+  TABS.forEach(t=>{
+    const risk=tabRisk(t.id);
+    const dot=risk==null?"var(--faint)":riskColor(risk);
+    const b=el(`<button class="btab" role="tab" aria-selected="${t.id===activeTab}">
+      <span class="dot" style="background:${dot}"></span>
+      <span>${t.label}</span>
+    </button>`);
+    b.addEventListener("click",()=>{activeTab=t.id;renderAll();window.scrollTo(0,0);});
+    bnav.appendChild(b);
+  });
+  // Panel
+  const content=document.getElementById("content");
+  content.innerHTML="";
+  const tab=TABS.find(x=>x.id===activeTab)||TABS[0];
+  content.appendChild(tab.render());
   const h=DATA.source_health||{};
   document.getElementById("health").textContent=`Sources: ${h.ok||0} live · ${h.proxy||0} proxy · ${h.manual||0} manual · ${h.unavailable||0} unavailable`;
 }
@@ -980,7 +928,7 @@ async function load(){
     if(!r.ok)throw new Error("HTTP "+r.status);
     DATA=await r.json();
     document.getElementById("updated").textContent="Updated "+((DATA.meta||{}).generated_display||"—");
-    renderTabs();renderPanel();
+    renderAll();
   }catch(e){
     document.getElementById("content").innerHTML=`<div class="card"><h2>Couldn't load data</h2><div class="empty">${esc(e.message)}. Try Refresh, then reload in ~2 minutes.</div></div>`;
   }
