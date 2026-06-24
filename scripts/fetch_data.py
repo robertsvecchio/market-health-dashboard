@@ -103,6 +103,8 @@ FRED_SERIES = {
     # Valuation building blocks
     "equity_mktcap":     ("NCBEILQ027S",        "Fed B.103 market value of equities (Buffett numerator; Wilshire removed from FRED Jun 2024)"),
     "real_10y":          ("DFII10",             "10yr TIPS yield (real) — for Excess CAPE Yield"),
+    # NEW: Margin debt via Fed Flow of Funds (quarterly)
+    "margin_debt":       ("BOGZ1FL663067003Q",  "FINRA margin debt (Fed Flow of Funds, quarterly)"),
 }
 
 # How far back to look when computing a metric's trend, by series cadence.
@@ -114,6 +116,7 @@ TREND_LOOKBACK = {
     "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "ppi": 3, "fed_funds": 21,
     "umich_sentiment": 3, "avg_hourly_earnings": 3, "hy_oas": 21, "ig_oas": 21,
     "real_10y": 21, "equity_mktcap": 1,
+    "margin_debt": 1,
 }
 
 # Shiller CAPE candidate download URLs (tried in order)
@@ -229,6 +232,233 @@ def clamp(x, lo=0.0, hi=100.0):
 
 
 # ---------------------------------------------------------------------------
+# NEW: HY OAS 90-day momentum score
+# ---------------------------------------------------------------------------
+
+def hy_momentum_score(fred_raw):
+    """Compute HY OAS 90-day momentum score (0-100) and raw bps change.
+    Tightening = low risk, widening = high risk.
+    >+150bps = 100, 0 change = 50, <-100bps = 0.
+    Returns (score, change_bps) or (None, None) if insufficient data."""
+    hy = fred_raw.get("hy_oas")
+    if hy is None or len(hy) < 65:
+        return None, None
+    try:
+        current = float(hy.iloc[-1])
+        prior_90d = float(hy.iloc[-65])  # ~90 trading days
+        change_bps = (current - prior_90d) * 100  # OAS is in %, convert to bps
+        # Score: tightening = low risk, widening = high risk
+        # >+150bps change = 100, 0 = 50, <-100bps = 0
+        score = clamp(50 + change_bps / 3)
+        return round(score, 1), round(change_bps, 1)
+    except Exception:
+        return None, None
+
+
+# ---------------------------------------------------------------------------
+# NEW: 5-bucket weighted composite_risk
+# ---------------------------------------------------------------------------
+
+def _risk_label(x):
+    if x is None:
+        return "Unknown"
+    if x <= 25:
+        return "Low Risk"
+    if x <= 50:
+        return "Moderate Risk"
+    if x <= 75:
+        return "Elevated Risk"
+    return "High Risk"
+
+
+def _weighted_avg(inputs_dict, weights_dict):
+    """Weighted average of available inputs; renormalizes missing weights."""
+    total_w = 0.0
+    total_v = 0.0
+    for k, w in weights_dict.items():
+        v = inputs_dict.get(k)
+        if v is not None and isinstance(v, (int, float)) and not math.isnan(v):
+            total_w += w
+            total_v += v * w
+    if total_w == 0:
+        return None
+    return total_v / total_w
+
+
+def composite_risk(structural_inputs, cyc_inputs, credit_inputs=None,
+                   breadth_inputs=None, labor_inputs=None):
+    """5-bucket weighted composite risk score.
+
+    Bucket weights (top-level):
+      credit_score    0.30
+      cycle_score     0.25
+      valuation_score 0.20
+      breadth_score   0.15
+      labor_score     0.10
+
+    Each bucket is itself a weighted average of its inputs.
+    Score: 0 = no risk, 100 = maximum risk.
+    Missing inputs: skip and renormalize weights proportionally.
+    """
+
+    # ---- Valuation bucket (uses structural_inputs from caller) ----
+    val_weights = {"cape": 0.40, "buffett": 0.35, "ecy": 0.25}
+    val_score = _weighted_avg(structural_inputs, val_weights)
+
+    # ---- Cycle bucket (uses cyc_inputs from caller) ----
+    cyc_weights = {"lei_direction": 0.40, "goldman": 0.40, "debt_service": 0.20}
+    cyc_score = _weighted_avg(cyc_inputs, cyc_weights)
+
+    # ---- Credit bucket ----
+    cr_inputs = credit_inputs or {}
+    cr_weights = {"sloos_pct": 0.40, "hy_momentum": 0.35, "nfci_leverage": 0.25}
+    cr_score = _weighted_avg(cr_inputs, cr_weights)
+
+    # ---- Breadth bucket ----
+    br_inputs = breadth_inputs or {}
+    br_weights = {"pct_above_200": 0.60, "mcclellan": 0.40}
+    br_score = _weighted_avg(br_inputs, br_weights)
+
+    # ---- Labor bucket ----
+    lb_inputs = labor_inputs or {}
+    lb_weights = {"sahm_rule": 0.50, "unemp_trend": 0.30, "cc_delinq": 0.20}
+    lb_score = _weighted_avg(lb_inputs, lb_weights)
+
+    # ---- Top-level composite ----
+    top_weights = {
+        "credit":    (cr_score,  0.30),
+        "cycle":     (cyc_score, 0.25),
+        "valuation": (val_score, 0.20),
+        "breadth":   (br_score,  0.15),
+        "labor":     (lb_score,  0.10),
+    }
+    total_w = 0.0
+    total_v = 0.0
+    for name, (score, w) in top_weights.items():
+        if score is not None:
+            total_w += w
+            total_v += score * w
+    comp = (total_v / total_w) if total_w > 0 else None
+
+    def _mk(val, **extra):
+        return metric(
+            round(val, 1) if val is not None else None,
+            status="ok" if val is not None else "unavailable",
+            source="derived",
+            derived=True,
+            label=_risk_label(val),
+            **extra
+        )
+
+    return {
+        "composite": _mk(comp,
+                         notes="5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%) breadth(15%) labor(10%)",
+                         credit_inputs=cr_inputs,
+                         cycle_inputs=cyc_inputs,
+                         valuation_inputs=structural_inputs,
+                         breadth_inputs=br_inputs,
+                         labor_inputs=lb_inputs),
+        "credit_score":    _mk(cr_score,    notes="Credit bucket: SLOOS(40%) HY momentum(35%) NFCI leverage(25%)"),
+        "cycle_score":     _mk(cyc_score,   notes="Cycle bucket: LEI direction(40%) Goldman composite(40%) Debt service(20%)"),
+        "valuation_score": _mk(val_score,   notes="Valuation bucket: CAPE(40%) Buffett(35%) ECY(25%)"),
+        "breadth_score":   _mk(br_score,    notes="Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)"),
+        "labor_score":     _mk(lb_score,    notes="Labor bucket: Sahm Rule(50%) Unemployment trend(30%) CC delinquency percentile(20%)"),
+        # Keep legacy keys for send_alerts.py backward compat
+        "structural_score": _mk(val_score,  notes="alias for valuation_score (backward compat)"),
+    }
+
+
+# ---------------------------------------------------------------------------
+# NEW: Regime Condition Counter
+# ---------------------------------------------------------------------------
+
+def regime_counter(fred_raw, result, margin_debt_yoy=None, margin_debt_trend=None):
+    """Count how many of 5 conditions are active. Returns regime dict."""
+    conditions = {}
+
+    # Condition 1 — Credit stress: HY OAS 90d change > +80bps OR SLOOS > +20%
+    try:
+        _, change_bps = hy_momentum_score(fred_raw)
+        sloos_val = None
+        ls = fred_raw.get("lending_standards")
+        if ls is not None:
+            sloos_val = float(ls.iloc[-1])
+        hy_stress = (change_bps is not None and change_bps > 80)
+        sloos_stress = (sloos_val is not None and sloos_val > 20)
+        conditions["credit_stress"] = bool(hy_stress or sloos_stress)
+    except Exception:
+        conditions["credit_stress"] = False
+
+    # Condition 2 — Cycle breakdown: LEI declining 3+ consecutive months
+    try:
+        lei = fred_raw.get("lei")
+        if lei is not None and len(lei) >= 4:
+            # Check last 3 observations are each lower than the prior
+            vals = lei.iloc[-4:].tolist()
+            declining_3 = all(vals[i] < vals[i-1] for i in range(1, 4))
+            conditions["cycle_breakdown"] = bool(declining_3)
+        else:
+            conditions["cycle_breakdown"] = False
+    except Exception:
+        conditions["cycle_breakdown"] = False
+
+    # Condition 3 — Yield curve: inverted OR was inverted in last 18mo AND now re-steepening past 0
+    try:
+        yc = fred_raw.get("yield_curve_10y3m")
+        if yc is not None and len(yc) >= 2:
+            current_yc = float(yc.iloc[-1])
+            inverted_now = current_yc < 0
+            # Check if was inverted in last ~390 trading days (~18 months)
+            lookback = min(390, len(yc) - 1)
+            was_inverted = bool((yc.iloc[-lookback:] < 0).any())
+            re_steepening = (was_inverted and not inverted_now and current_yc > 0)
+            conditions["yield_curve"] = bool(inverted_now or re_steepening)
+        else:
+            conditions["yield_curve"] = False
+    except Exception:
+        conditions["yield_curve"] = False
+
+    # Condition 4 — Leverage stress: margin debt YoY > +40% AND now rolling over (trend=falling)
+    try:
+        if margin_debt_yoy is not None and margin_debt_trend is not None:
+            high_yoy = margin_debt_yoy > 40
+            rolling_over = (margin_debt_trend.get("direction") == "falling")
+            conditions["leverage_stress"] = bool(high_yoy and rolling_over)
+        else:
+            conditions["leverage_stress"] = False
+    except Exception:
+        conditions["leverage_stress"] = False
+
+    # Condition 5 — Labor: Sahm Rule >= 0.5
+    try:
+        sahm = fred_raw.get("sahm_rule")
+        if sahm is not None:
+            conditions["labor"] = bool(float(sahm.iloc[-1]) >= 0.5)
+        else:
+            conditions["labor"] = False
+    except Exception:
+        conditions["labor"] = False
+
+    n = sum(1 for v in conditions.values() if v)
+
+    if n == 0:
+        label = "No signal"
+    elif n <= 2:
+        label = "Watch"
+    elif n == 3:
+        label = "Caution"
+    else:
+        label = "High Alert"
+
+    return {
+        "conditions_active": n,
+        "conditions": conditions,
+        "label": label,
+        "label_threshold": "3+ conditions historically precede 20%+ drawdowns",
+    }
+
+
+# ---------------------------------------------------------------------------
 # FRED
 # ---------------------------------------------------------------------------
 
@@ -281,6 +511,17 @@ def yoy_pct(s):
         return None
 
 
+def yoy_pct_quarterly(s):
+    """Year-over-year percent change for quarterly series (4 observations back)."""
+    try:
+        s = pd.Series(s).dropna()
+        if len(s) < 5:
+            return None
+        return round((float(s.iloc[-1]) / float(s.iloc[-5]) - 1) * 100, 2)
+    except Exception:
+        return None
+
+
 def pull_fred_all(api_key):
     out = {}
     raw = {}
@@ -317,6 +558,11 @@ def pull_fred_all(api_key):
                     if yoy_prev is not None:
                         m["yoy_direction"] = "accelerating" if yoy > yoy_prev + 0.1 \
                             else "decelerating" if yoy < yoy_prev - 0.1 else "steady"
+            # Margin debt: compute YoY% (quarterly series — 4 obs back = ~1 year)
+            if key == "margin_debt":
+                yoy_q = yoy_pct_quarterly(s)
+                if yoy_q is not None:
+                    m["yoy_pct"] = yoy_q
             out[key] = m
         except Exception as e:
             out[key] = unavailable(source=f"FRED:{sid}", error=e, notes=desc)
@@ -357,55 +603,56 @@ def pull_spx_technicals():
                                 asof=close.index[-1].strftime("%Y-%m-%d")),
             "spx_vs_200dma": metric(
                 round((last / last_200 - 1) * 100, 2), source="yfinance:^GSPC",
-                notes="percent above/below 200-day moving average",
-                price=round(last, 2), dma200=round(last_200, 2)),
+                asof=close.index[-1].strftime("%Y-%m-%d"),
+                notes="% above/below 200-DMA. Negative = below."),
             "dma200_slope": metric(slope, source="yfinance:^GSPC",
-                                   notes="slope of 200-DMA over ~1 month",
-                                   change_pct=round(change * 100, 3)),
-            "dma50": metric(round(last_50, 2), source="yfinance:^GSPC"),
-            "weekly_macd": metric(
-                round(hist, 3), source="yfinance:^GSPC",
-                notes="weekly MACD histogram; <0 = bearish momentum",
-                macd_line=round(macd_line, 3), signal_line=round(signal_line, 3),
-                bearish=bool(hist < 0)),
+                                   asof=close.index[-1].strftime("%Y-%m-%d"),
+                                   notes="200-DMA direction over last 21 sessions"),
+            "weekly_macd": metric(round(macd_line, 4), source="yfinance:^GSPC",
+                                  asof=close.index[-1].strftime("%Y-%m-%d"),
+                                  notes="Weekly MACD line vs signal",
+                                  signal=round(signal_line, 4),
+                                  histogram=round(hist, 4),
+                                  bearish=bool(macd_line < signal_line)),
         }
     except Exception as e:
-        return {"spx_technicals": unavailable(source="yfinance:^GSPC", error=e)}
+        return {"spx_price": unavailable(source="yfinance:^GSPC", error=e),
+                "spx_vs_200dma": unavailable(source="yfinance:^GSPC", error=e),
+                "dma200_slope": unavailable(source="yfinance:^GSPC", error=e),
+                "weekly_macd": unavailable(source="yfinance:^GSPC", error=e)}
 
 
 def pull_vix():
+    """VIX from yfinance."""
     try:
-        df = _yf_history("^VIX", period="6mo", interval="1d")
+        df = _yf_history("^VIX", period="1y", interval="1d")
         close = df["Close"].dropna()
-        last = float(close.iloc[-1])
+        v = float(close.iloc[-1])
         ma20 = float(close.rolling(20).mean().iloc[-1])
-        return metric(round(last, 2), source="yfinance:^VIX",
+        return metric(round(v, 2), source="yfinance:^VIX",
                       asof=close.index[-1].strftime("%Y-%m-%d"),
                       notes="CBOE Volatility Index",
                       ma20=round(ma20, 2),
-                      above_30=bool(last > 30), above_40=bool(last > 40))
+                      above_40=bool(v > 40),
+                      above_30=bool(v > 30))
     except Exception as e:
         return unavailable(source="yfinance:^VIX", error=e)
 
 
 def pull_ad_proxy():
-    """RSP/SPY ratio as an A/D-line / breadth-divergence proxy.
-    Falling ratio while SPY rises = narrow leadership = bearish breadth divergence."""
+    """RSP/SPY ratio as an A-D line proxy."""
     try:
         import yfinance as yf
-        data = yf.download(["RSP", "SPY"], period="1y", interval="1d",
-                           auto_adjust=False, progress=False)
-        close = data["Close"].dropna()
-        ratio = (close["RSP"] / close["SPY"])
-        last = float(ratio.iloc[-1])
-        ratio_ma50 = float(ratio.rolling(50).mean().iloc[-1])
-        spy_chg = float(close["SPY"].iloc[-1] / close["SPY"].iloc[-21] - 1)
-        ratio_chg = float(ratio.iloc[-1] / ratio.iloc[-21] - 1)
-        divergence = bool(spy_chg > 0 and ratio_chg < 0)
-        return metric(round(last, 5), source="yfinance:RSP/SPY",
-                      notes="equal-weight/cap-weight ratio; proxy for NYSE A/D divergence",
-                      ratio_ma50=round(ratio_ma50, 5),
-                      spy_21d_pct=round(spy_chg * 100, 2),
+        data = yf.download(["RSP", "SPY"], period="2y", interval="1d",
+                           auto_adjust=False, progress=False)["Close"].dropna()
+        ratio = (data["RSP"] / data["SPY"]).dropna()
+        latest = float(ratio.iloc[-1])
+        ratio_21d = float(ratio.iloc[-22]) if len(ratio) >= 22 else float(ratio.iloc[0])
+        ratio_chg = (latest - ratio_21d) / ratio_21d
+        divergence = bool(ratio_chg < -0.02)
+        return metric(round(latest, 4), source="yfinance:RSP/SPY",
+                      asof=ratio.index[-1].strftime("%Y-%m-%d"),
+                      notes="RSP/SPY ratio as breadth divergence proxy. Falling = megacap masking.",
                       ratio_21d_pct=round(ratio_chg * 100, 2),
                       bearish_divergence=divergence)
     except Exception as e:
@@ -507,15 +754,12 @@ def pull_shiller_cape():
                         and "EXCESS" not in h and "TR CAPE" not in h and "TR_CAPE" not in h:
                     cape_candidates.append(ci)
 
-            # Pick the candidate whose latest value is a plausible CAPE (3..70).
-            # This rejects mis-matches like the ECY column (~0.02) or TR CAPE.
             cape = None
             for ci in cape_candidates:
                 v = last_in_range(ci, 3, 70)
                 if v is not None:
                     cape = v
                     break
-            # Last resort: scan every column for a CAPE-shaped series (mostly 8..55).
             if cape is None:
                 for ci in range(df.shape[1]):
                     col = pd.to_numeric(df.iloc[start:, ci], errors="coerce").dropna()
@@ -531,8 +775,6 @@ def pull_shiller_cape():
             if not (3 < cape < 100):
                 raise ValueError(f"CAPE sanity check failed: {cape}")
 
-            # Excess CAPE Yield straight from the workbook, if present.
-            # Shiller stores it as a fraction (0.0183); normalize to percent (1.83).
             ecy_val = None
             if ecy_col is not None:
                 ecy_val = last_in_range(ecy_col, -5, 15)
@@ -549,14 +791,11 @@ def pull_shiller_cape():
 
 # ---------------------------------------------------------------------------
 # Alpaca — S&P 500 constituent breadth internals
-# (powers % > 200-DMA, McClellan, Hindenburg/Titanic proxies)
 # ---------------------------------------------------------------------------
 
 def sp500_constituents():
-    """Best-effort S&P 500 ticker list in Alpaca-native format (dots for class shares).
-    Order: maintained GitHub CSV -> Wikipedia (with UA) -> baked-in static list."""
+    """Best-effort S&P 500 ticker list."""
     ua = {"User-Agent": "Mozilla/5.0 (market-health-dashboard)"}
-    # 1) Maintained dataset CSV (stable, ~500 names, already dot-formatted)
     try:
         url = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
         r = requests.get(url, headers=ua, timeout=30)
@@ -568,7 +807,6 @@ def sp500_constituents():
             return syms, "github_csv"
     except Exception:
         pass
-    # 2) Wikipedia (needs a UA or it 403s)
     try:
         r = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
                          headers=ua, timeout=30)
@@ -580,17 +818,11 @@ def sp500_constituents():
             return syms, "wikipedia"
     except Exception:
         pass
-    # 3) Static safety net
     return list(FALLBACK_SP500), "fallback_static"
 
 
 def alpaca_daily_bars(symbols, api_key, api_secret, days=320):
-    """Pull daily bars for a list of symbols from Alpaca. Returns {sym: DataFrame}.
-
-    Resilient to bad/unsupported symbols: if Alpaca 400s a chunk with
-    'invalid symbol: X', X is dropped and the chunk is retried. One bad ticker
-    (e.g. a class share or a delisted name) never kills the whole pull.
-    """
+    """Pull daily bars for a list of symbols from Alpaca."""
     import re
     headers = {"APCA-API-KEY-ID": api_key, "APCA-API-SECRET-KEY": api_secret}
     start = (datetime.now(timezone.utc) - timedelta(days=int(days * 1.6))).strftime("%Y-%m-%d")
@@ -621,9 +853,9 @@ def alpaca_daily_bars(symbols, api_key, api_secret, days=320):
                         dropped.append(bad)
                         chunk = [s for s in chunk if s != bad]
                     else:
-                        chunk = []  # unparseable; abandon this chunk
+                        chunk = []
                     chunk_done = False
-                    break  # retry the (now smaller) chunk from the top
+                    break
                 if r.status_code != 200:
                     raise RuntimeError(f"Alpaca {r.status_code}: {r.text[:200]}")
                 j = r.json()
@@ -639,7 +871,7 @@ def alpaca_daily_bars(symbols, api_key, api_secret, days=320):
                 if not page_token:
                     break
             if chunk_done:
-                break  # chunk fully processed; move to next chunk
+                break
         time.sleep(0.2)
     if dropped:
         print(f"  [alpaca] dropped {len(dropped)} unsupported symbols: {dropped[:10]}"
@@ -662,13 +894,11 @@ def compute_breadth(bars):
             pct_above_200.append(1)
         else:
             pct_above_200.append(0)
-        # 52-week (252d) new highs/lows
         window = c.iloc[-252:]
         if c.iloc[-1] >= window.max():
             new_highs += 1
         if c.iloc[-1] <= window.min():
             new_lows += 1
-        # advancers/decliners vs prior close
         if len(c) >= 2:
             if c.iloc[-1] > c.iloc[-2]:
                 advancers += 1
@@ -684,8 +914,9 @@ def compute_breadth(bars):
 
 
 def breadth_signals(breadth, mcclellan_val=None, spx_50d_ret=None):
-    """Hindenburg/Titanic/Zweig proxies computed on the S&P 500 universe.
-    Clearly labeled as proxies for the true NYSE-wide indicators."""
+    """Hindenburg/Titanic proxies computed on the S&P 500 universe.
+    Raw flags only — not surfaced in alerts per spec (high false positive rate).
+    Retained as breadth data for the Technical tab."""
     n = breadth.get("universe_counted") or 0
     nh, nl = breadth.get("new_highs", 0), breadth.get("new_lows", 0)
     adv, dec = breadth.get("advancers", 0), breadth.get("decliners", 0)
@@ -694,11 +925,6 @@ def breadth_signals(breadth, mcclellan_val=None, spx_50d_ret=None):
     if n > 0:
         nh_pct = nh / n * 100
         nl_pct = nl / n * 100
-        # ---- Hindenburg Omen: ALL FOUR classic same-day conditions ----
-        # 1) new highs AND new lows each >= 2.2% of issues
-        # 2) neither side overwhelms the other (ratio guard)
-        # 3) index in an uptrend: above its level ~50 sessions ago (spx_50d_ret > 0)
-        # 4) McClellan Oscillator negative (deteriorating internals)
         cond_counts    = nh_pct >= 2.2 and nl_pct >= 2.2 and min(nh, nl) > 0
         cond_ratio     = max(nh_pct, nl_pct) < 2.8 * min(nh_pct, nl_pct) + 5
         cond_uptrend   = (spx_50d_ret is None) or (spx_50d_ret > 0)
@@ -707,17 +933,15 @@ def breadth_signals(breadth, mcclellan_val=None, spx_50d_ret=None):
         signals["hindenburg_omen_today"] = metric(
             hindenburg_raw, status="proxy", source="Alpaca S&P500 internals",
             notes="PROXY on S&P500 (true indicator is NYSE-wide). RAW same-day flag — "
-                  "not actionable alone. Confirmed signal = 2+ raw flags within 30 days "
-                  "(see hindenburg_omen_confirmed).",
+                  "retained as breadth data only. High false positive rate; removed from alerts.",
             new_high_pct=round(nh_pct, 2), new_low_pct=round(nl_pct, 2),
             cond_counts=bool(cond_counts), cond_ratio=bool(cond_ratio),
             cond_uptrend=bool(cond_uptrend), cond_mcclellan=bool(cond_mcclellan))
-        # ---- Titanic Syndrome: new lows exceed new highs (raw same-day) ----
         signals["titanic_syndrome_today"] = metric(
             bool(nl > nh and nh > 0), status="proxy",
             source="Alpaca S&P500 internals",
-            notes="PROXY on S&P500. RAW same-day flag. Confirmed signal requires a 52wk "
-                  "index high within ~7 sessions AND the flag (see titanic_syndrome_confirmed).",
+            notes="PROXY on S&P500. RAW same-day flag. "
+                  "Retained as breadth data only. High false positive rate; removed from alerts.",
             new_highs=nh, new_lows=nl)
     if (adv + dec) > 0:
         zweig_ratio = adv / (adv + dec)
@@ -729,14 +953,12 @@ def breadth_signals(breadth, mcclellan_val=None, spx_50d_ret=None):
 
 
 def mcclellan_oscillator(prev_state, breadth):
-    """McClellan Oscillator needs a running EMA of net advances. On a single run we
-    can only seed it; the alert/state file carries the EMAs forward day to day.
-    Here we emit today's net-advance ratio and let state accumulate over runs."""
+    """McClellan Oscillator — seeds from state, accumulates across daily runs."""
     adv, dec = breadth.get("advancers", 0), breadth.get("decliners", 0)
     if (adv + dec) == 0:
         return unavailable(source="Alpaca S&P500 internals",
                            notes="no advance/decline data this run")
-    rana = (adv - dec) / (adv + dec) * 1000  # ratio-adjusted net advances
+    rana = (adv - dec) / (adv + dec) * 1000
     prev = (prev_state or {}).get("mcclellan", {})
     ema19 = prev.get("ema19")
     ema39 = prev.get("ema39")
@@ -752,7 +974,7 @@ def mcclellan_oscillator(prev_state, breadth):
 
 
 def _spx_50d_return():
-    """SPX % change vs ~50 trading sessions ago. Powers the Hindenburg uptrend filter."""
+    """SPX % change vs ~50 trading sessions ago."""
     try:
         close = _yf_history("^GSPC", period="6mo", interval="1d")["Close"].dropna()
         if len(close) < 51:
@@ -764,9 +986,10 @@ def _spx_50d_return():
 
 def confirm_clusters(history, window_days=30, min_count=2):
     """Promote RAW daily breadth flags to CONFIRMED signals using rolling history.
-    `history` must already include today's snapshot (with hindenburg_raw/titanic_raw).
     Returns dict of confirmed metrics to merge into result['breadth']. These are
-    marked derived=True so they are NOT double-counted in source-health/confidence."""
+    marked derived=True so they are NOT double-counted in source-health/confidence.
+    NOTE: confirmed flags are NOT surfaced in Active Alerts per spec (high FPR).
+    They remain available in the Technical tab as breadth data."""
     today = datetime.now(timezone.utc).date()
     cutoff = today - timedelta(days=window_days)
 
@@ -790,12 +1013,13 @@ def confirm_clusters(history, window_days=30, min_count=2):
             bool(len(hind_dates) >= min_count), status="proxy",
             source="Alpaca S&P500 internals (cluster)", derived=True,
             notes=f"CONFIRMED when {min_count}+ raw flags occur within {window_days} days. "
-                  "This is the actionable signal; the daily flag is not.",
+                  "Retained as breadth data only — NOT an active alert (high false positive rate).",
             count=len(hind_dates), window_days=window_days, dates=hind_dates),
         "titanic_syndrome_confirmed": metric(
             bool(len(tit_dates) >= min_count), status="proxy",
             source="Alpaca S&P500 internals (cluster)", derived=True,
-            notes=f"CONFIRMED when {min_count}+ raw flags occur within {window_days} days.",
+            notes=f"CONFIRMED when {min_count}+ raw flags occur within {window_days} days. "
+                  "Retained as breadth data only — NOT an active alert (high false positive rate).",
             count=len(tit_dates), window_days=window_days, dates=tit_dates),
     }
 
@@ -810,7 +1034,6 @@ def pull_breadth(api_key, api_secret, prev_state, enabled=True):
         syms, src = sp500_constituents()
         bars = alpaca_daily_bars(syms, api_key, api_secret)
         if len(bars) < 100:
-            # Alpaca IEX feed can be sparse; try Finviz fallback for the headline % > 200DMA
             raise RuntimeError(f"Only {len(bars)} symbols returned from Alpaca")
         breadth = compute_breadth(bars)
         out = {
@@ -821,7 +1044,6 @@ def pull_breadth(api_key, api_secret, prev_state, enabled=True):
                 universe=breadth["universe_counted"],
                 below_40=bool((breadth["pct_above_200dma"] or 100) < 40)),
         }
-        # McClellan first, so its value can feed the Hindenburg same-day filter
         out["mcclellan"] = mcclellan_oscillator(prev_state, breadth)
         mc_state = out["mcclellan"].pop("_state", None) if isinstance(out["mcclellan"], dict) else None
         mc_val = out["mcclellan"].get("value") if isinstance(out["mcclellan"], dict) else None
@@ -829,23 +1051,19 @@ def pull_breadth(api_key, api_secret, prev_state, enabled=True):
         out.update(breadth_signals(breadth, mcclellan_val=mc_val, spx_50d_ret=spx_50d_ret))
         return out, {"mcclellan": mc_state} if mc_state else None
     except Exception as e:
-        # Fallback: Finviz for % above 200-DMA only
         fv = finviz_pct_above_200()
         return {"breadth_error": unavailable(source="Alpaca", error=e),
                 "pct_above_200dma": fv}, None
 
 
 def finviz_pct_above_200():
-    """Fallback: scrape Finviz group page for % of S&P stocks above 200-DMA.
-    Fragile by design; used only when Alpaca fails."""
+    """Fallback: scrape Finviz group page for % of S&P stocks above 200-DMA."""
     try:
         headers = {"User-Agent": "Mozilla/5.0 (market-health-dashboard)"}
-        # Finviz exposes SMA200 breadth on the index/group pages; this is best-effort.
         r = requests.get("https://finviz.com/api/counts.ashx?t=sma200",
                          headers=headers, timeout=30)
         r.raise_for_status()
         j = r.json()
-        # shape varies; attempt common keys
         val = None
         if isinstance(j, dict):
             for k in ("above", "pct_above", "value"):
@@ -867,7 +1085,6 @@ def _parse_cboe_csv(text):
     """Parse CBOE put/call CSV. Returns (date_str, ratio_float) or raises."""
     import io, csv as _csv
     lines = [l for l in text.splitlines() if l.strip() and not l.startswith("For")]
-    # Skip header rows until we find the data header
     data_rows = []
     in_data = False
     for line in lines:
@@ -879,24 +1096,16 @@ def _parse_cboe_csv(text):
             data_rows.append(line)
     if not data_rows:
         raise ValueError("No data rows found in CSV")
-    # Last row = most recent trading day
     last = list(_csv.reader([data_rows[-1]]))[0]
-    # Columns: Date, Call, Put, Total, P/C Ratio  (sometimes 4-column, ratio last)
     date_str = last[0].strip()
-    ratio = float(last[-1].strip())   # P/C Ratio is always last column
+    ratio = float(last[-1].strip())
     if not (0.1 <= ratio <= 5.0):
         raise ValueError(f"Implausible ratio: {ratio}")
     return date_str, ratio
 
 
 def pull_put_call():
-    """
-    Fetch CBOE put/call ratio. Tries three endpoints in order:
-    1. totalpc.csv   — total (equity + index) — preferred; most complete
-    2. equitypc.csv  — equity-only (less index hedging distortion)
-    3. Legacy JSON   — old endpoint; often 403 but kept as final fallback
-    CSV format: Date, Call, Put, Total, P/C Ratio
-    """
+    """Fetch CBOE put/call ratio. Tries three endpoints in order."""
     HEADERS = {"User-Agent": "Mozilla/5.0 (market-health-dashboard/1.0)"}
     candidates = [
         ("https://cdn.cboe.com/resources/options/volume_and_call_put_ratios/totalpc.csv",  "total"),
@@ -924,8 +1133,7 @@ def pull_put_call():
             print(f"  put/call: {val:.3f} ({flavor}, {date_str})", flush=True)
             return metric(round(val, 3), source=f"CBOE ({flavor})",
                           notes="Put/call ratio. <0.5=euphoria (contrarian warning); "
-                                ">1.2=fear (contrarian opportunity). "
-                                "Equity-only cleaner than total for sentiment; total more complete.",
+                                ">1.2=fear (contrarian opportunity).",
                           asof=date_str,
                           euphoria=bool(val < 0.5),
                           fear=bool(val > 1.2))
@@ -934,23 +1142,15 @@ def pull_put_call():
             print(f"  put/call {flavor} failed: {e}", flush=True)
             continue
     return unavailable(source="CBOE", error=last_err,
-                       notes="All three CBOE put/call endpoints failed. "
-                             "If totalpc.csv 403s on GitHub Actions, add cdn.cboe.com "
-                             "to network egress allowlist.")
+                       notes="All three CBOE put/call endpoints failed.")
 
 
 # ---------------------------------------------------------------------------
-# Google Trends
+# CNN Fear & Greed
 # ---------------------------------------------------------------------------
 
 def compute_fear_greed(result):
-    """
-    Fetch CNN's Fear & Greed Index directly from their API.
-    Falls back to z-score approximation if CNN is unreachable.
-    Endpoint: https://production.dataviz.cnn.io/index/fearandgreed/graphdata
-    Response: {fear_and_greed: {score, rating, timestamp},
-               fear_and_greed_historical: {data: [{x: unix_ms, y: score, rating}]}}
-    """
+    """Fetch CNN's Fear & Greed Index. Falls back to z-score approximation."""
     CNN_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
     HEADERS = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -970,14 +1170,12 @@ def compute_fear_greed(result):
         if score is None:
             raise ValueError("score missing from CNN response")
         score = round(float(score), 1)
-        # Normalize label to title case
         label = rating.replace("_", " ").title() if rating else (
             "Extreme Fear" if score < 25 else
             "Fear"         if score < 45 else
             "Neutral"      if score < 55 else
             "Greed"        if score < 75 else
             "Extreme Greed")
-        # Capture recent historical daily scores for the tile sparkline (last ~40 pts)
         spark = []
         try:
             hist_data = (j.get("fear_and_greed_historical") or {}).get("data") or []
@@ -990,13 +1188,11 @@ def compute_fear_greed(result):
         print(f"  CNN Fear & Greed: {score} ({label}), {len(spark)} history pts", flush=True)
         return metric(score, source="CNN (production.dataviz.cnn.io)",
                       notes="CNN's official Fear & Greed Index. "
-                            "0=Extreme Fear, 100=Extreme Greed. "
-                            "Updated by CNN throughout the trading day.",
+                            "0=Extreme Fear, 100=Extreme Greed.",
                       label=label, timestamp=str(ts), spark=spark)
     except Exception as e:
         print(f"  CNN Fear & Greed fetch failed ({e}); falling back to z-score", flush=True)
 
-    # ---- Fallback: z-score approximation from our own inputs ----
     def _zs(val, mean, std, invert=False):
         if not std: return 50.0
         z = (val - mean) / std
@@ -1036,23 +1232,25 @@ def compute_fear_greed(result):
     label = ("Extreme Fear" if composite < 25 else "Fear" if composite < 45 else
              "Neutral" if composite < 55 else "Greed" if composite < 75 else "Extreme Greed")
     return metric(composite, source="computed fallback (CNN unreachable)",
-                  notes="CNN API unavailable. Z-score approximation from local inputs. "
-                        "Expect ~10-15pt divergence from official CNN score.",
+                  notes="CNN API unavailable. Z-score approximation from local inputs.",
                   label=label, components=scores, n_inputs=len(scores))
 
 
+# ---------------------------------------------------------------------------
+# Valuation derived metrics
+# ---------------------------------------------------------------------------
+
 def buffett_indicator(raw):
     try:
-        w = raw.get("equity_mktcap")  # NCBEILQ027S, Millions of $, quarterly
+        w = raw.get("equity_mktcap")
         if w is None and FRED_API_KEY:
             try:
                 w = fred_series("NCBEILQ027S", FRED_API_KEY)
             except Exception:
                 w = None
-        g = raw.get("gdp")  # Billions of $, quarterly
+        g = raw.get("gdp")
         if w is None or g is None:
             return unavailable(source="FRED:NCBEILQ027S/GDP", error="inputs missing")
-        # Align quarterly series; scale equities (millions) to billions to match GDP.
         g_aligned = g.reindex(w.index, method="ffill")
         ratio_series = ((w / 1000.0) / g_aligned).dropna()
         if ratio_series.empty:
@@ -1065,8 +1263,7 @@ def buffett_indicator(raw):
         z = (resid[-1] - resid.mean()) / (resid.std() or 1)
         return metric(round(latest, 3), source="FRED:NCBEILQ027S/GDP",
                       asof=ratio_series.index[-1].strftime("%Y-%m-%d"),
-                      notes="Market value of US equities / GDP (Buffett indicator). "
-                            "Watch deviation from trend, not the absolute level.",
+                      notes="Market value of US equities / GDP (Buffett indicator).",
                       deviation_z=round(float(z), 2),
                       elevated=bool(z > 1.0))
     except Exception as e:
@@ -1075,11 +1272,9 @@ def buffett_indicator(raw):
 
 def excess_cape_yield(cape_value, raw, prefilled=None):
     try:
-        # Prefer the value Shiller already computes in the workbook.
         if prefilled is not None:
             return metric(round(float(prefilled), 2), source="Shiller ie_data.xls",
-                          notes="Excess CAPE Yield (from Shiller workbook): CAPE earnings yield "
-                                "minus real bond yield. Lower = stocks less attractive vs bonds.",
+                          notes="Excess CAPE Yield: CAPE earnings yield minus real bond yield.",
                           low=bool(prefilled < 1.0))
         if cape_value is None:
             return unavailable(source="Shiller+FRED:DFII10", error="CAPE unavailable")
@@ -1088,42 +1283,34 @@ def excess_cape_yield(cape_value, raw, prefilled=None):
             return unavailable(source="FRED:DFII10", error="real yield unavailable")
         ecy = (1.0 / cape_value) * 100 - float(real10.iloc[-1])
         return metric(round(ecy, 2), source="Shiller + FRED:DFII10 (computed)",
-                      notes="Excess CAPE Yield = CAPE earnings yield minus real 10yr. "
-                            "Lower = stocks less attractive vs bonds.",
+                      notes="Excess CAPE Yield = CAPE earnings yield minus real 10yr.",
                       low=bool(ecy < 1.0))
     except Exception as e:
         return unavailable(source="Shiller+FRED:DFII10", error=e)
 
 
 def goldman_composite(raw, cape_value):
-    """Percentile-rank five inputs and average -> 0-100 bear-risk-ish score.
-    Higher percentile = more stretched/bear-prone, per Goldman framing."""
+    """Percentile-rank five inputs and average -> 0-100 bear-risk-ish score."""
     parts = {}
     try:
-        # Valuation (CAPE percentile, high = risky)
         if cape_value is not None:
-            # Use a long-run CAPE distribution proxy: rank vs a fixed historical spread.
             parts["valuation"] = clamp(percentile_rank(cape_value,
                                        list(np.linspace(5, 44, 200))) or 50)
-        # Yield curve (low/inverted = risky -> invert percentile)
         yc = raw.get("yield_curve_10y3m")
         if yc is not None:
             p = percentile_rank(float(yc.iloc[-1]), yc.values)
             if p is not None:
                 parts["yield_curve"] = clamp(100 - p)
-        # Unemployment (very low = late cycle = risky -> invert)
         un = raw.get("unemployment")
         if un is not None:
             p = percentile_rank(float(un.iloc[-1]), un.values)
             if p is not None:
                 parts["unemployment"] = clamp(100 - p)
-        # Core inflation YoY (high = risky)
         cpi = raw.get("core_cpi")
         if cpi is not None and len(cpi) > 13:
             yoy = (cpi.iloc[-1] / cpi.iloc[-13] - 1) * 100
             parts["core_inflation"] = clamp(percentile_rank(
                 yoy, ((cpi.pct_change(12) * 100).dropna().values)) or 50)
-        # LEI trend (falling = risky -> invert percentile of level)
         lei = raw.get("lei")
         if lei is not None:
             p = percentile_rank(float(lei.iloc[-1]), lei.values)
@@ -1171,51 +1358,7 @@ def cycle_phase(raw):
                       lei_direction=lei_dir, yield_curve=yc_level,
                       favored_sectors=favored)
     except Exception as e:
-        return unavailable(source="derived", error=e)
-
-
-def composite_risk(structural_inputs, cycle_inputs):
-    """Average available 0-100 inputs into structural & cycle sub-scores, then combine."""
-    def avg(d):
-        vals = [v for v in d.values() if isinstance(v, (int, float))]
-        return (sum(vals) / len(vals)) if vals else None
-
-    s = avg(structural_inputs)
-    c = avg(cycle_inputs)
-    comp = None
-    if s is not None and c is not None:
-        comp = (s + c) / 2
-    elif s is not None:
-        comp = s
-    elif c is not None:
-        comp = c
-
-    def label(x):
-        if x is None:
-            return "Unknown"
-        if x <= 25:
-            return "Low Risk"
-        if x <= 50:
-            return "Moderate Risk"
-        if x <= 75:
-            return "Elevated Risk"
-        return "High Risk"
-
-    return {
-        "composite": metric(round(comp, 1) if comp is not None else None,
-                            status="ok" if comp is not None else "unavailable",
-                            source="derived",
-                            notes="average of structural & cycle sub-scores (available inputs only)",
-                            label=label(comp),
-                            structural_inputs=structural_inputs,
-                            cycle_inputs=cycle_inputs),
-        "structural_score": metric(round(s, 1) if s is not None else None,
-                                   status="ok" if s is not None else "unavailable",
-                                   source="derived", label=label(s)),
-        "cycle_score": metric(round(c, 1) if c is not None else None,
-                              status="ok" if c is not None else "unavailable",
-                              source="derived", label=label(c)),
-    }
+        return unavailable(source="derived: LEI + yield curve", error=e)
 
 
 # ---------------------------------------------------------------------------
@@ -1279,7 +1422,6 @@ def pull_portfolio(positions, risk_score=None):
         tickers = [t for t, _ in positions]
         shares_map = {t: s for t, s in positions}
 
-        # Fetch SPY first as benchmark
         spy_df = yf.download("SPY", period="2y", interval="1d",
                              auto_adjust=True, progress=False)
         if spy_df is None or spy_df.empty:
@@ -1288,7 +1430,6 @@ def pull_portfolio(positions, risk_score=None):
             spy_df.columns = spy_df.columns.droplevel(1)
         spy = spy_df["Close"].dropna() if "Close" in spy_df.columns else spy_df.iloc[:, 0].dropna()
 
-        # Fetch each ticker individually — avoids all multi-ticker column structure issues
         holdings = []
         skipped = []
         for ticker, shares in positions:
@@ -1298,7 +1439,6 @@ def pull_portfolio(positions, risk_score=None):
                 if df is None or df.empty or len(df) < 30:
                     skipped.append(ticker)
                     continue
-                # yfinance sometimes returns MultiIndex columns even for single tickers
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.droplevel(1)
                 px = df["Close"].dropna() if "Close" in df.columns else df.iloc[:, 0].dropna()
@@ -1307,7 +1447,6 @@ def pull_portfolio(positions, risk_score=None):
                     continue
                 price = float(px.iloc[-1])
                 value = price * shares
-                # Beta vs SPY
                 ret = px.pct_change().dropna()
                 spy_ret = spy.pct_change().dropna()
                 r, s = ret.align(spy_ret, join="inner")
@@ -1317,18 +1456,16 @@ def pull_portfolio(positions, risk_score=None):
                     beta = round(cov / var, 2) if var > 0 else 1.0
                 else:
                     beta = 1.0
-                # Sharpe (annualised, ~4.33% risk-free)
                 rf_daily = 0.0433 / 252
                 excess = ret - rf_daily
                 sharpe = round(float(excess.mean() / excess.std() * (252 ** 0.5)), 2) if excess.std() > 0 else 0.0
-                # 1-yr return
                 ret_1y = round(float(px.iloc[-1] / px.iloc[max(-252, -len(px))] - 1) * 100, 1) if len(px) >= 21 else None
                 holdings.append({
                     "ticker": ticker, "shares": shares, "price": round(price, 2),
                     "value": round(value, 2), "beta": beta,
                     "sharpe": sharpe, "ret_1y": ret_1y,
                 })
-                time.sleep(0.1)  # be gentle with Yahoo
+                time.sleep(0.1)
             except Exception as e:
                 skipped.append(f"{ticker}")
                 print(f"  [portfolio] {ticker} skipped: {str(e)[:60]}", file=sys.stderr)
@@ -1377,8 +1514,7 @@ def pull_portfolio(positions, risk_score=None):
 
 
 def interpret(result, fred_raw):
-    """Generate dynamic per-metric readings + a top-level summary and a
-    slightly-prescriptive Watch/Consider list, all from the assembled result."""
+    """Generate dynamic per-metric readings + a top-level summary."""
     R = {"readings": {}, "watch": [], "summary": ""}
 
     def mval(section, key, field="value"):
@@ -1392,8 +1528,6 @@ def interpret(result, fred_raw):
         if isinstance(m, dict) and isinstance(m.get("trend"), dict):
             return m["trend"].get("direction")
         return None
-
-    # ---------- Per-metric readings ----------
 
     # CAPE
     cape = mval("structural", "cape")
@@ -1425,7 +1559,7 @@ def interpret(result, fred_raw):
         R["readings"]["buffett_indicator"] = (f"Total market value vs GDP is {tail} "
                                               f"(z = {bz:+.1f}). Watch the deviation, not the level.")
 
-    # Excess CAPE Yield
+    # ECY
     ecy = mval("structural", "excess_cape_yield")
     if ecy is not None:
         if ecy < 0:
@@ -1458,7 +1592,7 @@ def interpret(result, fred_raw):
             base += f"; {yct} lately"
         R["readings"]["yield_curve_10y3m"] = base + "."
 
-    # Credit spreads (HY OAS)
+    # HY OAS
     hy = mval("macro", "hy_oas")
     hyt = trend_word("macro", "hy_oas")
     if hy is not None:
@@ -1493,14 +1627,14 @@ def interpret(result, fred_raw):
     unt = trend_word("macro", "unemployment")
     if un is not None:
         if unt == "rising":
-            base = f"{un:.1f}% and rising — a turn up from lows is a late-cycle warning (Sahm-rule territory if it accelerates)"
+            base = f"{un:.1f}% and rising — a turn up from lows is a late-cycle warning"
         elif unt == "falling":
             base = f"{un:.1f}% and falling — labor market still firm"
         else:
             base = f"{un:.1f}%, holding steady"
         R["readings"]["unemployment"] = base + "."
 
-    # Inflation (Core PCE preferred, CPI fallback)
+    # Inflation
     for key, label in (("core_pce", "Core PCE"), ("core_cpi", "Core CPI")):
         yoy = mval("macro", key, "yoy_pct")
         ydir = mval("macro", key, "yoy_direction")
@@ -1511,13 +1645,13 @@ def interpret(result, fred_raw):
                 base += f" and {ydir}"
             R["readings"][key] = base + "."
 
-    # Fed funds stance
+    # Fed funds
     ff = mval("macro", "fed_funds")
     fft = trend_word("macro", "fed_funds")
     if ff is not None:
         stance = "cutting" if fft == "falling" else "hiking" if fft == "rising" else "on hold"
         R["readings"]["fed_funds"] = (f"Policy rate {ff:.2f}%, currently {stance}. "
-                                      "Rate-cut cycles have preceded recent recessions — easing is not always bullish.")
+                                      "Rate-cut cycles have preceded recent recessions.")
 
     # Consumer sentiment
     um = mval("macro", "umich_sentiment")
@@ -1543,7 +1677,7 @@ def interpret(result, fred_raw):
         if v is not None:
             base = f"{label} delinquencies at {v:.2f}%"
             if t == "rising":
-                base += " and rising — early sign of consumer stress (leads the economy by months)"
+                base += " and rising — early sign of consumer stress"
             elif t == "falling":
                 base += " and easing"
             R["readings"][key] = base + "."
@@ -1558,7 +1692,7 @@ def interpret(result, fred_raw):
         elif vix < 30:
             tail = "elevated — markets are nervous"
         else:
-            tail = "high — stress/fear regime (often a contrarian bottom signal above 40)"
+            tail = "high — stress/fear regime"
         R["readings"]["vix"] = f"{vix:.1f} — {tail}."
 
     # Breadth
@@ -1577,14 +1711,13 @@ def interpret(result, fred_raw):
         R["readings"]["ad_line_proxy"] = ("Equal-weight is lagging cap-weight — a few megacaps are masking weaker breadth."
                                           if ad_div else "Breadth confirms the index — no divergence.")
 
-    # ---------- Summary + Watch/Consider ----------
+    # Summary
     score = mval("scores", "composite")
     label = mval("scores", "composite", "label") or "Unknown"
     s_parts = []
     if score is not None:
         s_parts.append(f"{label} ({score:.0f}/100).")
 
-    # Valuation clause
     val_flags = []
     if cape_pct is not None and cape_pct >= 85:
         val_flags.append("CAPE near historic highs")
@@ -1595,7 +1728,6 @@ def interpret(result, fred_raw):
     if val_flags:
         s_parts.append("Valuations are stretched — " + ", ".join(val_flags) + ".")
 
-    # Cycle clause
     cyc_bits = []
     if leit == "rising":
         cyc_bits.append("leading indicators still rising")
@@ -1614,7 +1746,6 @@ def interpret(result, fred_raw):
         else:
             s_parts.append("On the cycle: " + joined + ".")
 
-    # Breadth/trigger clause
     if pa is not None:
         if pa < 40:
             s_parts.append("Breadth has broken down — distribution beneath the surface.")
@@ -1625,7 +1756,6 @@ def interpret(result, fred_raw):
 
     R["summary"] = " ".join(s_parts)
 
-    # Watch / Consider (slightly prescriptive)
     watch = []
     if hy is not None and (hy >= 5 or hyt == "rising"):
         watch.append("Credit spreads are the key tell right now — widening here would confirm rising risk.")
@@ -1665,13 +1795,13 @@ def run(no_breadth=False):
         "meta": {
             "generated_utc": utc_iso,
             "generated_display": pt_disp,
-            "schema_version": 2,
+            "schema_version": 3,
             "notes": "Each metric carries status/source. status 'proxy' = computed "
                      "stand-in for a proprietary/unavailable series (see notes).",
         },
         "macro": {}, "structural": {}, "trend": {}, "breadth": {},
         "sentiment": {}, "sectors": {}, "catalysts": {}, "scores": {},
-        "source_health": {},
+        "source_health": {}, "regime": {},
     }
 
     # ---- FRED ----
@@ -1704,7 +1834,6 @@ def run(no_breadth=False):
 
     # ---- Sentiment: put/call + Fear & Greed ----
     result["sentiment"]["put_call"] = pull_put_call()
-    # Fear & Greed computed AFTER breadth/trend/macro are assembled
     result["sentiment"]["fear_greed"] = compute_fear_greed(result)
 
     # ---- Sectors ----
@@ -1714,10 +1843,33 @@ def run(no_breadth=False):
     # ---- Goldman composite ----
     result["scores"]["goldman_composite"] = goldman_composite(fred_raw, cape_value)
 
-    # ---- Composite risk score ----
+    # ---- HY OAS 90d momentum derived metric ----
+    hy_mom_score, hy_mom_bps = hy_momentum_score(fred_raw)
+    result["macro"]["hy_momentum"] = metric(
+        hy_mom_score,
+        status="ok" if hy_mom_score is not None else "unavailable",
+        source="derived: FRED:BAMLH0A0HYM2 (90d momentum)",
+        notes="HY OAS 90-day momentum score (0-100). 50=neutral, >50=widening/risky, <50=tightening/safe.",
+        derived=True,
+        change_90d_bps=hy_mom_bps,
+    )
+
+    # ---- Margin debt YoY ----
+    margin_debt_yoy = None
+    margin_debt_trend = None
+    md = result["macro"].get("margin_debt")
+    if md and md.get("status") == "ok" and md.get("yoy_pct") is not None:
+        margin_debt_yoy = md["yoy_pct"]
+        margin_debt_trend = md.get("trend")
+
+    # ---- Build composite score inputs ----
     structural_inputs = {}
     cyc_inputs = {}
-    # Structural 0-100 contributions (higher = riskier)
+    credit_inputs = {}
+    breadth_inputs = {}
+    labor_inputs = {}
+
+    # Valuation bucket inputs
     cv = result["structural"]["cape"]
     if cv["status"] == "ok" and cv["value"]:
         structural_inputs["cape"] = clamp(percentile_rank(cv["value"],
@@ -1725,49 +1877,110 @@ def run(no_breadth=False):
     bi = result["structural"]["buffett_indicator"]
     if bi["status"] == "ok":
         structural_inputs["buffett"] = clamp(50 + (bi.get("deviation_z", 0) or 0) * 20)
-    ecy = result["structural"]["excess_cape_yield"]
-    if ecy["status"] == "ok" and ecy["value"] is not None:
-        # lower ECY = riskier; map ~[-1,5] to [100,0]
-        structural_inputs["ecy"] = clamp(100 - (ecy["value"] + 1) / 6 * 100)
-    pct200 = result["breadth"].get("pct_above_200dma")
-    if pct200 and pct200.get("status") in ("ok", "proxy") and pct200.get("value") is not None:
-        # lower % above 200dma = riskier
-        structural_inputs["breadth"] = clamp(100 - pct200["value"])
-    # Cycle 0-100 contributions
+    ecy_m = result["structural"]["excess_cape_yield"]
+    if ecy_m["status"] == "ok" and ecy_m["value"] is not None:
+        structural_inputs["ecy"] = clamp(100 - (ecy_m["value"] + 1) / 6 * 100)
+
+    # Cycle bucket inputs
     gc = result["scores"]["goldman_composite"]
     if gc["status"] == "ok":
         cyc_inputs["goldman"] = gc["value"]
-    nfci = fred_raw.get("nfci_leverage")
-    if nfci is not None:
-        p = percentile_rank(float(nfci.iloc[-1]), nfci.values)
-        if p is not None:
-            cyc_inputs["nfci_leverage"] = clamp(p)  # higher leverage = riskier
     ds = fred_raw.get("debt_service")
     if ds is not None:
         p = percentile_rank(float(ds.iloc[-1]), ds.values)
         if p is not None:
             cyc_inputs["debt_service"] = clamp(p)
+    # LEI direction score: falling=100, flat=50, rising=0
+    lei_raw = fred_raw.get("lei")
+    if lei_raw is not None and len(lei_raw) >= 4:
+        lei_tr = series_trend(lei_raw, TREND_LOOKBACK.get("lei", 3))
+        if lei_tr:
+            d = lei_tr.get("direction")
+            cyc_inputs["lei_direction"] = 100 if d == "falling" else 50 if d == "flat" else 0
 
-    result["scores"].update(composite_risk(structural_inputs, cyc_inputs))
+    # Credit bucket inputs
+    ls = fred_raw.get("lending_standards")
+    if ls is not None:
+        sloos_val = float(ls.iloc[-1])
+        # Map SLOOS: >+30% = 100, 0% = 50, <-20% = 0
+        credit_inputs["sloos_pct"] = clamp(50 + sloos_val * (50 / 30))
+    if hy_mom_score is not None:
+        credit_inputs["hy_momentum"] = hy_mom_score
+    nfci = fred_raw.get("nfci_leverage")
+    if nfci is not None:
+        p = percentile_rank(float(nfci.iloc[-1]), nfci.values)
+        if p is not None:
+            credit_inputs["nfci_leverage"] = clamp(p)
+
+    # Breadth bucket inputs
+    pct200 = result["breadth"].get("pct_above_200dma")
+    if pct200 and pct200.get("status") in ("ok", "proxy") and pct200.get("value") is not None:
+        breadth_inputs["pct_above_200"] = clamp(100 - pct200["value"])
+    mc = result["breadth"].get("mcclellan")
+    if mc and mc.get("value") is not None:
+        p = percentile_rank(mc["value"], list(np.linspace(-200, 200, 400)))
+        if p is not None:
+            breadth_inputs["mcclellan"] = clamp(100 - p)  # negative McClellan = risky
+
+    # Labor bucket inputs
+    sahm = fred_raw.get("sahm_rule")
+    if sahm is not None:
+        sahm_val = float(sahm.iloc[-1])
+        # >=0.5 maps to 100, linear below: 0 = 0, 0.5 = 100
+        labor_inputs["sahm_rule"] = clamp(sahm_val / 0.5 * 100)
+    un = fred_raw.get("unemployment")
+    if un is not None:
+        un_val = float(un.iloc[-1])
+        un_tr = series_trend(un, TREND_LOOKBACK.get("unemployment", 3))
+        un_dir = un_tr.get("direction") if un_tr else None
+        if un_dir == "rising" and un_val < 5:
+            labor_inputs["unemp_trend"] = 70
+        elif un_dir == "rising" and un_val >= 5:
+            labor_inputs["unemp_trend"] = 50
+        else:
+            labor_inputs["unemp_trend"] = 20
+    cc = fred_raw.get("cc_delinquency")
+    if cc is not None:
+        p = percentile_rank(float(cc.iloc[-1]), cc.values)
+        if p is not None:
+            labor_inputs["cc_delinq"] = clamp(p)
+
+    result["scores"].update(composite_risk(
+        structural_inputs, cyc_inputs, credit_inputs, breadth_inputs, labor_inputs))
+
+    # ---- Regime Condition Counter ----
+    try:
+        result["regime"] = regime_counter(
+            fred_raw, result,
+            margin_debt_yoy=margin_debt_yoy,
+            margin_debt_trend=margin_debt_trend)
+    except Exception as e:
+        result["regime"] = {
+            "conditions_active": 0,
+            "conditions": {},
+            "label": "Unknown",
+            "label_threshold": "regime counter error",
+            "error": str(e)[:200],
+        }
 
     # ---- Catalysts ----
     result["catalysts"]["upcoming"] = upcoming_catalysts(30)
 
-    # ---- Interpretation: per-metric readings + summary + watch list ----
+    # ---- Interpretation ----
     try:
         result["interpretation"] = interpret(result, fred_raw)
     except Exception as e:
         result["interpretation"] = {"summary": "", "watch": [], "readings": {},
                                     "error": str(e)[:200]}
 
-    # ---- History log (compounds over time; stored in committed state.json) ----
+    # ---- History log ----
     try:
         hist = new_state.get("history", [])
         today = utc_iso[:10]
         snap = {
             "date": today,
             "composite": mval_path(result, "scores", "composite", "value"),
-            "structural": mval_path(result, "scores", "structural_score", "value"),
+            "structural": mval_path(result, "scores", "valuation_score", "value"),
             "cycle": mval_path(result, "scores", "cycle_score", "value"),
             "cape": mval_path(result, "structural", "cape", "value"),
             "buffett_z": mval_path(result, "structural", "buffett_indicator", "deviation_z"),
@@ -1782,14 +1995,18 @@ def run(no_breadth=False):
             "new_low_pct": mval_path(result, "breadth", "hindenburg_omen_today", "new_low_pct"),
             "fear_greed": mval_path(result, "sentiment", "fear_greed", "value"),
             "umich": mval_path(result, "macro", "umich_sentiment", "value"),
+            # NEW history fields
+            "sloos": mval_path(result, "macro", "lending_standards", "value"),
+            "margin_debt_yoy": margin_debt_yoy,
+            "hy_momentum": hy_mom_bps,
+            "regime_count": result["regime"].get("conditions_active"),
+            "credit_score": mval_path(result, "scores", "credit_score", "value"),
+            "labor_score": mval_path(result, "scores", "labor_score", "value"),
         }
-        # one entry per day (replace today's if re-run)
         hist = [h for h in hist if h.get("date") != today]
         hist.append(snap)
-        new_state["history"] = hist[-460:]  # ~15 months of daily points
-        # Expose a compact recent window in latest.json so the dashboard can draw sparklines
+        new_state["history"] = hist[-460:]
         result["history"] = new_state["history"][-90:]
-        # Promote raw flags -> confirmed clusters using the freshly-updated history
         try:
             result["breadth"].update(confirm_clusters(new_state["history"]))
         except Exception as e:
@@ -1801,7 +2018,7 @@ def run(no_breadth=False):
     def walk_status(node, acc):
         if isinstance(node, dict):
             if "status" in node and "value" in node:
-                if not node.get("derived"):   # derived signals don't count vs confidence
+                if not node.get("derived"):
                     acc[node["status"]] = acc.get(node["status"], 0) + 1
             else:
                 for v in node.values():
@@ -1826,6 +2043,7 @@ def mval_path(result, section, key, field="value"):
 def selftest():
     """Offline validation of the pure-math functions (no network)."""
     print("Running offline self-test...")
+
     # MACD / RSI on a synthetic uptrend
     series = list(100 + np.cumsum(np.random.RandomState(0).randn(300) + 0.05))
     m, s, h = macd(series)
@@ -1836,26 +2054,108 @@ def selftest():
     assert lbl in ("rising", "flat", "declining", "unknown"), "slope label failed"
     p = percentile_rank(50, list(range(100)))
     assert abs(p - 50) < 2, f"percentile failed: {p}"
-    # composite
-    cr = composite_risk({"a": 80, "b": 60}, {"c": 40})
-    assert cr["composite"]["value"] == round((70 + 40) / 2, 1), "composite math failed"
-    # breadth signal proxy
+
+    # ---- 5-bucket composite math ----
+    val_inp = {"cape": 80, "buffett": 60, "ecy": 70}
+    cyc_inp = {"goldman": 40, "debt_service": 50}
+    cr_inp  = {"sloos_pct": 60, "hy_momentum": 55, "nfci_leverage": 45}
+    br_inp  = {"pct_above_200": 40, "mcclellan": 35}
+    lb_inp  = {"sahm_rule": 30, "unemp_trend": 20, "cc_delinq": 25}
+
+    scores = composite_risk(val_inp, cyc_inp, cr_inp, br_inp, lb_inp)
+    assert "composite" in scores, "composite key missing"
+    assert "credit_score" in scores, "credit_score key missing"
+    assert "cycle_score" in scores, "cycle_score key missing"
+    assert "valuation_score" in scores, "valuation_score key missing"
+    assert "breadth_score" in scores, "breadth_score key missing"
+    assert "labor_score" in scores, "labor_score key missing"
+    comp_val = scores["composite"]["value"]
+    assert comp_val is not None, "composite value is None"
+    assert 0 <= comp_val <= 100, f"composite out of range: {comp_val}"
+    print(f"  5-bucket composite: {comp_val} label={scores['composite']['label']}")
+
+    # Verify credit sub-score math manually
+    # sloos_pct=60*0.40 + hy_momentum=55*0.35 + nfci=45*0.25 = 24+19.25+11.25=54.5
+    expected_credit = 60 * 0.40 + 55 * 0.35 + 45 * 0.25
+    actual_credit = scores["credit_score"]["value"]
+    assert abs(actual_credit - expected_credit) < 0.2, \
+        f"credit score math wrong: expected {expected_credit}, got {actual_credit}"
+    print(f"  credit_score math check: {actual_credit:.1f} (expected {expected_credit:.1f}) ✓")
+
+    # ---- HY momentum score edge cases ----
+    # Insufficient history returns None
+    short_series = pd.Series(list(range(10)), index=pd.date_range("2024-01-01", periods=10))
+    s_none, b_none = hy_momentum_score({"hy_oas": short_series})
+    assert s_none is None and b_none is None, "hy_momentum_score should return None for short series"
+    print("  hy_momentum_score insufficient history: None ✓")
+
+    # Sufficient history
+    long_series = pd.Series(
+        [3.5] * 65 + [4.5],
+        index=pd.date_range("2023-01-01", periods=66, freq="B")
+    )
+    s_ok, b_ok = hy_momentum_score({"hy_oas": long_series})
+    assert s_ok is not None, "hy_momentum_score returned None for long series"
+    # change_bps = (4.5 - 3.5) * 100 = 100 bps → score = clamp(50 + 100/3) = clamp(83.3) = 83.3
+    assert abs(b_ok - 100.0) < 0.5, f"hy_momentum_score bps wrong: {b_ok}"
+    print(f"  hy_momentum_score 100bps widening: score={s_ok} bps={b_ok} ✓")
+
+    # ---- Regime counter logic (offline stub) ----
+    class _MockFredRaw(dict):
+        pass
+
+    # Build minimal fred_raw with enough data for regime_counter
+    hy_data = pd.Series(
+        [3.0] * 66,
+        index=pd.date_range("2023-01-01", periods=66, freq="B")
+    )
+    lei_data = pd.Series(
+        [100, 99, 98, 97],
+        index=pd.date_range("2024-01-01", periods=4, freq="MS")
+    )
+    yc_data = pd.Series(
+        [-0.2, -0.1, 0.1],
+        index=pd.date_range("2024-01-01", periods=3, freq="MS")
+    )
+    sahm_data = pd.Series(
+        [0.4],
+        index=pd.date_range("2024-01-01", periods=1)
+    )
+    mock_raw = _MockFredRaw({
+        "hy_oas": hy_data,
+        "lei": lei_data,
+        "yield_curve_10y3m": yc_data,
+        "sahm_rule": sahm_data,
+        "lending_standards": pd.Series([10.0], index=pd.date_range("2024-01-01", periods=1)),
+    })
+    # LEI declining 3 consecutive months: lei_data = [100,99,98,97] → 3 declines ✓
+    # Yield curve: was negative, now re-steepening → True
+    # Sahm: 0.4 < 0.5 → False
+    regime = regime_counter(mock_raw, {})
+    assert isinstance(regime["conditions_active"], int), "regime conditions_active not int"
+    assert isinstance(regime["conditions"], dict), "regime conditions not dict"
+    assert len(regime["conditions"]) == 5, "regime must have exactly 5 conditions"
+    assert regime["label"] in ("No signal", "Watch", "Caution", "High Alert"), \
+        f"unexpected regime label: {regime['label']}"
+    print(f"  regime_counter: {regime['conditions_active']} active, label={regime['label']} ✓")
+
+    # ---- breadth signals ----
     bs = breadth_signals({"universe_counted": 500, "new_highs": 20, "new_lows": 18,
                           "advancers": 250, "decliners": 240})
     assert "hindenburg_omen_today" in bs, "breadth signals failed"
-    # mcclellan seeding
+
+    # ---- mcclellan seeding ----
     mc = mcclellan_oscillator({}, {"advancers": 300, "decliners": 200})
     assert mc["status"] == "proxy", "mcclellan failed"
-    # cycle phase + catalysts smoke
+
+    # ---- catalysts smoke ----
     assert upcoming_catalysts(3650), "catalyst calendar empty"
-    print("  MACD:", round(m, 3), "RSI:", round(r, 1), "slope:", lbl)
-    print("  composite:", cr["composite"]["value"], "label:", cr["composite"]["label"])
-    print("  mcclellan osc:", mc["value"])
+
+    print(f"  MACD: {round(m, 3)}  RSI: {round(r, 1)}  slope: {lbl}")
     print("ALL SELF-TESTS PASSED ✅")
 
 
-# Minimal static S&P500 fallback (partial — enough to function if Wikipedia is down).
-# In production Wikipedia provides the full list; this is the safety net.
+# Minimal static S&P500 fallback
 FALLBACK_SP500 = [
     "AAPL","MSFT","NVDA","AMZN","GOOGL","GOOG","META","BRK.B","LLY","AVGO",
     "TSLA","JPM","V","XOM","UNH","MA","JNJ","PG","HD","COST","ABBV","MRK",
