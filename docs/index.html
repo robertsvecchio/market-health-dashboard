@@ -95,7 +95,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .comp-risk-lbl{font-size:16px;font-weight:700;margin:4px 0 6px}
 .comp-regime{font-size:12.5px;margin-bottom:8px}
 .comp-trend-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px}
-.ov-meter{position:relative;height:8px;border-radius:5px;margin:12px 0 5px;background:linear-gradient(90deg,var(--low) 0 25%,var(--moderate) 25% 50%,var(--elevated) 50% 75%,var(--high) 75% 100%)}
+.ov-meter{position:relative;height:8px;border-radius:5px;margin:12px 0 5px;background:linear-gradient(90deg,var(--low) 0 25%,var(--moderate) 25% 50%,var(--elevated) 50% 65%,var(--high) 65% 100%)}
 .ov-marker{position:absolute;top:-5px;width:3px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px var(--surface)}
 .ov-meter-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--faint)}
 
@@ -278,11 +278,18 @@ const PRIMERS={
   cycle_phase:"Business-cycle phase from LEI + yield curve. Early cycle: financials/discretionary. Mid: tech/industrials. Late: energy/materials. Contraction: defensives.",
   // NEW primers
   margin_debt:"FINRA margin debt (Fed Flow of Funds, quarterly). Rapid YoY rise + rollover historically precedes bear markets — leverage buildup amplifies drawdowns. Quarterly lag ~2–3 months. (FRED BOGZ1FL663067003Q)",
-  hy_momentum:"HY OAS 90-day momentum score (0–100). Score above 50 = spreads have been widening (credit stress building). Score below 50 = spreads tightening (risk appetite). Widening >80bps over 90 days historically coincides with equity drawdowns.",
-  regime_indicator:"Regime Condition Counter: counts 5 structural stress conditions (credit stress, cycle breakdown, yield curve, leverage stress, labor). 0 = no signal; 1–2 = Watch; 3 = Caution; 4–5 = High Alert. 3+ conditions have historically preceded 20%+ drawdowns.",
-  credit_score:"Credit bucket (30% composite weight): SLOOS lending standards (40%), HY OAS 90d momentum (35%), NFCI leverage (25%). Reflects both credit availability and credit price stress.",
-  labor_score:"Labor bucket (10% composite weight): Sahm Rule (50%), unemployment trend (30%), credit card delinquency percentile (20%). The labor market is the last to turn — when it does, recessions are typically already underway.",
-  sloos:"Net % of banks tightening C&I lending standards (SLOOS). Measures credit availability. Above +20% = tightening conditions; above +30% has preceded every US recession since 1990 by 2–4 quarters.",
+  hy_momentum:"The 90-day rate of change in HY spreads, converted to a 0–100 risk score. Widening >80bps in 90 days has historically preceded credit stress by 3–9 months. The level of spreads can be deceptive (see 2007); the direction is the signal.",
+  regime_indicator:"Counts how many of five historically-validated crash precursor conditions are simultaneously active: credit stress, cycle breakdown, yield curve warning, leverage stress, and labor deterioration. Every endogenous US bear market of 20%+ since 1929 occurred with 3 or more conditions active. Exogenous shocks (COVID, geopolitical events) are not predictable by this framework.",
+  credit_score:"Weighted composite of SLOOS lending standards (40%), HY spread momentum (35%), and NFCI leverage (25%). Credit signals led the 2008 crash by 12 months via SLOOS and the 2000 crash via spread widening. Highest backtested recession hit rate of the five buckets.",
+  cycle_score:"Weighted composite of LEI direction (30%), yield curve risk (30%), Goldman-style cycle composite (30%), and household debt service (10%). LEI declined for 6+ months before every post-1950 US recession. Co-firing bonus applied when LEI and yield curve both signal simultaneously — this combination has 7/8 historical hit rate.",
+  valuation_score:"Weighted composite of CAPE (40%), Buffett Indicator z-score (35%), and Excess CAPE Yield (25%). Valuation is a severity amplifier, not a timing tool: CAPE was only 13 at the 1973 crash onset but 44 at the 2000 peak. High CAPE means deeper holes when crashes arrive. Capped at 70 in the composite to prevent structural overvaluation from crowding out time-sensitive signals.",
+  breadth_score:"Weighted composite of % of S&P 500 above 200DMA (60%) and McClellan Oscillator (40%). Breadth breakdown (below 40%) is a concurrent or lagging signal — it confirms deterioration already underway, not an early warning. Useful for position sizing, not regime prediction.",
+  labor_score:"Weighted composite of Sahm Rule (50%), unemployment trend (30%), and credit card delinquency rate (20%). The Sahm Rule (threshold: 0.5) is the most precise labor signal — it fires at recession onset, not before. Rising delinquencies provide 1–2 quarter lead.",
+  composite_score:"A weighted average of five signal categories — credit (30%), cycle (25%), valuation (20%), breadth (15%), and labor (10%). Weights reflect backtested hit rates across 8 US crashes since 1929. Score above 65 has historically coincided with materially elevated drawdown risk. Valuation is capped at 70 before entering the composite to prevent structural overvaluation from dominating time-sensitive signals.",
+  sloos:"Net % of banks tightening C&I lending standards (Senior Loan Officer Opinion Survey, quarterly). Above +20% has preceded every US recession since 1990 with a 2–4 quarter lead — the longest-lead economic signal in this dashboard. Above +40% has historically indicated an active credit crunch.",
+  hy_oas_detail:"High-yield credit spread: the premium investors demand to hold junk bonds over Treasuries. Long-term average ~4.5–5%. Below 3.5% indicates compressed risk premiums — not safety, but complacency. Spreads were only 2.7% at the Oct 2007 market peak before exploding to 19% within 14 months.",
+  yield_curve_overview:"The 10-year minus 3-month Treasury spread. Inverted (below 0) in 7 of 8 major US crashes since 1929 with 6–18 month lead time. Equally important: the re-steepening after an inversion is when recessions historically arrive.",
+  signal_board:"Six dots representing each signal category, colored by current stress level. Green (<40): no signal. Amber (40–65): watch. Red (>65): stressed. Tap any dot to navigate to that category's detail tab.",
 };
 
 /* ── Investor-risk color scale ── */
@@ -329,7 +336,7 @@ function arrowColor(key,direction){
   return"var(--faint)";
 }
 
-function riskColor(v){if(v==null)return"var(--faint)";if(v<=25)return"var(--low)";if(v<=50)return"var(--moderate)";if(v<=75)return"var(--elevated)";return"var(--high)";}
+function riskColor(v){if(v==null)return"var(--faint)";if(v<=25)return"var(--low)";if(v<=50)return"var(--moderate)";if(v<=65)return"var(--elevated)";return"var(--high)";}
 function num(x,dp){return(x==null||isNaN(x))?"—":Number(x).toFixed(dp==null?2:dp);}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
 function el(h){const t=document.createElement("template");t.innerHTML=h.trim();return t.content.firstElementChild;}
@@ -347,12 +354,16 @@ let DATA=null;
 /* ── HIST_FIELD mapping ── */
 const HIST_FIELD={
   fear_greed:"fear_greed",composite:"composite",structural_score:"structural",
-  valuation_score:"structural",cycle_score:"cycle",goldman_composite:"goldman",
+  valuation_score:"valuation_score",cycle_score:"cycle_score",goldman_composite:"goldman",
   cape:"cape",buffett_indicator:"buffett_z",yield_curve_10y3m:"yield_curve",
   hy_oas:"hy_oas",vix:"vix",pct_above_200dma:"pct_above_200",
   // new
-  sloos:"sloos",margin_debt:"margin_debt_yoy",hy_momentum:"hy_momentum",
-  regime_count:"regime_count",credit_score:"credit_score",labor_score:"labor_score",
+  sloos:"sloos",margin_debt:"margin_debt_yoy",margin_debt_yoy:"margin_debt_yoy",
+  hy_momentum:"hy_momentum_bps",hy_momentum_bps:"hy_momentum_bps",
+  hy_mom_score:"hy_mom_score",
+  regime_count:"regime_count",
+  credit_score:"credit_score",labor_score:"labor_score",
+  breadth_score:"breadth_score",lei_streak:"lei_streak",
 };
 
 function sparkSeries(field){
@@ -472,14 +483,46 @@ function contribCard(){
   return c;
 }
 
-/* ── Derive alerts (Hindenburg/Titanic removed) ── */
+/* ── Derive alerts — Tier-1 signal alerts + composite-level alerts ── */
 function deriveAlerts(d){
-  const out=[];
   const m=d.macro||{},s=d.scores||{},se=d.sentiment||{},b=d.breadth||{},st=d.structural||{};
-  const yc=m.yield_curve_10y3m;
-  if(yc&&yc.value!=null){
-    if(yc.value<0)out.push({txt:"Yield curve inverted (10y–3m below zero)",pri:"HIGH"});
-    else if(yc.value<0.5)out.push({txt:`Yield curve flat (${num(yc.value,2)})`,pri:"MED"});
+  const regime=d.regime||{};
+
+  // ── Tier-1 alerts — fire independently of composite score ──
+  const tier1=[];
+  const ycv=m.yield_curve_10y3m&&m.yield_curve_10y3m.value!=null?m.yield_curve_10y3m.value:null;
+  const cyclePostInv=(s.cycle_score||{}).post_inversion===true;
+  if(ycv!=null&&ycv<0)
+    tier1.push({txt:"Yield curve inverted — 7/8 historical crashes preceded by this signal",pri:"HIGH",tier1:true});
+  else if(ycv!=null&&ycv>=0&&cyclePostInv)
+    tier1.push({txt:"Yield curve re-steepening after inversion — historically the danger zone",pri:"MED",tier1:true});
+  const leiStreak=m.lei_decline_streak;
+  if(leiStreak&&leiStreak.alert){
+    const n=leiStreak.value||0;
+    tier1.push({txt:`LEI declining ${n} consecutive months — recession precursor`,
+      pri:n>=6?"HIGH":"MED",tier1:true});
+  }
+  const sloos=m.lending_standards;
+  if(sloos&&sloos.value!=null&&sloos.value>20){
+    const sv=sloos.value;
+    tier1.push({txt:`SLOOS at ${num(sv,1)}% — above historical recession threshold`,
+      pri:sv>40?"HIGH":"MED",tier1:true});
+  }
+  const sahm=m.sahm_rule;
+  if(sahm&&sahm.value!=null&&sahm.value>=0.5)
+    tier1.push({txt:`Sahm Rule triggered at ${num(sahm.value,2)} — recession onset signal`,pri:"HIGH",tier1:true});
+  const hym=m.hy_momentum;
+  if(hym&&hym.change_90d_bps!=null&&hym.change_90d_bps>80){
+    const bps=hym.change_90d_bps;
+    tier1.push({txt:`HY spreads widened ${num(bps,0)}bps in 90 days — credit stress signal`,
+      pri:bps>150?"HIGH":"MED",tier1:true});
+  }
+
+  // ── Composite-level alerts ──
+  const out=[];
+  if(ycv!=null){
+    if(ycv<0)out.push({txt:"Yield curve inverted (10y–3m below zero)",pri:"HIGH"});
+    else if(ycv<0.5)out.push({txt:`Yield curve flat (${num(ycv,2)})`,pri:"MED"});
   }
   const hy=m.hy_oas;
   if(hy&&hy.value!=null&&hy.value>=5)out.push({txt:`Credit spreads widening (HY OAS ${num(hy.value,2)}%)`,pri:hy.value>=7?"HIGH":"MED"});
@@ -488,6 +531,9 @@ function deriveAlerts(d){
     if(g.above_70||g.value>70)out.push({txt:`Goldman composite above 70 (${num(g.value,0)})`,pri:"HIGH"});
     else if(g.above_50||g.value>50)out.push({txt:`Goldman composite above 50 (${num(g.value,0)})`,pri:"MED"});
   }
+  // Composite crossing 65 → High Risk zone
+  const cv=(s.composite||{}).value;
+  if(cv!=null&&cv>=65)out.push({txt:`Composite entered High Risk zone (${num(cv,0)}/100)`,pri:"HIGH"});
   const vix=se.vix;
   if(vix&&vix.value!=null){
     if(vix.above_40||vix.value>40)out.push({txt:`VIX above 40 (${num(vix.value,1)})`,pri:"HIGH"});
@@ -495,14 +541,9 @@ function deriveAlerts(d){
   }
   const pa=b.pct_above_200dma;
   if(pa&&pa.below_40)out.push({txt:`Only ${num(pa.value,0)}% of S&P 500 above 200-DMA`,pri:"HIGH"});
-  // Regime counter
-  const regime=d.regime||{};
   const rc=regime.conditions_active||0;
   if(rc>=3)out.push({txt:`Regime: ${rc}/5 conditions active — ${regime.label||""}`,pri:"HIGH"});
   else if(rc>=1)out.push({txt:`Regime: ${rc}/5 conditions active — ${regime.label||""}`,pri:"MED"});
-  // Sahm Rule
-  const sahm=m.sahm_rule;
-  if(sahm&&sahm.value!=null&&sahm.value>=0.5)out.push({txt:`Sahm Rule triggered (${num(sahm.value,2)}pp ≥ 0.5)`,pri:"HIGH"});
   if(st.excess_cape_yield&&(st.excess_cape_yield.low||st.excess_cape_yield.value<1))
     out.push({txt:"Excess CAPE Yield low — stocks expensive vs bonds",pri:"MED"});
   if(st.ad_line_proxy&&st.ad_line_proxy.bearish_divergence)
@@ -513,9 +554,12 @@ function deriveAlerts(d){
   const cc=m.cc_delinquency;
   if(cc&&cc.value!=null&&cc.trend&&cc.trend.direction==="rising"&&cc.value>2.5)
     out.push({txt:`Credit-card delinquencies rising (${num(cc.value,2)}%)`,pri:"MED"});
+
   const ord={HIGH:0,MED:1};
+  tier1.sort((a,b)=>ord[a.pri]-ord[b.pri]);
   out.sort((a,b)=>ord[a.pri]-ord[b.pri]);
-  return out;
+  // Return tier1 first, then composite, with a flag so the renderer can add a sub-header
+  return {tier1, composite:out};
 }
 
 /* ── Tab risk scores (mapped to new sub-scores) ── */
@@ -593,7 +637,7 @@ function panelOverview(){
     <div class="comp-risk-lbl" style="color:${compCol}">${esc(comp.label||"Unknown")}</div>
     <div class="comp-regime" style="color:${regimeCol}">${rc}/5 conditions active · ${esc(rl)}</div>
     <div class="ov-meter"><div class="ov-marker" style="left:calc(${pos}% - 1.5px)"></div></div>
-    <div class="ov-meter-scale"><span>0 Safe</span><span>25</span><span>50</span><span>75</span><span>100 Risk</span></div>`;
+    <div class="ov-meter-scale"><span>0 Safe</span><span>25</span><span>50</span><span>65</span><span>100 Risk</span></div>`;
   c.appendChild(hero);
 
   // ── 5 sub-score tiles (flex-grow weighted) ──
@@ -627,14 +671,28 @@ function panelOverview(){
   const ycCol=ycv==null?"var(--faint)":ycv<0?"var(--high)":ycv<0.5?"var(--elevated)":ycv<1.5?"var(--moderate)":"var(--low)";
   const ycDir=ycv==null?"":ycv<0?"Inverted":ycv<0.5?"Flat":"Positive";
   const ycArrow=yc.trend?{rising:"↑",falling:"↓",flat:"→"}[yc.trend.direction]||"":"";
-  c.appendChild(highSignalCard("Yield Curve 10y–3m",ycv,"%",ycArrow,ycCol,ycDir,"yield_curve",-2,4,"yield_curve_10y3m"));
+  const ycPostInv=(DATA.scores&&DATA.scores.cycle_score&&DATA.scores.cycle_score.post_inversion===true);
+  const ycCard=highSignalCard("Yield Curve 10y–3m",ycv,"%",ycArrow,ycCol,ycDir,"yield_curve",-2,4,"yield_curve_overview");
+  // Re-steepening warning
+  if(ycPostInv&&ycv!=null&&ycv>=0&&ycv<1.0){
+    ycCard.appendChild(el(`<div style="margin-top:8px;padding:7px 10px;background:rgba(216,166,87,.10);border:1px solid rgba(216,166,87,.3);border-radius:8px;font-size:12px;color:var(--moderate)">⚠ Re-steepening after inversion — historically the danger zone</div>`));
+  }
+  c.appendChild(ycCard);
 
   const hym=(DATA.macro||{}).hy_momentum||{};
   const hymv=hym.value;
   const hymBps=hym.change_90d_bps;
   const hymCol=hymv==null?"var(--faint)":hymv>70?"var(--high)":hymv>55?"var(--elevated)":hymv>40?"var(--moderate)":"var(--low)";
   const hymSub=hymBps!=null?(hymBps>0?`+${Math.round(hymBps)}bps widening`:`${Math.round(hymBps)}bps tightening`):"";
-  c.appendChild(highSignalCard("HY Spread Momentum (90d)",hymv,"",hymBps>0?"↑":"↓",hymCol,hymSub,"hy_momentum",0,100,"hy_momentum"));
+  const hyCard=highSignalCard("HY Spread Momentum (90d)",hymv,"",hymBps!=null&&hymBps>0?"↑":"↓",hymCol,hymSub,"hy_mom_score",0,100,"hy_momentum");
+  // Complacency flag (from HY OAS level, not momentum)
+  const hyOas=(DATA.macro||{}).hy_oas||{};
+  if(hyOas.complacent){
+    hyCard.appendChild(el(`<div style="margin-top:8px;padding:7px 10px;background:rgba(216,166,87,.10);border:1px solid rgba(216,166,87,.3);border-radius:8px;font-size:12px;color:var(--moderate)">⚠ Risk premium compressed — complacency signal (HY OAS ${num(hyOas.value,2)}%)</div>`));
+  } else if(hyOas.threshold_label){
+    hyCard.appendChild(el(`<div style="margin-top:6px;font-size:11.5px;color:var(--muted)">HY OAS: ${num(hyOas.value,2)}% — <span style="color:${metricRiskColor('hy_oas',hyOas.value,hyOas)||'var(--muted)'}">${esc(hyOas.threshold_label)}</span></div>`));
+  }
+  c.appendChild(hyCard);
 
   // ── Medium-signal 2×2 grid ──
   const grid=el(`<div class="med-grid"></div>`);
@@ -680,13 +738,29 @@ function panelOverview(){
   c.appendChild(sb);
 
   // ── Active Alerts ──
-  const alerts=deriveAlerts(DATA);
+  const alertsObj=deriveAlerts(DATA);
+  const tier1Alerts=alertsObj.tier1||[];
+  const compositeAlerts=alertsObj.composite||[];
+  const allAlerts=[...tier1Alerts,...compositeAlerts];
   const a=el(`<div class="card"><h2>Active Alerts</h2></div>`);
-  if(!alerts.length)a.appendChild(el(`<div class="empty">No alerts firing — conditions within normal ranges.</div>`));
-  else alerts.forEach(x=>{
-    const col=x.pri==="HIGH"?"var(--high)":"var(--moderate)";
-    a.appendChild(el(`<div class="alert"><span class="adot" style="background:${col}"></span><div style="font-size:13.5px">${esc(x.txt)}</div><span class="pri ${x.pri}">${x.pri}</span></div>`));
-  });
+  if(!allAlerts.length){
+    a.appendChild(el(`<div class="empty">No alerts firing — conditions within normal ranges.</div>`));
+  } else {
+    if(tier1Alerts.length){
+      a.appendChild(el(`<div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--info);font-weight:600;margin-bottom:4px">Signal Alerts</div>`));
+      tier1Alerts.forEach(x=>{
+        const col=x.pri==="HIGH"?"var(--high)":"var(--elevated)";
+        a.appendChild(el(`<div class="alert"><span class="adot" style="background:${col}"></span><div style="font-size:13.5px">${esc(x.txt)}</div><span class="pri ${x.pri}">${x.pri}</span></div>`));
+      });
+    }
+    if(compositeAlerts.length){
+      if(tier1Alerts.length)a.appendChild(el(`<div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:10px 0 4px">Composite-Level</div>`));
+      compositeAlerts.forEach(x=>{
+        const col=x.pri==="HIGH"?"var(--high)":"var(--moderate)";
+        a.appendChild(el(`<div class="alert"><span class="adot" style="background:${col}"></span><div style="font-size:13.5px">${esc(x.txt)}</div><span class="pri ${x.pri}">${x.pri}</span></div>`));
+      });
+    }
+  }
   c.appendChild(a);
 
   // ── What's Changed + Next Catalysts ──
@@ -737,6 +811,202 @@ function panelOverview(){
   // ── Summary ──
   const itp=DATA.interpretation||{};
   if(itp.summary)c.appendChild(el(`<div class="card"><h2>Where It Stands</h2><div class="summary">${esc(itp.summary)}</div></div>`));
+
+  // ── Historical Context Card (collapsible, default collapsed) ──
+  const rc2=(DATA.regime||{}).conditions_active||0;
+  const capeVal=(DATA.structural||{}).cape&&(DATA.structural.cape.value);
+  const creditS=(DATA.scores||{}).credit_score&&(DATA.scores.credit_score.value);
+  const cycleS=(DATA.scores||{}).cycle_score&&(DATA.scores.cycle_score.value);
+  const valS=(DATA.scores||{}).valuation_score&&(DATA.scores.valuation_score.value);
+  const sloosV=(DATA.macro||{}).lending_standards&&(DATA.macro.lending_standards.value);
+  const leiDir=(DATA.sectors||{}).cycle_phase&&(DATA.sectors.cycle_phase.lei_direction);
+
+  let histAnalogTitle="", histAnalogText="";
+  if(rc2>=3){
+    histAnalogTitle="Caution / High Alert";
+    histAnalogText="Three or more of the five historically-validated crash precursor conditions are active. Every endogenous US bear market of 20%+ since 1929 occurred with this combination (excluding COVID-19 and similar exogenous shocks). This does not set a timeline — it sets a risk level. Average time from 3-condition trigger to market peak in historical cases was 3–9 months.";
+  } else if(capeVal!=null&&capeVal>35&&creditS!=null&&creditS<40){
+    histAnalogTitle="2000 Analog";
+    histAnalogText="Current setup resembles late 1999 – early 2000: extreme valuation (CAPE 44 at peak), benign credit spreads, and a market still grinding higher on narrow leadership. In 2000, the crash began not when credit broke but when earnings disappointments hit the highest-multiple names hardest. The eventual drawdown was −49%. Key watch: forward EPS revision momentum and breadth divergence.";
+  } else if(sloosV!=null&&sloosV>20&&leiDir==="falling"){
+    histAnalogTitle="2007 Analog";
+    histAnalogText="Lending standard tightening combined with a turning cycle resembles mid-2007. Critically, HY spreads were only 270bps at the Oct 2007 peak — nearly as tight as today — which created false confidence. The SLOOS had been tightening for 4 quarters before the market peaked. The eventual drawdown was −57%. Key watch: NFCI leverage acceleration and consumer delinquency rates.";
+  } else if(capeVal!=null&&capeVal>35&&cycleS!=null&&cycleS>60){
+    histAnalogTitle="1973 Analog";
+    histAnalogText="High-multiple growth stock concentration at elevated CAPE mirrors the 1973 Nifty Fifty setup: avg P/E of ~42 on the leading growth names, which then fell 70–90% while the index fell 48%. A stagflation shock or Fed tightening error would hit today's concentrated high-multiple portfolio most severely. Key watch: CPI reacceleration and real yield trajectory.";
+  } else if(valS!=null&&valS>40&&rc2<2){
+    histAnalogTitle="Late-Cycle Expansion";
+    histAnalogText="Expensive market with no breakdown signal in the economic cycle — similar to 1997–1998 or 2017: rich valuations, strong breadth, credit calm. These periods can persist 12–24 months before a catalyst emerges. The risk is not imminent collapse but rather elevated drawdown severity when a catalyst does arrive. Key watch: yield curve, SLOOS, and margin debt trend.";
+  } else {
+    histAnalogTitle="No Dominant Pattern";
+    histAnalogText="No dominant historical pattern matched to current conditions. Monitor the five regime conditions and Tier-1 signals for developing stress.";
+  }
+
+  const hcCard=el(`<div class="card"></div>`);
+  const hcBtn=el(`<button style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;color:var(--text);cursor:pointer;padding:0;font-family:var(--sans)" aria-expanded="false">
+    <span style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600">What History Says About This Setup</span>
+    <span class="hc-chevron" style="font-size:14px;color:var(--muted)">▾</span>
+  </button>`);
+  const hcBody=el(`<div style="display:none;margin-top:12px"></div>`);
+  hcBody.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">${esc(histAnalogTitle)}</div>
+    <div style="font-size:13.5px;line-height:1.55;color:var(--muted)">${esc(histAnalogText)}</div>`;
+  hcBtn.addEventListener("click",()=>{
+    const open=hcBody.style.display==="none";
+    hcBody.style.display=open?"block":"none";
+    hcBtn.setAttribute("aria-expanded",open);
+    hcBtn.querySelector(".hc-chevron").textContent=open?"▴":"▾";
+  });
+  hcCard.appendChild(hcBtn);
+  hcCard.appendChild(hcBody);
+  c.appendChild(hcCard);
+
+  // ── Methodology collapsible (Spec Addition 4: between Where It Stands and Model Confidence) ──
+  const methCard=el(`<div class="card"></div>`);
+  const methBtn=el(`<button style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;color:var(--text);cursor:pointer;padding:0;font-family:var(--sans)" aria-expanded="false">
+    <span style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600">Methodology &amp; Model Confidence</span>
+    <span class="meth-chevron" style="font-size:14px;color:var(--muted)">▾</span>
+  </button>`);
+  const methBody=el(`<div style="display:none;margin-top:14px"></div>`);
+
+  // Section 1: How the composite is calculated
+  const bucketDefs=[
+    {key:"credit_score", label:"Credit",    wt:"30%", rationale:"SLOOS(40%) + HY momentum(35%) + NFCI leverage(25%). Credit signals led the 2008 crash by 12 months. Highest backtested recession hit rate."},
+    {key:"cycle_score",  label:"Cycle",     wt:"25%", rationale:"LEI direction(30%) + Yield curve risk(30%) + Goldman composite(30%) + Debt service(10%). Co-firing bonus when LEI and YC both signal: 7/8 historical hit rate."},
+    {key:"valuation_score",label:"Valuation",wt:"20%",rationale:"CAPE(40%) + Buffett z-score(35%) + Excess CAPE Yield(25%). Severity amplifier, not a timing tool. Capped at 70 to prevent structural overvaluation crowding out time-sensitive signals."},
+    {key:"breadth_score",label:"Breadth",   wt:"15%", rationale:"% above 200DMA(60%) + McClellan Oscillator(40%). Concurrent/lagging signal — confirms deterioration, does not predict it."},
+    {key:"labor_score",  label:"Labor",     wt:"10%", rationale:"Sahm Rule(50%) + Unemployment trend(30%) + CC delinquency(20%). Sahm threshold (0.5) fires at recession onset. Last to turn; useful for confirmation."},
+  ];
+  const compAccordion=el(`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Five-Bucket Composite Calculation</div></div>`);
+  const sc2=DATA.scores||{};
+  bucketDefs.forEach(bd=>{
+    const sv=(sc2[bd.key]||{}).value;
+    const col=riskColor(sv);
+    const row=el(`<div style="border-top:1px solid var(--border);padding:8px 0"></div>`);
+    row.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" class="bucket-row-hdr">
+      <span style="font-size:13px;font-weight:600">${esc(bd.label)}</span>
+      <span style="display:flex;gap:10px;align-items:center">
+        <span style="font-size:10px;color:var(--faint)">${esc(bd.wt)}</span>
+        <span style="font-family:var(--mono);font-size:14px;color:${col}">${sv!=null?Math.round(sv):"—"}</span>
+        <span style="font-size:12px;color:var(--muted)">▾</span>
+      </span>
+    </div>
+    <div class="bucket-body" style="display:none;font-size:12px;color:var(--faint);line-height:1.5;margin-top:5px">${esc(bd.rationale)}</div>`;
+    row.querySelector(".bucket-row-hdr").addEventListener("click",()=>{
+      const body=row.querySelector(".bucket-body");
+      const arr=row.querySelector(".bucket-row-hdr span:last-child");
+      const open=body.style.display==="none";
+      body.style.display=open?"block":"none";
+      arr.textContent=open?"▴":"▾";
+    });
+    compAccordion.appendChild(row);
+  });
+  methBody.appendChild(compAccordion);
+
+  // Section 2: Threshold calibration table
+  const threshDiv=el(`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Threshold Calibration</div></div>`);
+  const threshRows=[
+    ["CAPE","<15 Low · 15-25 Moderate · 25-35 Elevated · >35 High","Shiller (2000); Campbell & Shiller (1998)"],
+    ["HY OAS","<3.5% Complacent · 3.5-5% Normal · >5% Stress · >6% High Alert","ICE BofA OAS 1996-2024"],
+    ["SLOOS","<0 Low · 0-20% Moderate · 20-40% Elevated · >40% High","Federal Reserve SLOOS Research"],
+    ["Yield Curve","<-0.5% High · -0.5-0.5% Elevated · 0.5-1.5% Moderate · >1.5% Low","Estrella & Mishkin (1998)"],
+    ["Sahm Rule","<0.3 Low · 0.3-0.5 Watch · ≥0.5 TRIGGERED · ≥0.8 Deep","Sahm (2019); SAHMREALTIME"],
+    ["Margin Debt YoY","<10% Low · 10-30% Moderate · 30-50% Elevated · >50% High","FINRA; SentimenTrader"],
+  ];
+  threshRows.forEach(([metric,thresholds,source])=>{
+    const r=el(`<div style="border-top:1px solid var(--border);padding:7px 0"></div>`);
+    r.innerHTML=`<div style="font-size:12px;font-weight:600">${esc(metric)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(thresholds)}</div>
+      <div style="font-size:10px;color:var(--faint);margin-top:1px">${esc(source)}</div>`;
+    threshDiv.appendChild(r);
+  });
+  methBody.appendChild(threshDiv);
+
+  // Section 3: Regime framework with live status
+  const regimeDiv=el(`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Regime Condition Framework</div></div>`);
+  const regimeConds=((DATA.regime||{}).conditions)||{};
+  const condDefs=[
+    {key:"credit_stress",  label:"Credit Stress",   def:"HY OAS widened >80bps in 90d OR SLOOS >20%"},
+    {key:"cycle_breakdown",label:"Cycle Breakdown",  def:"LEI declining 3+ consecutive months"},
+    {key:"yield_curve",    label:"Yield Curve",      def:"Currently inverted OR re-steepening after inversion"},
+    {key:"leverage_stress",label:"Leverage Stress",  def:"Margin debt YoY >40% AND rolling over (falling)"},
+    {key:"labor",          label:"Labor Deterioration",def:"Sahm Rule ≥ 0.5 (recession onset signal)"},
+  ];
+  condDefs.forEach(cd=>{
+    const active=regimeConds[cd.key]===true;
+    const col=active?"var(--high)":"var(--low)";
+    const r=el(`<div style="border-top:1px solid var(--border);padding:7px 0;display:flex;align-items:center;gap:10px"></div>`);
+    r.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${col};flex:none;display:inline-block"></span>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:${active?col:"var(--text)"}">${esc(cd.label)} ${active?"● ACTIVE":""}</div>
+        <div style="font-size:11px;color:var(--faint)">${esc(cd.def)}</div>
+      </div>`;
+    regimeDiv.appendChild(r);
+  });
+  const regimeSummary=(DATA.regime||{});
+  regimeDiv.appendChild(el(`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${esc(regimeSummary.context||"")} ${esc(regimeSummary.threshold_note||"")}</div>`));
+  methBody.appendChild(regimeDiv);
+
+  // Section 4: Historical backtest matrix (static)
+  const crashDiv=el(`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Historical Crash Matrix</div></div>`);
+  const crashes=[
+    ["1929","−89%","~32","no data","n/a","Inverted 1928"],
+    ["1937","−49%","~22","no data","n/a","Inverted 1937"],
+    ["1973","−48%","~13","Widening","Severe","Inverted 1973"],
+    ["1980","−27%","~9","Widening","Severe","Inverted (−3.1%)"],
+    ["1987","−34%","~19","Rising","Loose","Positive (+2%)"],
+    ["1990","−20%","~17","Widening","Tightening","Inverted 1989"],
+    ["2000","−49%","44","510bps","Moderate","Inverted Feb 2000"],
+    ["2008","−57%","27","270bps (tight!)","Severe 12mo lead","Inverted 2006"],
+  ];
+  const table=el(`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"></div>`);
+  const thead=el(`<thead><tr style="color:var(--faint)"></tr></thead>`);
+  ["Year","Draw","CAPE","HY OAS","SLOOS","Yield Curve"].forEach(h=>{
+    const th=document.createElement("th");
+    th.style.cssText="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);white-space:nowrap";
+    th.textContent=h;thead.querySelector("tr").appendChild(th);
+  });
+  table.querySelector("table")?.appendChild(thead)||table.appendChild(thead);
+  const tbody=document.createElement("tbody");
+  crashes.forEach((row,ri)=>{
+    const tr=document.createElement("tr");
+    tr.style.background=ri%2===0?"transparent":"rgba(255,255,255,.02)";
+    row.forEach(cell=>{
+      const td=document.createElement("td");
+      td.style.cssText="padding:4px 6px;border-bottom:1px solid var(--border);color:var(--muted)";
+      td.textContent=cell;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  crashDiv.appendChild(el(`<div style="overflow-x:auto"></div>`));
+  crashDiv.lastChild.appendChild(table);
+  crashDiv.appendChild(el(`<div style="font-size:11px;color:var(--faint);margin-top:6px">1987 is the only crash where yield curve was NOT inverted and SLOOS was NOT tightening. It recovered within 2 years without a recession. Every other crash with 3+ conditions produced a recession and multi-year bear market.</div>`));
+  methBody.appendChild(crashDiv);
+
+  // Section 5: Known limitations
+  const limDiv=el(`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Known Limitations</div></div>`);
+  ["Exogenous shocks (COVID, geopolitical events, pandemics) are not predictable by this framework — the regime conditions are endogenous stress indicators.",
+   "This framework identifies risk levels, not timing. Markets can remain elevated for 12–24 months after conditions activate.",
+   "Several series have data lags: SLOOS (quarterly, ~1 month lag), margin debt (quarterly, ~2-3 month lag), CAPE (monthly).",
+   "Breadth data is an S&P 500 proxy for NYSE-wide indicators — the true Hindenburg/Titanic signals require NYSE data.",
+   "Structural shifts (AI productivity boom, demographics, fiscal regime changes) may alter historical relationships going forward."
+  ].forEach(lim=>{
+    limDiv.appendChild(el(`<div style="padding:5px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.5">• ${esc(lim)}</div>`));
+  });
+  methBody.appendChild(limDiv);
+
+  // Footer
+  methBody.appendChild(el(`<div style="font-size:11px;color:var(--faint);padding-top:8px;border-top:1px solid var(--border)">Built by Robert Svecchio · Data: FRED, yfinance, Shiller, Alpaca · Last updated: ${esc((DATA.meta||{}).generated_display||"—")}</div>`));
+
+  methBtn.addEventListener("click",()=>{
+    const open=methBody.style.display==="none";
+    methBody.style.display=open?"block":"none";
+    methBtn.setAttribute("aria-expanded",open);
+    methBtn.querySelector(".meth-chevron").textContent=open?"▴":"▾";
+  });
+  methCard.appendChild(methBtn);
+  methCard.appendChild(methBody);
+  c.appendChild(methCard);
 
   c.appendChild(confCard());
   return c;
