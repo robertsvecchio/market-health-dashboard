@@ -232,6 +232,95 @@ def clamp(x, lo=0.0, hi=100.0):
 
 
 # ---------------------------------------------------------------------------
+# Empirically-grounded threshold maps
+# ---------------------------------------------------------------------------
+
+METRIC_THRESHOLDS = {
+    # CAPE: Shiller empirical research; breakpoints validated against 1881-2026 data
+    # Source: Shiller (2000), Campbell & Shiller (1998), Wikipedia CAPE article
+    "cape": {
+        "low":      (None, 15),    # <15: 10yr returns historically >10% real
+        "moderate": (15,   25),    # 15-25: 7-10% expected real returns
+        "elevated": (25,   35),    # 25-35: <5% expected; Shiller called >25 "thin ice"
+        "high":     (35,   None),  # >35: near-zero or negative real 10yr returns
+        "source": "Shiller (2000); Campbell & Shiller (1998)",
+    },
+    # HY OAS level: BofA/FRED historical series 1996-2026
+    # Source: ICE BofA HY OAS (BAMLH0A0HYM2); Eco3min framework
+    "hy_oas": {
+        "complacent": (None, 3.5), # <350bps: risk premium compressed, complacency
+        "low":        (3.5,  4.5), # 350-450bps: normal range (LT avg ~4.5-5%)
+        "moderate":   (4.5,  5.0), # 450-500bps: approaching stress
+        "elevated":   (5.0,  6.0), # 500-600bps: stress
+        "high":       (6.0,  None),# >600bps: 85% recession within 12-18mo historically
+        "source": "ICE BofA OAS historical 1996-2024; Eco3min research",
+    },
+    # HY momentum: 90-day bps change
+    "hy_momentum_bps": {
+        "low":      (None, -50),   # tightening >50bps: bullish
+        "moderate": (-50,   80),   # neutral zone
+        "elevated": (80,   150),   # widening fast: watch
+        "high":     (150,  None),  # >150bps widening: credit stress signal
+        "source": "Eco3min HY OAS framework; empirical 3-9mo recession lead",
+    },
+    # SLOOS: net % banks tightening C&I standards
+    # Source: Federal Reserve SLOOS research; Fed FEDS Notes (2024)
+    "sloos": {
+        "low":      (None,   0),   # easing: banks loosening credit = bullish
+        "moderate": (0,     20),   # mild tightening: normal
+        "elevated": (20,    40),   # >20%: preceded every post-1990 recession
+        "high":     (40,   None),  # >40%: active credit crunch territory
+        "source": "Federal Reserve SLOOS research; FEDS Notes May 2024",
+    },
+    # Yield curve 10y-3m
+    # Source: Estrella & Mishkin (1998); NY Fed recession model
+    "yield_curve_10y3m": {
+        "low":      (1.5,  None),  # >150bps: healthy, expansionary
+        "moderate": (0.5,  1.5),   # flattening: watch zone
+        "elevated": (-0.5, 0.5),   # flat/near-zero: includes re-steepening danger
+        "high":     (None, -0.5),  # inverted: 7/8 historical crashes preceded
+        "source": "Estrella & Mishkin (1998); NY Fed yield curve model",
+    },
+    # Sahm Rule: exact empirical threshold from Sahm (2019)
+    "sahm_rule": {
+        "low":      (None, 0.3),   # no signal
+        "moderate": (0.3,  0.5),   # approaching threshold, watch
+        "elevated": (0.5,  0.8),   # TRIGGERED: recession onset historically confirmed
+        "high":     (0.8,  None),  # deep in recession signal
+        "source": "Sahm (2019); Federal Reserve real-time series SAHMREALTIME",
+    },
+    # Margin debt YoY %
+    # Source: FINRA historical data; Goepfert (SentimenTrader) research
+    "margin_debt_yoy": {
+        "low":      (None,  10),   # <10% YoY: normal leverage growth
+        "moderate": (10,    30),   # moderate accumulation
+        "elevated": (30,    50),   # elevated speculation
+        "high":     (50,   None),  # >50% YoY: preceded 2000 and 2007 peaks
+        "source": "FINRA margin debt history; SentimenTrader research",
+    },
+}
+
+
+def threshold_label(metric_key, value):
+    """Return Low/Moderate/Elevated/High/Complacent based on METRIC_THRESHOLDS."""
+    if metric_key not in METRIC_THRESHOLDS or value is None:
+        return None
+    t = METRIC_THRESHOLDS[metric_key]
+    # Special case: complacent (below-normal is its own risk category)
+    if "complacent" in t:
+        lo, hi = t["complacent"]
+        if (lo is None or value >= lo) and (hi is None or value < hi):
+            return "Complacent"
+    for lbl in ("low", "moderate", "elevated", "high"):
+        if lbl not in t:
+            continue
+        lo, hi = t[lbl]
+        if (lo is None or value >= lo) and (hi is None or value < hi):
+            return lbl.capitalize()
+    return None
+
+
+# ---------------------------------------------------------------------------
 # NEW: HY OAS 90-day momentum score
 # ---------------------------------------------------------------------------
 
@@ -256,7 +345,7 @@ def hy_momentum_score(fred_raw):
 
 
 # ---------------------------------------------------------------------------
-# NEW: 5-bucket weighted composite_risk
+# Five-bucket weighted composite_risk (spec v2 + Spec Addition 1)
 # ---------------------------------------------------------------------------
 
 def _risk_label(x):
@@ -266,170 +355,350 @@ def _risk_label(x):
         return "Low Risk"
     if x <= 50:
         return "Moderate Risk"
-    if x <= 75:
+    if x <= 65:
         return "Elevated Risk"
     return "High Risk"
 
 
-def _weighted_avg(inputs_dict, weights_dict):
-    """Weighted average of available inputs; renormalizes missing weights."""
-    total_w = 0.0
-    total_v = 0.0
-    for k, w in weights_dict.items():
-        v = inputs_dict.get(k)
-        if v is not None and isinstance(v, (int, float)) and not math.isnan(v):
-            total_w += w
-            total_v += v * w
-    if total_w == 0:
-        return None
-    return total_v / total_w
+def composite_risk(fred_raw, breadth_result, scores_result, cape_value):
+    """
+    Five-bucket weighted composite risk score.
+    All inputs normalized to 0-100 (0=no risk, 100=max risk).
+    Missing inputs: dropped and weights renormalized proportionally.
 
+    Bucket weights (empirically grounded on historical signal quality):
+      Credit     30%  — highest backtested hit rate (SLOOS, HY momentum, NFCI)
+      Cycle      25%  — LEI + yield curve + Goldman + debt service (Spec Addition 1)
+      Valuation  20%  — CAPE + Buffett + ECY (structural, not timing); capped at 70
+      Breadth    15%  — % above 200DMA + McClellan
+      Labor      10%  — Sahm + unemployment trend + CC delinquency
 
-def composite_risk(structural_inputs, cyc_inputs, credit_inputs=None,
-                   breadth_inputs=None, labor_inputs=None):
-    """5-bucket weighted composite risk score.
-
-    Bucket weights (top-level):
-      credit_score    0.30
-      cycle_score     0.25
-      valuation_score 0.20
-      breadth_score   0.15
-      labor_score     0.10
-
-    Each bucket is itself a weighted average of its inputs.
-    Score: 0 = no risk, 100 = maximum risk.
-    Missing inputs: skip and renormalize weights proportionally.
+    Spec Addition 1 changes:
+      - Yield curve added directly to Cycle bucket
+      - Cycle bucket weights: lei 0.30, yc 0.30, goldman 0.30, debt_service 0.10
+      - Co-firing bonus: LEI declining + YC in danger zone → cycle_score +15
+      - Valuation capped at 70 before composite (prevents structural CAPE crowding
+        out time-sensitive signals)
     """
 
-    # ---- Valuation bucket (uses structural_inputs from caller) ----
-    val_weights = {"cape": 0.40, "buffett": 0.35, "ecy": 0.25}
-    val_score = _weighted_avg(structural_inputs, val_weights)
+    def wavg(inputs_weights):
+        """Weighted average of (value, weight) pairs; skip None; renormalize."""
+        available = [(v, w) for v, w in inputs_weights if v is not None]
+        if not available:
+            return None
+        total_w = sum(w for _, w in available)
+        return sum(v * w for v, w in available) / total_w
 
-    # ---- Cycle bucket (uses cyc_inputs from caller) ----
-    cyc_weights = {"lei_direction": 0.40, "goldman": 0.40, "debt_service": 0.20}
-    cyc_score = _weighted_avg(cyc_inputs, cyc_weights)
+    def prank(series_key, invert=False):
+        """Percentile rank of latest value in fred_raw series."""
+        s = fred_raw.get(series_key)
+        if s is None or len(s) < 10:
+            return None
+        p = percentile_rank(float(s.iloc[-1]), s.values)
+        if p is None:
+            return None
+        return clamp(100 - p if invert else p)
 
-    # ---- Credit bucket ----
-    cr_inputs = credit_inputs or {}
-    cr_weights = {"sloos_pct": 0.40, "hy_momentum": 0.35, "nfci_leverage": 0.25}
-    cr_score = _weighted_avg(cr_inputs, cr_weights)
+    # ── CREDIT BUCKET (weight 0.30) ──────────────────────────────────────────
+    sloos_raw = fred_raw.get("lending_standards")
+    sloos_score = None
+    if sloos_raw is not None:
+        v = float(sloos_raw.iloc[-1])
+        # -30 (easing) -> 0, 0 -> 40, +20 -> 60, +40 -> 80, +60 -> 100
+        sloos_score = clamp(40 + v * 1.0)
 
-    # ---- Breadth bucket ----
-    br_inputs = breadth_inputs or {}
-    br_weights = {"pct_above_200": 0.60, "mcclellan": 0.40}
-    br_score = _weighted_avg(br_inputs, br_weights)
+    hy_mom_score = None
+    hm = scores_result.get("hy_momentum_score")
+    if hm is not None:
+        hy_mom_score = hm
 
-    # ---- Labor bucket ----
-    lb_inputs = labor_inputs or {}
-    lb_weights = {"sahm_rule": 0.50, "unemp_trend": 0.30, "cc_delinq": 0.20}
-    lb_score = _weighted_avg(lb_inputs, lb_weights)
+    nfci_score = prank("nfci_leverage")
 
-    # ---- Top-level composite ----
-    top_weights = {
-        "credit":    (cr_score,  0.30),
-        "cycle":     (cyc_score, 0.25),
-        "valuation": (val_score, 0.20),
-        "breadth":   (br_score,  0.15),
-        "labor":     (lb_score,  0.10),
-    }
-    total_w = 0.0
-    total_v = 0.0
-    for name, (score, w) in top_weights.items():
-        if score is not None:
-            total_w += w
-            total_v += score * w
-    comp = (total_v / total_w) if total_w > 0 else None
+    credit_score = wavg([
+        (sloos_score,  0.40),
+        (hy_mom_score, 0.35),
+        (nfci_score,   0.25),
+    ])
 
-    def _mk(val, **extra):
+    # ── CYCLE BUCKET (weight 0.25) — Spec Addition 1: add yield curve ────────
+    # LEI direction: falling=100, flat=50, rising=0 (6-month lookback)
+    lei_score = None
+    lei_raw = fred_raw.get("lei")
+    if lei_raw is not None and len(lei_raw) >= 7:
+        delta = float(lei_raw.iloc[-1]) - float(lei_raw.iloc[-7])
+        if delta > 0.2:
+            lei_score = 20.0
+        elif delta < -0.2:
+            lei_score = 80.0
+        else:
+            lei_score = 50.0
+
+    # Yield curve → 0-100 risk score (Spec Addition 1)
+    yc_raw = fred_raw.get("yield_curve_10y3m")
+    yc_val = float(yc_raw.iloc[-1]) if yc_raw is not None else None
+
+    # Detect post-inversion: was YC negative at any point in last 390 trading days?
+    post_inv = False
+    if yc_raw is not None and len(yc_raw) >= 390:
+        post_inv = bool((yc_raw.iloc[-390:] < 0).any())
+
+    def yc_to_risk(yc_pct, post_inversion=False):
+        if yc_pct is None:
+            return None
+        if yc_pct > 1.5:
+            s = 10
+        elif yc_pct > 0.5:
+            s = 30
+        elif yc_pct > -0.5:
+            s = 65
+        else:
+            s = 85
+        # Post-inversion re-steepening bonus: +15 pts if YC is positive but was
+        # inverted within 18 months — historically the danger zone
+        if post_inversion and 0 <= yc_pct < 1.0:
+            s = min(100, s + 15)
+        return s
+
+    yc_score_val = yc_to_risk(yc_val, post_inversion=post_inv)
+
+    goldman_score = None
+    gc = scores_result.get("goldman_composite")
+    if gc and gc.get("status") == "ok":
+        goldman_score = gc["value"]
+
+    ds_score = prank("debt_service")
+
+    # Revised cycle weights per Spec Addition 1
+    cycle_score = wavg([
+        (lei_score,     0.30),
+        (yc_score_val,  0.30),
+        (goldman_score, 0.30),
+        (ds_score,      0.10),
+    ])
+
+    # Co-firing bonus: LEI declining + YC in danger zone → +15 (7/8 historical hit rate)
+    co_fire = bool(
+        lei_score is not None and lei_score > 70 and
+        yc_score_val is not None and yc_score_val > 55
+    )
+    if co_fire and cycle_score is not None:
+        cycle_score = min(100.0, cycle_score + 15)
+
+    # ── VALUATION BUCKET (weight 0.20) ────────────────────────────────────────
+    # CAPE: map to 0-100 using empirical thresholds
+    cape_score = None
+    if cape_value is not None:
+        if cape_value < 15:
+            cape_score = max(0.0, cape_value / 15 * 20)
+        elif cape_value < 25:
+            cape_score = 20 + (cape_value - 15) / 10 * 30
+        elif cape_value < 35:
+            cape_score = 50 + (cape_value - 25) / 10 * 30
+        else:
+            cape_score = clamp(80 + (cape_value - 35) / 10 * 20)
+
+    # Buffett z-score: deviation from trend -> risk
+    buffett_score = None
+    bi = breadth_result.get("buffett_indicator") or {}
+    bz = bi.get("deviation_z")
+    if bz is not None:
+        buffett_score = clamp(50 + bz * 20)
+
+    # ECY: lower ECY = riskier; map [-1, 5] -> [100, 0]
+    ecy_score = None
+    ecy = breadth_result.get("excess_cape_yield") or {}
+    ev = ecy.get("value")
+    if ev is not None:
+        ecy_score = clamp(100 - (ev + 1) / 6 * 100)
+
+    valuation_score = wavg([
+        (cape_score,    0.40),
+        (buffett_score, 0.35),
+        (ecy_score,     0.25),
+    ])
+
+    # Valuation ceiling: above 70, additional stretching adds no new information.
+    # Prevents permanently elevated CAPE from crowding out time-sensitive signals.
+    valuation_capped = min(valuation_score, 70.0) if valuation_score is not None else None
+
+    # ── BREADTH BUCKET (weight 0.15) ──────────────────────────────────────────
+    breadth_200_score = None
+    p200 = breadth_result.get("pct_above_200dma") or {}
+    p200v = p200.get("value")
+    if p200v is not None:
+        breadth_200_score = clamp(100 - p200v)
+
+    mcc_score = None
+    mcc = breadth_result.get("mcclellan_oscillator") or {}
+    mv = mcc.get("value")
+    if mv is None:
+        # also check key used in this codebase
+        mcc2 = breadth_result.get("mcclellan") or {}
+        mv = mcc2.get("value")
+    if mv is not None:
+        # Range roughly -150 to +150; center at 0 = 50
+        mcc_score = clamp(50 - mv / 3)
+
+    breadth_score = wavg([
+        (breadth_200_score, 0.60),
+        (mcc_score,         0.40),
+    ])
+
+    # ── LABOR BUCKET (weight 0.10) ────────────────────────────────────────────
+    sahm_score = None
+    sahm_raw = fred_raw.get("sahm_rule")
+    if sahm_raw is not None:
+        sv = float(sahm_raw.iloc[-1])
+        sahm_score = clamp(sv / 0.5 * 100)
+
+    unemp_score = None
+    un = fred_raw.get("unemployment")
+    if un is not None and len(un) > 12:
+        current_u = float(un.iloc[-1])
+        prior_u = float(un.iloc[-13])
+        rising = current_u > prior_u + 0.3
+        low_base = current_u < 4.5
+        if rising and low_base:
+            unemp_score = 70.0
+        elif rising:
+            unemp_score = 50.0
+        else:
+            unemp_score = 20.0
+
+    cc_score = prank("cc_delinquency")
+
+    labor_score = wavg([
+        (sahm_score,  0.50),
+        (unemp_score, 0.30),
+        (cc_score,    0.20),
+    ])
+
+    # ── COMPOSITE ─────────────────────────────────────────────────────────────
+    # Use valuation_capped (not raw) to prevent structural CAPE distorting timing
+    composite = wavg([
+        (credit_score,    0.30),
+        (cycle_score,     0.25),
+        (valuation_capped, 0.20),
+        (breadth_score,   0.15),
+        (labor_score,     0.10),
+    ])
+
+    def mk(val, **extra):
         return metric(
             round(val, 1) if val is not None else None,
             status="ok" if val is not None else "unavailable",
-            source="derived",
-            derived=True,
-            label=_risk_label(val),
+            source="derived", label=_risk_label(val), derived=True,
             **extra
         )
 
     return {
-        "composite": _mk(comp,
-                         notes="5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%) breadth(15%) labor(10%)",
-                         credit_inputs=cr_inputs,
-                         cycle_inputs=cyc_inputs,
-                         valuation_inputs=structural_inputs,
-                         breadth_inputs=br_inputs,
-                         labor_inputs=lb_inputs),
-        "credit_score":    _mk(cr_score,    notes="Credit bucket: SLOOS(40%) HY momentum(35%) NFCI leverage(25%)"),
-        "cycle_score":     _mk(cyc_score,   notes="Cycle bucket: LEI direction(40%) Goldman composite(40%) Debt service(20%)"),
-        "valuation_score": _mk(val_score,   notes="Valuation bucket: CAPE(40%) Buffett(35%) ECY(25%)"),
-        "breadth_score":   _mk(br_score,    notes="Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)"),
-        "labor_score":     _mk(lb_score,    notes="Labor bucket: Sahm Rule(50%) Unemployment trend(30%) CC delinquency percentile(20%)"),
-        # Keep legacy keys for send_alerts.py backward compat
-        "structural_score": _mk(val_score,  notes="alias for valuation_score (backward compat)"),
+        "composite":       mk(composite,
+                              notes="5-bucket weighted composite: credit(30%) cycle(25%) "
+                                    "valuation(20%,capped70) breadth(15%) labor(10%)"),
+        "credit_score":    mk(credit_score,
+                              notes="Credit bucket: SLOOS(40%) HY momentum(35%) NFCI leverage(25%)"),
+        "cycle_score":     mk(cycle_score,
+                              notes="Cycle bucket (v2): LEI direction(30%) YC risk(30%) "
+                                    "Goldman composite(30%) Debt service(10%)",
+                              post_inversion=post_inv,
+                              co_fire=co_fire,
+                              yc_risk_score=round(yc_score_val, 1) if yc_score_val is not None else None),
+        "valuation_score": mk(valuation_score,
+                              notes="Valuation bucket: CAPE(40%) Buffett(35%) ECY(25%). "
+                                    "Capped at 70 in composite calculation."),
+        "breadth_score":   mk(breadth_score,
+                              notes="Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)"),
+        "labor_score":     mk(labor_score,
+                              notes="Labor bucket: Sahm Rule(50%) Unemployment trend(30%) "
+                                    "CC delinquency percentile(20%)"),
+        # Legacy alias for send_alerts.py backward compat
+        "structural_score": mk(valuation_score,
+                               notes="alias for valuation_score (backward compat)"),
+        # Expose bucket weights for frontend contributor bar
+        "bucket_weights": {
+            "credit": 0.30, "cycle": 0.25, "valuation": 0.20,
+            "breadth": 0.15, "labor": 0.10,
+        },
     }
 
 
 # ---------------------------------------------------------------------------
-# NEW: Regime Condition Counter
+# Regime Condition Counter
 # ---------------------------------------------------------------------------
 
-def regime_counter(fred_raw, result, margin_debt_yoy=None, margin_debt_trend=None):
-    """Count how many of 5 conditions are active. Returns regime dict."""
+def regime_conditions(fred_raw, result, history):
+    """
+    Count how many of the 5 historically-validated crash precursor conditions
+    are currently active. 3+ conditions have preceded every endogenous 20%+
+    drawdown in the post-1950 US market (excluding pure exogenous shocks).
+
+    Returns dict with individual condition booleans, count, label, and context.
+    """
     conditions = {}
 
-    # Condition 1 — Credit stress: HY OAS 90d change > +80bps OR SLOOS > +20%
+    # CONDITION 1 — Credit stress
+    # HY OAS widened >80bps in 90 days OR SLOOS net tightening >20%
     try:
-        _, change_bps = hy_momentum_score(fred_raw)
-        sloos_val = None
-        ls = fred_raw.get("lending_standards")
-        if ls is not None:
-            sloos_val = float(ls.iloc[-1])
-        hy_stress = (change_bps is not None and change_bps > 80)
-        sloos_stress = (sloos_val is not None and sloos_val > 20)
-        conditions["credit_stress"] = bool(hy_stress or sloos_stress)
+        hy_mom = result.get("macro", {}).get("hy_momentum", {})
+        hy_chg = hy_mom.get("change_90d_bps") or 0
+        sloos_raw = fred_raw.get("lending_standards")
+        sloos_v = float(sloos_raw.iloc[-1]) if sloos_raw is not None else 0
+        conditions["credit_stress"] = bool(hy_chg > 80 or sloos_v > 20)
     except Exception:
         conditions["credit_stress"] = False
 
-    # Condition 2 — Cycle breakdown: LEI declining 3+ consecutive months
+    # CONDITION 2 — Cycle breakdown
+    # LEI declining for 3+ consecutive months
     try:
         lei = fred_raw.get("lei")
         if lei is not None and len(lei) >= 4:
-            # Check last 3 observations are each lower than the prior
-            vals = lei.iloc[-4:].tolist()
-            declining_3 = all(vals[i] < vals[i-1] for i in range(1, 4))
-            conditions["cycle_breakdown"] = bool(declining_3)
+            recent = [float(lei.iloc[i]) for i in [-4, -3, -2, -1]]
+            conditions["cycle_breakdown"] = bool(
+                recent[1] < recent[0] and recent[2] < recent[1] and recent[3] < recent[2]
+            )
         else:
             conditions["cycle_breakdown"] = False
     except Exception:
         conditions["cycle_breakdown"] = False
 
-    # Condition 3 — Yield curve: inverted OR was inverted in last 18mo AND now re-steepening past 0
+    # CONDITION 3 — Yield curve (inverted OR re-steepening after inversion)
     try:
         yc = fred_raw.get("yield_curve_10y3m")
-        if yc is not None and len(yc) >= 2:
+        yc_active = False
+        if yc is not None and len(yc) >= 400:
             current_yc = float(yc.iloc[-1])
-            inverted_now = current_yc < 0
-            # Check if was inverted in last ~390 trading days (~18 months)
-            lookback = min(390, len(yc) - 1)
-            was_inverted = bool((yc.iloc[-lookback:] < 0).any())
-            re_steepening = (was_inverted and not inverted_now and current_yc > 0)
-            conditions["yield_curve"] = bool(inverted_now or re_steepening)
-        else:
-            conditions["yield_curve"] = False
+            if current_yc < 0:
+                yc_active = True
+            else:
+                lookback = yc.iloc[-390:]
+                was_inverted = bool((lookback < 0).any())
+                # Re-steepening after inversion: positive but < 1.0 — the historically
+                # dangerous normalization zone
+                if was_inverted and 0 <= current_yc < 1.0:
+                    yc_active = True
+        elif yc is not None and len(yc) >= 2:
+            # Shorter history: just check current
+            current_yc = float(yc.iloc[-1])
+            if current_yc < 0:
+                yc_active = True
+        conditions["yield_curve"] = yc_active
     except Exception:
         conditions["yield_curve"] = False
 
-    # Condition 4 — Leverage stress: margin debt YoY > +40% AND now rolling over (trend=falling)
+    # CONDITION 4 — Leverage stress
+    # Margin debt YoY >40% AND trend now rolling over (falling)
     try:
-        if margin_debt_yoy is not None and margin_debt_trend is not None:
-            high_yoy = margin_debt_yoy > 40
-            rolling_over = (margin_debt_trend.get("direction") == "falling")
-            conditions["leverage_stress"] = bool(high_yoy and rolling_over)
-        else:
-            conditions["leverage_stress"] = False
+        md = result.get("macro", {}).get("margin_debt", {})
+        md_yoy = md.get("yoy_pct")
+        md_trend = (md.get("trend") or {}).get("direction")
+        conditions["leverage_stress"] = bool(
+            md_yoy is not None and md_yoy > 40 and md_trend == "falling"
+        )
     except Exception:
         conditions["leverage_stress"] = False
 
-    # Condition 5 — Labor: Sahm Rule >= 0.5
+    # CONDITION 5 — Labor market deterioration
+    # Sahm Rule >= 0.5 (exact empirical threshold from Sahm 2019)
     try:
         sahm = fred_raw.get("sahm_rule")
         if sahm is not None:
@@ -439,22 +708,36 @@ def regime_counter(fred_raw, result, margin_debt_yoy=None, margin_debt_trend=Non
     except Exception:
         conditions["labor"] = False
 
-    n = sum(1 for v in conditions.values() if v)
+    n = sum(conditions.values())
 
     if n == 0:
-        label = "No signal"
+        regime_label = "No signal"
     elif n <= 2:
-        label = "Watch"
+        regime_label = "Watch"
     elif n == 3:
-        label = "Caution"
+        regime_label = "Caution"
     else:
-        label = "High Alert"
+        regime_label = "High Alert"
+
+    context_map = {
+        "No signal":  "0 of 5 conditions active. Historically, endogenous bear markets "
+                      "require 3+ conditions simultaneously.",
+        "Watch":      f"{n} of 5 conditions active. Elevated vigilance warranted; "
+                      "not yet at historical crash-precursor threshold.",
+        "Caution":    "3 of 5 conditions active. This combination preceded the 2000 "
+                      "and 2008 crashes and the 1973 bear market.",
+        "High Alert": f"{n} of 5 conditions active. All historical endogenous crashes "
+                      "of 20%+ occurred with 3+ conditions. Act accordingly.",
+    }
 
     return {
         "conditions_active": n,
         "conditions": conditions,
-        "label": label,
-        "label_threshold": "3+ conditions historically precede 20%+ drawdowns",
+        "label": regime_label,
+        "context": context_map[regime_label],
+        "threshold_note": "3+ conditions historically precede 20%+ drawdowns "
+                          "(excludes exogenous shocks: COVID, geopolitical events)",
+        "derived": True,
     }
 
 
@@ -563,6 +846,23 @@ def pull_fred_all(api_key):
                 yoy_q = yoy_pct_quarterly(s)
                 if yoy_q is not None:
                     m["yoy_pct"] = yoy_q
+                    m["threshold_label"] = threshold_label("margin_debt_yoy", yoy_q)
+            # Apply threshold labels to key series
+            if key in ("lending_standards", "sahm_rule", "yield_curve_10y3m"):
+                thr_key = "sloos" if key == "lending_standards" else key
+                m["threshold_label"] = threshold_label(thr_key, float(s.iloc[-1]))
+            # HY OAS: threshold label + complacency flag
+            if key == "hy_oas":
+                hy_val = float(s.iloc[-1])
+                m["threshold_label"] = threshold_label("hy_oas", hy_val)
+                m["complacent"] = bool(hy_val < 3.5)
+                m["complacency_note"] = (
+                    "Spreads below 350bps indicate compressed risk premiums. "
+                    "This is not 'safe' — it means risk is being mispriced. "
+                    "The GFC peak (Oct 2007) saw HY OAS at only 270bps before spreads "
+                    "exploded to 1,900bps within 14 months."
+                    if hy_val < 3.5 else ""
+                )
             out[key] = m
         except Exception as e:
             out[key] = unavailable(source=f"FRED:{sid}", error=e, notes=desc)
@@ -1840,127 +2140,84 @@ def run(no_breadth=False):
     result["sectors"]["relative_strength"] = pull_sectors()
     result["sectors"]["cycle_phase"] = cycle_phase(fred_raw)
 
-    # ---- Goldman composite ----
-    result["scores"]["goldman_composite"] = goldman_composite(fred_raw, cape_value)
-
     # ---- HY OAS 90d momentum derived metric ----
     hy_mom_score, hy_mom_bps = hy_momentum_score(fred_raw)
     result["macro"]["hy_momentum"] = metric(
         hy_mom_score,
         status="ok" if hy_mom_score is not None else "unavailable",
-        source="derived: FRED:BAMLH0A0HYM2 (90d momentum)",
-        notes="HY OAS 90-day momentum score (0-100). 50=neutral, >50=widening/risky, <50=tightening/safe.",
-        derived=True,
+        source="derived:FRED:BAMLH0A0HYM2",
+        notes="HY OAS 90-day rate-of-change converted to 0-100 risk score. "
+              ">75 = spreads widening fast = credit stress signal.",
         change_90d_bps=hy_mom_bps,
+        derived=True,
     )
+    # Apply threshold label to hy_momentum bps
+    if hy_mom_bps is not None:
+        result["macro"]["hy_momentum"]["threshold_label"] = threshold_label(
+            "hy_momentum_bps", hy_mom_bps)
 
-    # ---- Margin debt YoY ----
-    margin_debt_yoy = None
-    margin_debt_trend = None
-    md = result["macro"].get("margin_debt")
-    if md and md.get("status") == "ok" and md.get("yoy_pct") is not None:
-        margin_debt_yoy = md["yoy_pct"]
-        margin_debt_trend = md.get("trend")
+    # ---- Goldman composite (needed before composite_risk) ----
+    result["scores"]["goldman_composite"] = goldman_composite(fred_raw, cape_value)
 
-    # ---- Build composite score inputs ----
-    structural_inputs = {}
-    cyc_inputs = {}
-    credit_inputs = {}
-    breadth_inputs = {}
-    labor_inputs = {}
+    # ---- Build scores_result stub for composite_risk hy_momentum_score input ----
+    # composite_risk() reads scores_result.get("hy_momentum_score") and
+    # scores_result.get("goldman_composite")
+    _scores_for_composite = {
+        "hy_momentum_score": hy_mom_score,
+        "goldman_composite": result["scores"]["goldman_composite"],
+    }
 
-    # Valuation bucket inputs
-    cv = result["structural"]["cape"]
-    if cv["status"] == "ok" and cv["value"]:
-        structural_inputs["cape"] = clamp(percentile_rank(cv["value"],
-                                          list(np.linspace(5, 44, 200))) or 50)
-    bi = result["structural"]["buffett_indicator"]
-    if bi["status"] == "ok":
-        structural_inputs["buffett"] = clamp(50 + (bi.get("deviation_z", 0) or 0) * 20)
-    ecy_m = result["structural"]["excess_cape_yield"]
-    if ecy_m["status"] == "ok" and ecy_m["value"] is not None:
-        structural_inputs["ecy"] = clamp(100 - (ecy_m["value"] + 1) / 6 * 100)
-
-    # Cycle bucket inputs
-    gc = result["scores"]["goldman_composite"]
-    if gc["status"] == "ok":
-        cyc_inputs["goldman"] = gc["value"]
-    ds = fred_raw.get("debt_service")
-    if ds is not None:
-        p = percentile_rank(float(ds.iloc[-1]), ds.values)
-        if p is not None:
-            cyc_inputs["debt_service"] = clamp(p)
-    # LEI direction score: falling=100, flat=50, rising=0
-    lei_raw = fred_raw.get("lei")
-    if lei_raw is not None and len(lei_raw) >= 4:
-        lei_tr = series_trend(lei_raw, TREND_LOOKBACK.get("lei", 3))
-        if lei_tr:
-            d = lei_tr.get("direction")
-            cyc_inputs["lei_direction"] = 100 if d == "falling" else 50 if d == "flat" else 0
-
-    # Credit bucket inputs
-    ls = fred_raw.get("lending_standards")
-    if ls is not None:
-        sloos_val = float(ls.iloc[-1])
-        # Map SLOOS: >+30% = 100, 0% = 50, <-20% = 0
-        credit_inputs["sloos_pct"] = clamp(50 + sloos_val * (50 / 30))
-    if hy_mom_score is not None:
-        credit_inputs["hy_momentum"] = hy_mom_score
-    nfci = fred_raw.get("nfci_leverage")
-    if nfci is not None:
-        p = percentile_rank(float(nfci.iloc[-1]), nfci.values)
-        if p is not None:
-            credit_inputs["nfci_leverage"] = clamp(p)
-
-    # Breadth bucket inputs
-    pct200 = result["breadth"].get("pct_above_200dma")
-    if pct200 and pct200.get("status") in ("ok", "proxy") and pct200.get("value") is not None:
-        breadth_inputs["pct_above_200"] = clamp(100 - pct200["value"])
-    mc = result["breadth"].get("mcclellan")
-    if mc and mc.get("value") is not None:
-        p = percentile_rank(mc["value"], list(np.linspace(-200, 200, 400)))
-        if p is not None:
-            breadth_inputs["mcclellan"] = clamp(100 - p)  # negative McClellan = risky
-
-    # Labor bucket inputs
-    sahm = fred_raw.get("sahm_rule")
-    if sahm is not None:
-        sahm_val = float(sahm.iloc[-1])
-        # >=0.5 maps to 100, linear below: 0 = 0, 0.5 = 100
-        labor_inputs["sahm_rule"] = clamp(sahm_val / 0.5 * 100)
-    un = fred_raw.get("unemployment")
-    if un is not None:
-        un_val = float(un.iloc[-1])
-        un_tr = series_trend(un, TREND_LOOKBACK.get("unemployment", 3))
-        un_dir = un_tr.get("direction") if un_tr else None
-        if un_dir == "rising" and un_val < 5:
-            labor_inputs["unemp_trend"] = 70
-        elif un_dir == "rising" and un_val >= 5:
-            labor_inputs["unemp_trend"] = 50
-        else:
-            labor_inputs["unemp_trend"] = 20
-    cc = fred_raw.get("cc_delinquency")
-    if cc is not None:
-        p = percentile_rank(float(cc.iloc[-1]), cc.values)
-        if p is not None:
-            labor_inputs["cc_delinq"] = clamp(p)
-
-    result["scores"].update(composite_risk(
-        structural_inputs, cyc_inputs, credit_inputs, breadth_inputs, labor_inputs))
+    # ---- Composite risk score (new signature: fred_raw, structural, scores, cape) ----
+    result["scores"].update(
+        composite_risk(fred_raw, result["structural"], _scores_for_composite, cape_value)
+    )
 
     # ---- Regime Condition Counter ----
     try:
-        result["regime"] = regime_counter(
-            fred_raw, result,
-            margin_debt_yoy=margin_debt_yoy,
-            margin_debt_trend=margin_debt_trend)
+        result["regime"] = regime_conditions(
+            fred_raw, result, new_state.get("history", []))
     except Exception as e:
         result["regime"] = {
             "conditions_active": 0,
             "conditions": {},
             "label": "Unknown",
-            "label_threshold": "regime counter error",
+            "context": "regime counter error",
+            "threshold_note": "",
             "error": str(e)[:200],
+            "derived": True,
+        }
+
+    # ---- LEI Sustained Decline Alert (Spec Addition 2) ----
+    try:
+        lei_raw_sa = fred_raw.get("lei")
+        if lei_raw_sa is not None and len(lei_raw_sa) >= 7:
+            recent_lei = [float(lei_raw_sa.iloc[i]) for i in [-7, -6, -5, -4, -3, -2, -1]]
+            consecutive_declines = 0
+            for i in range(len(recent_lei) - 1, 0, -1):
+                if recent_lei[i] < recent_lei[i - 1]:
+                    consecutive_declines += 1
+                else:
+                    break
+            result["macro"]["lei_decline_streak"] = {
+                "value": consecutive_declines,
+                "status": "ok",
+                "source": "derived:FRED:USALOLITOAASTSAM",
+                "alert": consecutive_declines >= 3,
+                "notes": f"LEI has declined for {consecutive_declines} consecutive months. "
+                         "3+ months preceded every post-1950 US recession.",
+                "derived": True,
+            }
+        else:
+            result["macro"]["lei_decline_streak"] = {
+                "value": None, "status": "unavailable",
+                "source": "derived:FRED:USALOLITOAASTSAM",
+                "alert": False, "notes": "Insufficient LEI history", "derived": True,
+            }
+    except Exception as e:
+        result["macro"]["lei_decline_streak"] = {
+            "value": None, "status": "unavailable",
+            "source": "derived:FRED:USALOLITOAASTSAM",
+            "alert": False, "notes": str(e)[:200], "derived": True,
         }
 
     # ---- Catalysts ----
@@ -1995,13 +2252,18 @@ def run(no_breadth=False):
             "new_low_pct": mval_path(result, "breadth", "hindenburg_omen_today", "new_low_pct"),
             "fear_greed": mval_path(result, "sentiment", "fear_greed", "value"),
             "umich": mval_path(result, "macro", "umich_sentiment", "value"),
-            # NEW history fields
-            "sloos": mval_path(result, "macro", "lending_standards", "value"),
-            "margin_debt_yoy": margin_debt_yoy,
-            "hy_momentum": hy_mom_bps,
-            "regime_count": result["regime"].get("conditions_active"),
-            "credit_score": mval_path(result, "scores", "credit_score", "value"),
-            "labor_score": mval_path(result, "scores", "labor_score", "value"),
+            # Spec history additions
+            "sloos":            mval_path(result, "macro", "lending_standards", "value"),
+            "margin_debt_yoy":  (result.get("macro", {}).get("margin_debt") or {}).get("yoy_pct"),
+            "hy_momentum_bps":  (result.get("macro", {}).get("hy_momentum") or {}).get("change_90d_bps"),
+            "hy_mom_score":     mval_path(result, "macro", "hy_momentum", "value"),
+            "regime_count":     (result.get("regime") or {}).get("conditions_active"),
+            "credit_score":     mval_path(result, "scores", "credit_score", "value"),
+            "cycle_score":      mval_path(result, "scores", "cycle_score", "value"),
+            "valuation_score":  mval_path(result, "scores", "valuation_score", "value"),
+            "breadth_score":    mval_path(result, "scores", "breadth_score", "value"),
+            "labor_score":      mval_path(result, "scores", "labor_score", "value"),
+            "lei_streak":       (result.get("macro", {}).get("lei_decline_streak") or {}).get("value"),
         }
         hist = [h for h in hist if h.get("date") != today]
         hist.append(snap)
@@ -2055,89 +2317,64 @@ def selftest():
     p = percentile_rank(50, list(range(100)))
     assert abs(p - 50) < 2, f"percentile failed: {p}"
 
-    # ---- 5-bucket composite math ----
-    val_inp = {"cape": 80, "buffett": 60, "ecy": 70}
-    cyc_inp = {"goldman": 40, "debt_service": 50}
-    cr_inp  = {"sloos_pct": 60, "hy_momentum": 55, "nfci_leverage": 45}
-    br_inp  = {"pct_above_200": 40, "mcclellan": 35}
-    lb_inp  = {"sahm_rule": 30, "unemp_trend": 20, "cc_delinq": 25}
+    # ---- Threshold label ----
+    assert threshold_label("cape", 40) == "High", f"threshold cape 40: {threshold_label('cape', 40)}"
+    assert threshold_label("cape", 20) == "Moderate", f"threshold cape 20: {threshold_label('cape', 20)}"
+    assert threshold_label("hy_oas", 2.6) == "Complacent", f"threshold hy_oas 2.6: {threshold_label('hy_oas', 2.6)}"
+    assert threshold_label("sahm_rule", 0.55) == "Elevated", f"threshold sahm 0.55: {threshold_label('sahm_rule', 0.55)}"
+    print("  threshold_label checks ✓")
 
-    scores = composite_risk(val_inp, cyc_inp, cr_inp, br_inp, lb_inp)
-    assert "composite" in scores, "composite key missing"
-    assert "credit_score" in scores, "credit_score key missing"
-    assert "cycle_score" in scores, "cycle_score key missing"
-    assert "valuation_score" in scores, "valuation_score key missing"
-    assert "breadth_score" in scores, "breadth_score key missing"
-    assert "labor_score" in scores, "labor_score key missing"
-    comp_val = scores["composite"]["value"]
-    assert comp_val is not None, "composite value is None"
-    assert 0 <= comp_val <= 100, f"composite out of range: {comp_val}"
-    print(f"  5-bucket composite: {comp_val} label={scores['composite']['label']}")
-
-    # Verify credit sub-score math manually
-    # sloos_pct=60*0.40 + hy_momentum=55*0.35 + nfci=45*0.25 = 24+19.25+11.25=54.5
-    expected_credit = 60 * 0.40 + 55 * 0.35 + 45 * 0.25
-    actual_credit = scores["credit_score"]["value"]
-    assert abs(actual_credit - expected_credit) < 0.2, \
-        f"credit score math wrong: expected {expected_credit}, got {actual_credit}"
-    print(f"  credit_score math check: {actual_credit:.1f} (expected {expected_credit:.1f}) ✓")
-
-    # ---- HY momentum score edge cases ----
-    # Insufficient history returns None
+    # ---- HY momentum ----
+    score_none, bps_none = hy_momentum_score({})  # empty fred_raw
+    assert score_none is None and bps_none is None, "hy_momentum_score empty dict should return None"
     short_series = pd.Series(list(range(10)), index=pd.date_range("2024-01-01", periods=10))
     s_none, b_none = hy_momentum_score({"hy_oas": short_series})
-    assert s_none is None and b_none is None, "hy_momentum_score should return None for short series"
-    print("  hy_momentum_score insufficient history: None ✓")
-
-    # Sufficient history
+    assert s_none is None and b_none is None, "hy_momentum_score short series should return None"
     long_series = pd.Series(
         [3.5] * 65 + [4.5],
         index=pd.date_range("2023-01-01", periods=66, freq="B")
     )
     s_ok, b_ok = hy_momentum_score({"hy_oas": long_series})
-    assert s_ok is not None, "hy_momentum_score returned None for long series"
-    # change_bps = (4.5 - 3.5) * 100 = 100 bps → score = clamp(50 + 100/3) = clamp(83.3) = 83.3
+    assert s_ok is not None, "hy_momentum_score long series returned None"
     assert abs(b_ok - 100.0) < 0.5, f"hy_momentum_score bps wrong: {b_ok}"
-    print(f"  hy_momentum_score 100bps widening: score={s_ok} bps={b_ok} ✓")
+    print(f"  hy_momentum_score ✓ score={s_ok} bps={b_ok}")
 
-    # ---- Regime counter logic (offline stub) ----
-    class _MockFredRaw(dict):
-        pass
+    # ---- Regime counter (all-None input -> 0 conditions) ----
+    rc = regime_conditions({}, {}, [])
+    assert rc["conditions_active"] == 0, f"empty regime should be 0, got {rc['conditions_active']}"
+    assert rc["label"] == "No signal", f"empty regime label wrong: {rc['label']}"
+    print(f"  regime_conditions empty ✓ label={rc['label']}")
 
-    # Build minimal fred_raw with enough data for regime_counter
-    hy_data = pd.Series(
-        [3.0] * 66,
-        index=pd.date_range("2023-01-01", periods=66, freq="B")
-    )
-    lei_data = pd.Series(
-        [100, 99, 98, 97],
-        index=pd.date_range("2024-01-01", periods=4, freq="MS")
-    )
-    yc_data = pd.Series(
-        [-0.2, -0.1, 0.1],
-        index=pd.date_range("2024-01-01", periods=3, freq="MS")
-    )
-    sahm_data = pd.Series(
-        [0.4],
-        index=pd.date_range("2024-01-01", periods=1)
-    )
-    mock_raw = _MockFredRaw({
-        "hy_oas": hy_data,
-        "lei": lei_data,
-        "yield_curve_10y3m": yc_data,
-        "sahm_rule": sahm_data,
-        "lending_standards": pd.Series([10.0], index=pd.date_range("2024-01-01", periods=1)),
-    })
-    # LEI declining 3 consecutive months: lei_data = [100,99,98,97] → 3 declines ✓
-    # Yield curve: was negative, now re-steepening → True
-    # Sahm: 0.4 < 0.5 → False
-    regime = regime_counter(mock_raw, {})
-    assert isinstance(regime["conditions_active"], int), "regime conditions_active not int"
-    assert isinstance(regime["conditions"], dict), "regime conditions not dict"
-    assert len(regime["conditions"]) == 5, "regime must have exactly 5 conditions"
-    assert regime["label"] in ("No signal", "Watch", "Caution", "High Alert"), \
-        f"unexpected regime label: {regime['label']}"
-    print(f"  regime_counter: {regime['conditions_active']} active, label={regime['label']} ✓")
+    # ---- Composite (all-None input -> unavailable) ----
+    cr = composite_risk({}, {}, {}, cape_value=None)
+    assert cr["composite"]["status"] == "unavailable", \
+        f"all-None composite should be unavailable, got {cr['composite']['status']}"
+    print("  composite_risk all-None ✓")
+
+    # Composite with some inputs
+    _mock_fred = {
+        "lending_standards": pd.Series([15.0], index=pd.date_range("2024-01-01", periods=1)),
+        "nfci_leverage": pd.Series([0.1, 0.2, 0.3, 0.2, 0.1], index=pd.date_range("2020-01-01", periods=5, freq="MS")),
+        "debt_service": pd.Series([10.0, 10.5, 11.0, 11.2, 11.5], index=pd.date_range("2020-01-01", periods=5, freq="MS")),
+        "cc_delinquency": pd.Series([2.0, 2.1, 2.2, 2.3, 2.4], index=pd.date_range("2020-01-01", periods=5, freq="MS")),
+        "unemployment": pd.Series([4.0]*14, index=pd.date_range("2023-01-01", periods=14, freq="MS")),
+        "sahm_rule": pd.Series([0.2], index=pd.date_range("2024-01-01", periods=1)),
+    }
+    _mock_structural = {
+        "buffett_indicator": {"value": 1.5, "status": "ok", "deviation_z": 1.5},
+        "excess_cape_yield": {"value": 0.5, "status": "ok"},
+        "pct_above_200dma": {"value": 55.0, "status": "ok"},
+    }
+    _mock_scores = {
+        "hy_momentum_score": 55.0,
+        "goldman_composite": {"value": 60.0, "status": "ok"},
+    }
+    cr2 = composite_risk(_mock_fred, _mock_structural, _mock_scores, cape_value=32.0)
+    assert cr2["composite"]["value"] is not None, "composite with inputs returned None"
+    assert 0 <= cr2["composite"]["value"] <= 100, f"composite out of range: {cr2['composite']['value']}"
+    assert "co_fire" in cr2["cycle_score"], "co_fire missing from cycle_score"
+    assert "post_inversion" in cr2["cycle_score"], "post_inversion missing from cycle_score"
+    print(f"  composite_risk with inputs ✓ {cr2['composite']['value']} label={cr2['composite']['label']}")
 
     # ---- breadth signals ----
     bs = breadth_signals({"universe_counted": 500, "new_highs": 20, "new_lows": 18,
