@@ -628,7 +628,7 @@ def composite_risk(fred_raw, breadth_result, scores_result, cape_value):
 
 def regime_conditions(fred_raw, result, history):
     """
-    Count how many of the 5 historically-validated crash precursor conditions
+    Count how many of the 4 historically-validated crash precursor conditions
     are currently active. 3+ conditions have preceded every endogenous 20%+
     drawdown in the post-1950 US market (excluding pure exogenous shocks).
 
@@ -708,33 +708,41 @@ def regime_conditions(fred_raw, result, history):
     except Exception:
         conditions["labor"] = False
 
-    n = sum(conditions.values())
+    # n counts only the four primary conditions surfaced in the UI
+    # (yield_curve, credit_stress, cycle_breakdown, leverage_stress).
+    # "labor" (Sahm Rule) remains computed and available in `conditions` for
+    # other consumers, but is excluded from the headline count so
+    # conditions_active never exceeds 4 — keeping it consistent with the
+    # "N of 4 conditions active" framing used throughout the dashboard.
+    n = sum(v for k, v in conditions.items() if k != "labor")
 
     if n == 0:
-        regime_label = "No signal"
-    elif n <= 2:
+        regime_label = "No Signal"
+        context = ("0 of 4 conditions active. Historically, endogenous bear markets "
+                   "require 3+ conditions simultaneously. Invest normally.")
+    elif n == 1:
+        regime_label = "No Signal"
+        context = ("1 of 4 conditions active. Below historical watch threshold. "
+                   "Monitor — not yet actionable.")
+    elif n == 2:
         regime_label = "Watch"
+        context = ("2 of 4 conditions active. Risk is building. "
+                   "Monitor remaining conditions closely.")
     elif n == 3:
         regime_label = "Caution"
+        context = ("3 of 4 conditions active. This combination preceded the 2000 "
+                   "dot-com crash, the 2008 GFC, and the 1973 bear market. "
+                   "Consider reducing risk exposure.")
     else:
         regime_label = "High Alert"
-
-    context_map = {
-        "No signal":  "0 of 5 conditions active. Historically, endogenous bear markets "
-                      "require 3+ conditions simultaneously.",
-        "Watch":      f"{n} of 5 conditions active. Elevated vigilance warranted; "
-                      "not yet at historical crash-precursor threshold.",
-        "Caution":    "3 of 5 conditions active. This combination preceded the 2000 "
-                      "and 2008 crashes and the 1973 bear market.",
-        "High Alert": f"{n} of 5 conditions active. All historical endogenous crashes "
-                      "of 20%+ occurred with 3+ conditions. Act accordingly.",
-    }
+        context = ("4 of 4 conditions active. Every endogenous US bear market of 20%+ "
+                   "since 1950 occurred with this combination. Reduce risk exposure.")
 
     return {
         "conditions_active": n,
         "conditions": conditions,
         "label": regime_label,
-        "context": context_map[regime_label],
+        "context": context,
         "threshold_note": "3+ conditions historically precede 20%+ drawdowns "
                           "(excludes exogenous shocks: COVID, geopolitical events)",
         "derived": True,
@@ -2413,7 +2421,7 @@ def selftest():
     # ---- Regime counter (all-None input -> 0 conditions) ----
     rc = regime_conditions({}, {}, [])
     assert rc["conditions_active"] == 0, f"empty regime should be 0, got {rc['conditions_active']}"
-    assert rc["label"] == "No signal", f"empty regime label wrong: {rc['label']}"
+    assert rc["label"] == "No Signal", f"empty regime label wrong: {rc['label']}"
     print(f"  regime_conditions empty ✓ label={rc['label']}")
 
     # ---- Composite (all-None input -> unavailable) ----
