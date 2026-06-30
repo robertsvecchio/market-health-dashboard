@@ -279,7 +279,6 @@ const PRIMERS={
   // NEW primers
   margin_debt:"FINRA margin debt (Fed Flow of Funds, quarterly). Rapid YoY rise + rollover historically precedes bear markets — leverage buildup amplifies drawdowns. Quarterly lag ~2–3 months. (FRED BOGZ1FL663067003Q)",
   hy_momentum:"The 90-day rate of change in HY spreads, converted to a 0–100 risk score. Widening >80bps in 90 days has historically preceded credit stress by 3–9 months. The level of spreads can be deceptive (see 2007); the direction is the signal.",
-  regime_indicator:"Counts how many of five historically-validated crash precursor conditions are simultaneously active: credit stress, cycle breakdown, yield curve warning, leverage stress, and labor deterioration. Every endogenous US bear market of 20%+ since 1929 occurred with 3 or more conditions active. Exogenous shocks (COVID, geopolitical events) are not predictable by this framework.",
   credit_score:"Weighted composite of SLOOS lending standards (40%), HY spread momentum (35%), and NFCI leverage (25%). Credit signals led the 2008 crash by 12 months via SLOOS and the 2000 crash via spread widening. Highest backtested recession hit rate of the five buckets.",
   cycle_score:"Weighted composite of LEI direction (30%), yield curve risk (30%), Goldman-style cycle composite (30%), and household debt service (10%). LEI declined for 6+ months before every post-1950 US recession. Co-firing bonus applied when LEI and yield curve both signal simultaneously — this combination has 7/8 historical hit rate.",
   valuation_score:"Weighted composite of CAPE (40%), Buffett Indicator z-score (35%), and Excess CAPE Yield (25%). Valuation is a severity amplifier, not a timing tool: CAPE was only 13 at the 1973 crash onset but 44 at the 2000 peak. High CAPE means deeper holes when crashes arrive. Capped at 70 in the composite to prevent structural overvaluation from crowding out time-sensitive signals.",
@@ -560,8 +559,8 @@ function deriveAlerts(d){
   const pa=b.pct_above_200dma;
   if(pa&&pa.below_40)out.push({txt:`Only ${num(pa.value,0)}% of S&P 500 above 200-DMA`,pri:"HIGH"});
   const rc=regime.conditions_active||0;
-  if(rc>=3)out.push({txt:`Regime: ${rc}/5 conditions active — ${regime.label||""}`,pri:"HIGH"});
-  else if(rc>=1)out.push({txt:`Regime: ${rc}/5 conditions active — ${regime.label||""}`,pri:"MED"});
+  if(rc>=3)out.push({txt:`Regime: ${rc}/4 conditions active — ${regime.label||""}`,pri:"HIGH"});
+  else if(rc>=1)out.push({txt:`Regime: ${rc}/4 conditions active — ${regime.label||""}`,pri:"MED"});
   if(st.excess_cape_yield&&(st.excess_cape_yield.low||st.excess_cape_yield.value<1))
     out.push({txt:"Excess CAPE Yield low — stocks expensive vs bonds",pri:"MED"});
   if(st.ad_line_proxy&&st.ad_line_proxy.bearish_divergence)
@@ -990,7 +989,7 @@ function panelOverview(){
   let histAnalogTitle="", histAnalogText="";
   if(rc2>=3){
     histAnalogTitle="Caution / High Alert";
-    histAnalogText="Three or more of the five historically-validated crash precursor conditions are active. Every endogenous US bear market of 20%+ since 1929 occurred with this combination (excluding COVID-19 and similar exogenous shocks). This does not set a timeline — it sets a risk level. Average time from 3-condition trigger to market peak in historical cases was 3–9 months.";
+    histAnalogText="Three or more of the four historically-validated crash precursor conditions are active. Every endogenous US bear market of 20%+ since 1929 occurred with this combination (excluding COVID-19 and similar exogenous shocks). This does not set a timeline — it sets a risk level. Average time from 3-condition trigger to market peak in historical cases was 3–9 months.";
   } else if(capeVal!=null&&capeVal>35&&creditS!=null&&creditS<40){
     histAnalogTitle="2000 Analog";
     histAnalogText="Current setup resembles late 1999 – early 2000: extreme valuation (CAPE 44 at peak), benign credit spreads, and a market still grinding higher on narrow leadership. In 2000, the crash began not when credit broke but when earnings disappointments hit the highest-multiple names hardest. The eventual drawdown was −49%. Key watch: forward EPS revision momentum and breadth divergence.";
@@ -1005,7 +1004,7 @@ function panelOverview(){
     histAnalogText="Expensive market with no breakdown signal in the economic cycle — similar to 1997–1998 or 2017: rich valuations, strong breadth, credit calm. These periods can persist 12–24 months before a catalyst emerges. The risk is not imminent collapse but rather elevated drawdown severity when a catalyst does arrive. Key watch: yield curve, SLOOS, and margin debt trend.";
   } else {
     histAnalogTitle="No Dominant Pattern";
-    histAnalogText="No dominant historical pattern matched to current conditions. Monitor the five regime conditions and Tier-1 signals for developing stress.";
+    histAnalogText="No dominant historical pattern matched to current conditions. Monitor the four regime conditions and Tier-1 signals for developing stress.";
   }
 
   const hcCard=el(`<div class="card"></div>`);
@@ -1095,7 +1094,6 @@ function panelOverview(){
     {key:"cycle_breakdown",label:"Cycle Breakdown",  def:"LEI declining 3+ consecutive months"},
     {key:"yield_curve",    label:"Yield Curve",      def:"Currently inverted OR re-steepening after inversion"},
     {key:"leverage_stress",label:"Leverage Stress",  def:"Margin debt YoY >40% AND rolling over (falling)"},
-    {key:"labor",          label:"Labor Deterioration",def:"Sahm Rule ≥ 0.5 (recession onset signal)"},
   ];
   methCondDefs.forEach(cd=>{
     const active=regimeConds[cd.key]===true;
