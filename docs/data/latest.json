@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-06-30T02:14:26.186394+00:00",
-    "generated_display": "Jun 29 2026, 6:14 PM PT",
+    "generated_utc": "2026-06-30T02:48:57.989382+00:00",
+    "generated_display": "Jun 29 2026, 6:48 PM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -589,12 +589,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": 12.63,
+      "value": 2.79,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 131.828,
-      "ema39": 119.201,
+      "ema19": 113.424,
+      "ema39": 110.631,
       "negative": false
     },
     "hindenburg_omen_today": {
@@ -964,8 +964,8 @@
       "leverage_stress": false,
       "labor": false
     },
-    "label": "Watch",
-    "context": "1 of 5 conditions active. Elevated vigilance warranted; not yet at historical crash-precursor threshold.",
+    "label": "No Signal",
+    "context": "1 of 4 conditions active. Below historical watch threshold. Monitor \u2014 not yet actionable.",
     "threshold_note": "3+ conditions historically precede 20%+ drawdowns (excludes exogenous shocks: COVID, geopolitical events)",
     "derived": true
   },
