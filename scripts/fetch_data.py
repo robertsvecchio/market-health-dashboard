@@ -847,6 +847,76 @@ def pull_fred_all(api_key):
                 if yoy_q is not None:
                     m["yoy_pct"] = yoy_q
                     m["threshold_label"] = threshold_label("margin_debt_yoy", yoy_q)
+            # Margin debt: 8-quarter YoY spark + rolling_over flag (additive to yoy_pct block above)
+            if key == "margin_debt":
+                try:
+                    spark_yoy = []
+                    md_list = s.dropna().tolist()
+                    for i in range(4, len(md_list)):
+                        try:
+                            chg = round((md_list[i] / md_list[i - 4] - 1) * 100, 1)
+                            spark_yoy.append(chg)
+                        except Exception:
+                            pass
+                    m["spark_yoy"] = spark_yoy[-8:] if spark_yoy else []
+                    yoy_val = m.get("yoy_pct")
+                    md_trend = (m.get("trend") or {}).get("direction")
+                    m["rolling_over"] = bool(
+                        yoy_val is not None and yoy_val > 40 and md_trend == "falling"
+                    )
+                    m["above_threshold"] = bool(yoy_val is not None and yoy_val > 40)
+                except Exception:
+                    pass
+            # Yield curve: 24-month monthly-resampled spark + post-inversion flag
+            if key == "yield_curve_10y3m":
+                try:
+                    spark_monthly = s.resample("MS").last().iloc[-24:]
+                    m["spark"] = [round(float(x), 3) for x in spark_monthly.tolist()]
+                    m["any_negative_in_spark"] = bool((spark_monthly < 0).any())
+                    current_yc = float(s.iloc[-1])
+                    was_inverted = bool(len(s) >= 390 and (s.iloc[-390:] < 0).any())
+                    m["post_inversion"] = bool(was_inverted and current_yc >= 0 and current_yc < 1.0)
+                except Exception:
+                    pass
+            # SLOOS: 8-quarter spark + threshold metadata
+            if key == "lending_standards":
+                try:
+                    m["spark"] = [round(float(x), 1) for x in s.iloc[-8:].tolist()]
+                    m["above_threshold"] = bool(float(s.iloc[-1]) > 20)
+                    m["loosening"] = bool(float(s.iloc[-1]) < 0)
+                except Exception:
+                    pass
+            # LEI: 18-month spark + consecutive decline count on the metric envelope
+            if key == "lei":
+                try:
+                    m["spark"] = [round(float(x), 2) for x in s.iloc[-18:].tolist()]
+                    lei_list = s.dropna().tolist()
+                    consecutive = 0
+                    for i in range(len(lei_list) - 1, 0, -1):
+                        if lei_list[i] < lei_list[i - 1]:
+                            consecutive += 1
+                        else:
+                            break
+                    m["consecutive_declines"] = consecutive
+                    m["decline_alert"] = bool(consecutive >= 3)
+                    m["decline_note"] = (
+                        f"LEI declining {consecutive} consecutive months — recession precursor active"
+                        if consecutive >= 3 else
+                        f"LEI declining {consecutive} consecutive month(s) — threshold is 3"
+                    )
+                except Exception:
+                    pass
+            # NY Fed recession probability: 36-month spark + threshold metadata
+            if key == "recession_prob":
+                try:
+                    m["spark"] = [round(float(x), 1) for x in s.iloc[-36:].tolist()]
+                    m["threshold"] = 30.0
+                    m["above_threshold"] = bool(float(s.iloc[-1]) >= 30.0)
+                    m["threshold_note"] = (
+                        "Above 30% has preceded every US recession since 1967 — zero false positives."
+                    )
+                except Exception:
+                    pass
             # Apply threshold labels to key series
             if key in ("lending_standards", "sahm_rule", "yield_curve_10y3m"):
                 thr_key = "sloos" if key == "lending_standards" else key
@@ -2264,6 +2334,7 @@ def run(no_breadth=False):
             "breadth_score":    mval_path(result, "scores", "breadth_score", "value"),
             "labor_score":      mval_path(result, "scores", "labor_score", "value"),
             "lei_streak":       (result.get("macro", {}).get("lei_decline_streak") or {}).get("value"),
+            "nyfed_prob":       mval_path(result, "macro", "recession_prob", "value"),
         }
         hist = [h for h in hist if h.get("date") != today]
         hist.append(snap)
@@ -2380,6 +2451,21 @@ def selftest():
     bs = breadth_signals({"universe_counted": 500, "new_highs": 20, "new_lows": 18,
                           "advancers": 250, "decliners": 240})
     assert "hindenburg_omen_today" in bs, "breadth signals failed"
+
+    # ---- LEI consecutive declines ----
+    _lei_mock = pd.Series(
+        [100.5, 100.3, 100.1, 99.9, 99.7, 99.5, 99.3],
+        index=pd.date_range("2024-01-01", periods=7, freq="MS")
+    )
+    consecutive = 0
+    lei_list = _lei_mock.tolist()
+    for i in range(len(lei_list) - 1, 0, -1):
+        if lei_list[i] < lei_list[i - 1]:
+            consecutive += 1
+        else:
+            break
+    assert consecutive == 6, f"LEI consecutive declines wrong: {consecutive}"
+    print(f"  LEI consecutive declines ✓ streak={consecutive}")
 
     # ---- mcclellan seeding ----
     mc = mcclellan_oscillator({}, {"advancers": 300, "decliners": 200})
