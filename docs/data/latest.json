@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-07-03T05:51:47.597696+00:00",
-    "generated_display": "Jul 02 2026, 9:51 PM PT",
+    "generated_utc": "2026-07-03T15:52:16.063758+00:00",
+    "generated_display": "Jul 03 2026, 7:52 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -590,12 +590,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": 43.84,
+      "value": 52.59,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 201.039,
-      "ema39": 157.201,
+      "ema19": 222.935,
+      "ema39": 170.341,
       "negative": false
     },
     "hindenburg_omen_today": {
@@ -662,12 +662,12 @@
   },
   "sentiment": {
     "vix": {
-      "value": 16.15,
+      "value": 15.81,
       "status": "ok",
       "source": "yfinance:^VIX",
-      "asof": "2026-07-02",
+      "asof": "2026-07-03",
       "notes": "CBOE Volatility Index",
-      "ma20": 18.1,
+      "ma20": 18.12,
       "above_40": false,
       "above_30": false
     },
@@ -725,8 +725,8 @@
         27.3,
         30.9,
         30.5,
-        32.6,
-        32.6,
+        34.1,
+        34.1,
         31.9
       ]
     }
@@ -889,7 +889,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 47.8,
+      "value": 47.7,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -924,7 +924,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 35.3,
+      "value": 34.1,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -991,7 +991,7 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "16.1 \u2014 normal.",
+      "vix": "15.8 \u2014 normal.",
       "pct_above_200dma": "65% of the S&P 500 above its 200-DMA \u2014 broad participation \u2014 healthy.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
@@ -1855,14 +1855,14 @@
     },
     {
       "date": "2026-07-03",
-      "composite": 47.8,
+      "composite": 47.7,
       "structural": 92.1,
       "cycle": 38.8,
       "cape": 41.6,
       "buffett_z": 2.45,
       "yield_curve": 0.67,
       "hy_oas": 2.74,
-      "vix": 16.15,
+      "vix": 15.81,
       "pct_above_200": 64.8,
       "goldman": 56.2,
       "hindenburg_raw": false,
@@ -1879,7 +1879,7 @@
       "credit_score": 56.4,
       "cycle_score": 38.8,
       "valuation_score": 92.1,
-      "breadth_score": 35.3,
+      "breadth_score": 34.1,
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 0.54
