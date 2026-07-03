@@ -2246,8 +2246,12 @@ def run(no_breadth=False):
     }
 
     # ---- Composite risk score (new signature: fred_raw, structural, scores, cape) ----
+    # Merge structural and breadth so composite_risk() can read both
+    # valuation inputs (buffett, ECY from structural) and
+    # breadth inputs (pct_above_200dma, mcclellan from breadth)
+    _structural_and_breadth = {**result["structural"], **result["breadth"]}
     result["scores"].update(
-        composite_risk(fred_raw, result["structural"], _scores_for_composite, cape_value)
+        composite_risk(fred_raw, _structural_and_breadth, _scores_for_composite, cape_value)
     )
 
     # ---- Regime Condition Counter ----
