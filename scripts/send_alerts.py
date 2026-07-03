@@ -152,9 +152,9 @@ def detect_crossings(prev, cur):
     prev_rc = prev.get("regime_count") or 0
     cur_rc = cur.get("regime_count") or 0
     if prev_rc < 3 <= cur_rc:
-        out.append({"txt": f"Regime counter hit {cur_rc}/5 conditions — Caution threshold", "pri": "HIGH"})
+        out.append({"txt": f"Regime counter hit {cur_rc}/4 conditions — Caution threshold", "pri": "HIGH"})
     elif prev_rc < 1 <= cur_rc:
-        out.append({"txt": f"Regime counter now at {cur_rc}/5 conditions — Watch", "pri": "MED"})
+        out.append({"txt": f"Regime counter now at {cur_rc}/4 conditions — Watch", "pri": "MED"})
 
     # HY OAS crossing
     if crossed(prev.get("hy_oas"), cur.get("hy_oas"), 5, True):
@@ -203,12 +203,10 @@ def active_alerts(data):
     regime = _g(data, "regime") or {}
     rc = regime.get("conditions_active", 0)
     rl = regime.get("label", "")
-    if rc >= 4:
-        out.append(("HIGH", f"Regime: {rc}/5 conditions active — {rl}"))
-    elif rc >= 3:
-        out.append(("HIGH", f"Regime: {rc}/5 conditions active — {rl}"))
+    if rc >= 3:
+        out.append(("HIGH", f"Regime: {rc}/4 conditions active — {rl}"))
     elif rc >= 1:
-        out.append(("MED", f"Regime: {rc}/5 conditions active — {rl}"))
+        out.append(("MED", f"Regime: {rc}/4 conditions active — {rl}"))
 
     # Sahm Rule
     sahm = _g(data, "macro", "sahm_rule", "value")
@@ -269,14 +267,16 @@ def build_email(data, prev_snap):
     # Regime line for email header
     regime = _g(data, "regime") or {}
     rc = regime.get("conditions_active", 0)
-    rl = regime.get("label", "")
+    rl = regime.get("label", "No Signal")
+    regime_context = regime.get("context", "")
     regime_color = "#3FB950" if rc == 0 else "#D8A657" if rc <= 2 else "#F85149"
+    regime_line = f"{rc} of 4 conditions active — {rl}"
 
-    # Subject line
+    # Subject line: regime-first
     hi = any(c["pri"] == "HIGH" for c in crossings)
-    score_txt = f"{score:.0f}" if isinstance(score, (int, float)) else "—"
     prefix = "⚠️ " if hi else ""
-    subject = f"{prefix}Market Health: {label} {score_txt}"
+    date_str = datetime.now(timezone.utc).strftime("%b %d")
+    subject = f"{prefix}Risk Dashboard — {rl} ({rc}/4 conditions active) · {date_str}"
     if crossings:
         subject += f" · {len(crossings)} change{'s' if len(crossings) != 1 else ''}"
 
@@ -292,13 +292,12 @@ def build_email(data, prev_snap):
         <div style="font:600 11px sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#8B949E">Market Health</div>
         <div style="font-size:13px;color:#6E7681;margin-top:2px">{disp}</div>
         <div style="margin:16px 0 6px">
-          <span style="font:600 46px monospace;color:{color}">{score_txt}</span>
-          <span style="font:18px monospace;color:#6E7681"> / 100</span>
-          <div style="font:700 15px sans-serif;color:{color};margin-top:2px">{label}</div>
+          <div style="font:500 36px sans-serif;color:{regime_color};line-height:1.1">{rl}</div>
+          <div style="font-size:13px;color:#8B949E;margin-top:4px">
+            <span style="font-weight:500;color:#E6EDF3">{rc}</span> of 4 conditions active
+          </div>
         </div>
-        <div style="font-size:13px;color:{regime_color};margin-bottom:4px">
-          Regime: {rc}/5 conditions active · {rl}
-        </div>
+        {f'<div style="font-size:12px;color:#8B949E;margin-bottom:8px;line-height:1.45">{regime_context}</div>' if regime_context else ""}
         <div style="font-size:13px;color:#8B949E">
           Credit {_fmt(_g(data,"scores","credit_score","value"))} ·
           Cycle {_fmt(_g(data,"scores","cycle_score","value"))} ·
