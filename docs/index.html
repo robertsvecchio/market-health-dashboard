@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="color-scheme" content="dark"/>
 <title>Market Health Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
 <style>
 :root{
   --bg:#0E1116;--surface:#161B22;--surface2:#1B2128;--border:#232A33;
@@ -298,6 +299,46 @@ const PRIMERS={
   nyfed_model:"The Estrella-Mishkin model published monthly by the NY Federal Reserve. Uses the yield curve to estimate recession probability 12 months ahead. Has crossed 30% before every US recession since 1967 with no false positives in the modern sample. Updated with 1–2 month lag.",
 };
 
+/* ── Metric icons (Tabler) ── */
+const METRIC_ICONS={
+  yield_curve_10y3m:"ti-trending-up",
+  lending_standards:"ti-building-bank",
+  lei:"ti-activity",
+  margin_debt:"ti-coin",
+  recession_prob:"ti-world",
+  goldman_composite:"ti-chart-bar",
+  cape:"ti-flame",
+  buffett_indicator:"ti-scale",
+  excess_cape_yield:"ti-percentage",
+  forward_pe:"ti-calculator",
+  hy_oas:"ti-arrows-split-2",
+  ig_oas:"ti-arrows-split-2",
+  hy_momentum:"ti-wave-saw-tool",
+  nfci_leverage:"ti-rotate-clockwise",
+  vix:"ti-gauge",
+  fear_greed:"ti-mood-nervous",
+  pct_above_200dma:"ti-ripple",
+  mcclellan:"ti-wave-sine",
+  sahm_rule:"ti-user-check",
+  unemployment:"ti-users",
+  cc_delinquency:"ti-credit-card-off",
+  debt_service:"ti-clock-dollar",
+  umich_sentiment:"ti-message-circle",
+  fed_funds:"ti-building-bank",
+  core_cpi:"ti-receipt",
+  core_pce:"ti-receipt",
+  ppi:"ti-factory",
+  spx_vs_200dma:"ti-chart-candlestick",
+  weekly_macd:"ti-chart-dots",
+  dma200_slope:"ti-trending-up",
+  ad_line_proxy:"ti-wave-sine",
+  put_call:"ti-arrows-up-down",
+  spx_price:"ti-chart-candlestick",
+  auto_delinquency:"ti-car",
+  savings_rate:"ti-piggy-bank",
+  philly_coincident:"ti-activity",
+};
+
 /* ── Investor-risk color scale ── */
 function metricRiskColor(key,value,m){
   if(value==null)return null;
@@ -423,7 +464,7 @@ function metric(section,key,label,fmt,readingKey,staleDays){
   const bdg=badge(status,stale);
   const card=el(`<div class="metric">
     <div class="mhead">
-      <span class="mname">${esc(label)}</span>
+      <span class="mname"><i class="ti ${METRIC_ICONS[rk]||METRIC_ICONS[key]||"ti-point"}" style="font-size:14px;color:var(--muted);margin-right:5px;vertical-align:-2px" aria-hidden="true"></i>${esc(label)}</span>
       ${hasBody?`<button class="info" aria-label="Explain ${esc(label)}" aria-expanded="false">i</button>`:""}
       ${bdg?`<span style="margin-left:2px">${bdg}</span>`:""}
       <span class="mval">${valHtml}</span>
@@ -644,11 +685,10 @@ function panelOverview(){
       <div style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600">Regime Conditions</div>
       <button class="info" aria-label="Explain Regime Conditions" aria-expanded="false" style="margin-top:-1px">i</button>
     </div>
-    <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:4px">
-      <div style="font-family:var(--mono);font-size:64px;font-weight:700;line-height:1;color:${regimeCol}">${rc}</div>
-      <div style="padding-bottom:10px">
-        <div style="font-size:13px;color:var(--muted)">of 4 conditions active</div>
-        <div style="font-size:16px;font-weight:700;color:${regimeCol}">${esc(rl)}</div>
+    <div style="margin-bottom:4px">
+      <div style="font-size:36px;font-weight:500;color:${regimeCol};line-height:1.1">${esc(rl)}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">
+        <span style="font-weight:500;color:var(--text)">${rc}</span> of 4 conditions active
       </div>
     </div>`;
   // Condition pills
@@ -699,7 +739,7 @@ function panelOverview(){
   const nyfed=(DATA.macro||{}).recession_prob||{};
   const nyfedV=nyfed.value;
   const nyfedCol=nyfedV==null?"var(--faint)":nyfedV>=30?"var(--high)":nyfedV>=20?"var(--elevated)":nyfedV>=10?"var(--moderate)":"var(--low)";
-  const nyfedSpark=sparkSeries("nyfed_prob");
+  const nyfedSpark=(nyfed.spark&&nyfed.spark.length>=4)?nyfed.spark:sparkSeries("nyfed_prob");
   const nyfedCard=el(`<div class="card" style="margin-bottom:0"></div>`);
   nyfedCard.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -761,30 +801,34 @@ function panelOverview(){
 
   c.appendChild(proRow);
 
-  // ── 5 sub-score tiles (flex-grow weighted) ──
+  // ── 5 sub-score tiles (equal grid + Tabler icons) ──
   const buckets=[
-    {key:"credit_score",  label:"Credit",    weight:1.5, wlabel:"30%"},
-    {key:"cycle_score",   label:"Cycle",     weight:1.25,wlabel:"25%"},
-    {key:"valuation_score",label:"Valuation",weight:1.0, wlabel:"20%"},
-    {key:"breadth_score", label:"Breadth",   weight:0.75,wlabel:"15%"},
-    {key:"labor_score",   label:"Labor",     weight:0.5, wlabel:"10%"},
+    {key:"credit_score",   label:"Credit",    icon:"ti-credit-card",  wlabel:"30%"},
+    {key:"cycle_score",    label:"Cycle",     icon:"ti-chart-line",   wlabel:"25%"},
+    {key:"valuation_score",label:"Valuation", icon:"ti-scale",        wlabel:"20%"},
+    {key:"breadth_score",  label:"Breadth",   icon:"ti-wave-sine",    wlabel:"15%"},
+    {key:"labor_score",    label:"Labor",     icon:"ti-users",        wlabel:"10%"},
   ];
-  const tilesRow=el(`<div class="sub-tiles"></div>`);
+  const tileRow=el(`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px"></div>`);
   buckets.forEach(b=>{
-    const sm=((DATA.scores||{})[b.key])||{};
-    const sv=sm.value;
-    const sc=riskColor(sv);
+    const m2=((DATA.scores||{})[b.key])||{};
+    const sv=m2.value;
+    const sc=sv==null?"var(--faint)":riskColor(sv);
     const histKey=HIST_FIELD[b.key]||null;
-    const spk=histKey?sparkline(histKey,50,14,sc):"";
-    const tile=el(`<div class="sub-tile" style="flex:${b.weight}"></div>`);
-    tile.innerHTML=`<div class="st-name">${esc(b.label)}</div>
-      <div class="st-val" style="color:${sc}">${sv!=null?Math.round(sv):"—"}</div>
-      <div class="st-lbl" style="color:${sc}">${esc(sm.label||"")}</div>
-      <div class="st-wt">${esc(b.wlabel)}</div>
-      ${spk}`;
-    tilesRow.appendChild(tile);
+    const spk=histKey?sparkline(histKey,60,14,sc):"";
+    const tileLabel=sv!=null?(m2.label||""):(m2.notes?"Data unavailable":"Unknown");
+    const t=el(`<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px"></div>`);
+    t.innerHTML=`
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+        <i class="ti ${b.icon}" style="font-size:14px;color:${sc}" aria-hidden="true"></i>
+        <span style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">${b.label}</span>
+      </div>
+      <div style="font-size:22px;font-weight:500;color:${sc};font-variant-numeric:tabular-nums">${sv!=null?num(sv,0):"—"}</div>
+      <div style="font-size:10px;color:var(--muted)">${tileLabel}</div>      <div style="font-size:9px;color:var(--faint);margin-top:1px">${b.wlabel}</div>
+      <div style="margin-top:5px">${spk}</div>`;
+    tileRow.appendChild(t);
   });
-  c.appendChild(tilesRow);
+  c.appendChild(tileRow);
 
   // ── High-signal rows: Yield Curve + HY Spread Momentum ──
   const yc=(DATA.macro||{}).yield_curve_10y3m||{};
