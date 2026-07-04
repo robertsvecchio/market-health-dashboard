@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-07-03T15:52:16.063758+00:00",
-    "generated_display": "Jul 03 2026, 7:52 AM PT",
+    "generated_utc": "2026-07-04T15:04:44.892461+00:00",
+    "generated_display": "Jul 04 2026, 7:04 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -403,15 +403,15 @@
       }
     },
     "hy_oas": {
-      "value": 2.74,
+      "value": 2.75,
       "status": "ok",
       "source": "FRED:BAMLH0A0HYM2",
-      "asof": "2026-07-01",
+      "asof": "2026-07-02",
       "notes": "ICE BofA US High-Yield option-adjusted credit spread",
       "trend": {
-        "direction": "rising",
-        "change": 0.03,
-        "pct": 1.11,
+        "direction": "flat",
+        "change": 0.0,
+        "pct": 0.0,
         "periods": 21
       },
       "threshold_label": "Complacent",
@@ -419,15 +419,15 @@
       "complacency_note": "Spreads below 350bps indicate compressed risk premiums. This is not 'safe' \u2014 it means risk is being mispriced. The GFC peak (Oct 2007) saw HY OAS at only 270bps before spreads exploded to 1,900bps within 14 months."
     },
     "ig_oas": {
-      "value": 0.76,
+      "value": 0.75,
       "status": "ok",
       "source": "FRED:BAMLC0A0CM",
-      "asof": "2026-07-01",
+      "asof": "2026-07-02",
       "notes": "ICE BofA US Investment-Grade option-adjusted credit spread",
       "trend": {
         "direction": "rising",
-        "change": 0.02,
-        "pct": 2.7,
+        "change": 0.01,
+        "pct": 1.35,
         "periods": 21
       }
     },
@@ -485,11 +485,11 @@
       "above_threshold": false
     },
     "hy_momentum": {
-      "value": 37.0,
+      "value": 40.0,
       "status": "ok",
       "source": "derived:FRED:BAMLH0A0HYM2",
       "notes": "HY OAS 90-day rate-of-change converted to 0-100 risk score. >75 = spreads widening fast = credit stress signal.",
-      "change_90d_bps": -39.0,
+      "change_90d_bps": -30.0,
       "derived": true,
       "threshold_label": "Moderate"
     },
@@ -590,12 +590,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": 52.59,
+      "value": 59.82,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 222.935,
-      "ema39": 170.341,
+      "ema19": 242.642,
+      "ema39": 182.824,
       "negative": false
     },
     "hindenburg_omen_today": {
@@ -630,10 +630,9 @@
       "source": "Alpaca S&P500 internals (cluster)",
       "notes": "CONFIRMED when 2+ raw flags occur within 30 days. Retained as breadth data only \u2014 NOT an active alert (high false positive rate).",
       "derived": true,
-      "count": 8,
+      "count": 7,
       "window_days": 30,
       "dates": [
-        "2026-06-03",
         "2026-06-17",
         "2026-06-18",
         "2026-06-19",
@@ -662,12 +661,12 @@
   },
   "sentiment": {
     "vix": {
-      "value": 15.81,
+      "value": 16.15,
       "status": "ok",
       "source": "yfinance:^VIX",
-      "asof": "2026-07-03",
+      "asof": "2026-07-02",
       "notes": "CBOE Volatility Index",
-      "ma20": 18.12,
+      "ma20": 18.1,
       "above_40": false,
       "above_30": false
     },
@@ -852,22 +851,22 @@
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 12
+        "days_away": 11
       },
       {
         "date": "2026-07-29",
         "label": "FOMC Meeting + Decision",
-        "days_away": 26
+        "days_away": 25
       },
       {
         "date": "2026-07-31",
         "label": "PCE Release",
-        "days_away": 28
+        "days_away": 27
       },
       {
         "date": "2026-08-01",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 29
+        "days_away": 28
       }
     ]
   },
@@ -889,7 +888,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 47.7,
+      "value": 47.8,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -897,7 +896,7 @@
       "derived": true
     },
     "credit_score": {
-      "value": 56.4,
+      "value": 57.4,
       "status": "ok",
       "source": "derived",
       "notes": "Credit bucket: SLOOS(40%) HY momentum(35%) NFCI leverage(25%)",
@@ -924,7 +923,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 34.1,
+      "value": 33.1,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -981,7 +980,7 @@
       "excess_cape_yield": "0.15% \u2014 low \u2014 thin compensation for holding stocks over bonds.",
       "forward_pe": "22.0x next-12-month earnings \u2014 elevated, +6.0 vs the ~16x long-run mean.",
       "yield_curve_10y3m": "Comfortably positive \u2014 no recession signal here; falling lately.",
-      "hy_oas": "Very tight \u2014 credit markets are complacent, little stress priced in; spreads are widening (bond market getting nervous).",
+      "hy_oas": "Very tight \u2014 credit markets are complacent, little stress priced in.",
       "lei": "Rising \u2014 leading indicators point to continued expansion.",
       "unemployment": "4.2% and falling \u2014 labor market still firm.",
       "core_pce": "Core PCE running 3.4% YoY, above the Fed's 2% target and accelerating.",
@@ -991,12 +990,11 @@
       "nfci_leverage": "Negative \u2014 leverage/conditions looser than average (easy money).",
       "cc_delinquency": "Credit-card delinquencies at 2.92%.",
       "auto_delinquency": "Auto-loan delinquencies at 1.49%.",
-      "vix": "15.8 \u2014 normal.",
+      "vix": "16.1 \u2014 normal.",
       "pct_above_200dma": "65% of the S&P 500 above its 200-DMA \u2014 broad participation \u2014 healthy.",
       "ad_line_proxy": "Breadth confirms the index \u2014 no divergence."
     },
     "watch": [
-      "Credit spreads are the key tell right now \u2014 widening here would confirm rising risk.",
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
       "Breadth is broad \u2014 the tape supports staying invested.",
       "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone."
@@ -1880,6 +1878,37 @@
       "cycle_score": 38.8,
       "valuation_score": 92.1,
       "breadth_score": 34.1,
+      "labor_score": 19.2,
+      "lei_streak": 0,
+      "nyfed_prob": 0.54
+    },
+    {
+      "date": "2026-07-04",
+      "composite": 47.8,
+      "structural": 92.1,
+      "cycle": 38.8,
+      "cape": 41.6,
+      "buffett_z": 2.45,
+      "yield_curve": 0.67,
+      "hy_oas": 2.75,
+      "vix": 16.15,
+      "pct_above_200": 64.8,
+      "goldman": 56.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 11.0,
+      "new_low_pct": 0.0,
+      "fear_greed": 31.9,
+      "umich": 44.8,
+      "sloos": 8.1,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": -30.0,
+      "hy_mom_score": 40.0,
+      "regime_count": 1,
+      "credit_score": 57.4,
+      "cycle_score": 38.8,
+      "valuation_score": 92.1,
+      "breadth_score": 33.1,
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 0.54
