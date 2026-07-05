@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-07-04T15:04:44.892461+00:00",
-    "generated_display": "Jul 04 2026, 7:04 AM PT",
+    "generated_utc": "2026-07-05T15:12:09.710113+00:00",
+    "generated_display": "Jul 05 2026, 7:12 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -590,12 +590,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": 59.82,
+      "value": 65.69,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 242.642,
-      "ema39": 182.824,
+      "ema19": 260.378,
+      "ema39": 194.683,
       "negative": false
     },
     "hindenburg_omen_today": {
@@ -851,22 +851,22 @@
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 11
+        "days_away": 10
       },
       {
         "date": "2026-07-29",
         "label": "FOMC Meeting + Decision",
-        "days_away": 25
+        "days_away": 24
       },
       {
         "date": "2026-07-31",
         "label": "PCE Release",
-        "days_away": 27
+        "days_away": 26
       },
       {
         "date": "2026-08-01",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 28
+        "days_away": 27
       }
     ]
   },
@@ -888,7 +888,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 47.8,
+      "value": 47.7,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -923,7 +923,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 33.1,
+      "value": 32.4,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -1909,6 +1909,37 @@
       "cycle_score": 38.8,
       "valuation_score": 92.1,
       "breadth_score": 33.1,
+      "labor_score": 19.2,
+      "lei_streak": 0,
+      "nyfed_prob": 0.54
+    },
+    {
+      "date": "2026-07-05",
+      "composite": 47.7,
+      "structural": 92.1,
+      "cycle": 38.8,
+      "cape": 41.6,
+      "buffett_z": 2.45,
+      "yield_curve": 0.67,
+      "hy_oas": 2.75,
+      "vix": 16.15,
+      "pct_above_200": 64.8,
+      "goldman": 56.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 11.0,
+      "new_low_pct": 0.0,
+      "fear_greed": 31.9,
+      "umich": 44.8,
+      "sloos": 8.1,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": -30.0,
+      "hy_mom_score": 40.0,
+      "regime_count": 1,
+      "credit_score": 57.4,
+      "cycle_score": 38.8,
+      "valuation_score": 92.1,
+      "breadth_score": 32.4,
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 0.54
