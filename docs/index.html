@@ -272,7 +272,8 @@ const PRIMERS={
   // Sentiment
   fear_greed:"CNN's official Fear & Greed Index, scraped directly from CNN's API. 0=Extreme Fear, 100=Extreme Greed. Best used as a CONTRARIAN signal — extremes (<25 or >75) mark emotional turning points.",
   sahm_rule:"HIT RATE: triggered in every US recession since 1950, avg ~3 months in — well before NBER declares. NOT a predictor — a recession-onset confirmation. Trigger = 0.50pp. (FRED SAHMREALTIME)",
-  recession_prob:"Chauvet-Piger smoothed recession probability. Above 20% has coincided with every post-WWII recession. (FRED RECPROUSM156N)",
+  recession_prob:"NY Fed Estrella-Mishkin probit model: P = Φ(−0.5333 − 0.6629 × 10y3m spread). 12-month-ahead recession probability derived from the yield curve. Crossed 30% before every US recession since 1969 (one near-miss, 1998). Unlike the Chauvet-Piger now-cast, this is a forward warning, not a coincident signal.",
+  nyfed_model:"NY Fed Estrella-Mishkin probit model: P = Φ(−0.5333 − 0.6629 × 10y3m spread). 12-month-ahead recession probability derived from the yield curve. Crossed 30% before every US recession since 1969 (one near-miss, 1998). Unlike the Chauvet-Piger now-cast, this is a forward warning, not a coincident signal.",
   philly_coincident:"Philly Fed Coincident Index — 4-factor current economic activity. Rising = expanding, falling = contracting. (FRED USPHCI)",
   vix:"Expected 30-day S&P volatility. Concurrent, not leading — spikes with selloffs. Above 40 = capitulation zone. Below 15 = complacency.",
   put_call:"Puts ÷ calls volume. High = fear (contrarian buy). Low = euphoria (contrarian sell).",
@@ -834,12 +835,12 @@ function panelOverview(){
   const yc=(DATA.macro||{}).yield_curve_10y3m||{};
   const ycv=yc.value;
   const ycCol=ycv==null?"var(--faint)":ycv<0?"var(--high)":ycv<0.5?"var(--elevated)":ycv<1.5?"var(--moderate)":"var(--low)";
-  const ycDir=ycv==null?"":ycv<0?"Inverted":ycv<0.5?"Flat":"Positive";
+  const ycPostInvFlag=(DATA.scores&&DATA.scores.cycle_score&&DATA.scores.cycle_score.post_inversion===true);
+  const ycDir=ycv==null?"":ycv<0?"Inverted":(ycv<1.0&&ycPostInvFlag)?"Re-steepening":ycv<0.5?"Flat":"Positive";
   const ycArrow=yc.trend?{rising:"↑",falling:"↓",flat:"→"}[yc.trend.direction]||"":"";
-  const ycPostInv=(DATA.scores&&DATA.scores.cycle_score&&DATA.scores.cycle_score.post_inversion===true);
   const ycCard=highSignalCard("Yield Curve 10y–3m",ycv,"%",ycArrow,ycCol,ycDir,"yield_curve",-2,4,"yield_curve_overview");
   // Re-steepening warning
-  if(ycPostInv&&ycv!=null&&ycv>=0&&ycv<1.0){
+  if(ycPostInvFlag&&ycv!=null&&ycv>=0&&ycv<1.0){
     ycCard.appendChild(el(`<div style="margin-top:8px;padding:7px 10px;background:rgba(216,166,87,.10);border:1px solid rgba(216,166,87,.3);border-radius:8px;font-size:12px;color:var(--moderate)">⚠ Re-steepening after inversion — historically the danger zone</div>`));
   }
   c.appendChild(ycCard);
@@ -885,7 +886,13 @@ function panelOverview(){
     return t;
   }
   grid.appendChild(medTile("SLOOS","macro","lending_standards",(v)=>(v>=0?"+":"")+num(v,0)+"% tight","lending_standards","sloos_regime"));
-  grid.appendChild(medTile("Margin Debt YoY","macro","margin_debt",(v,m)=>m.yoy_pct!=null?num(m.yoy_pct,1)+"%":"—","margin_debt","margin_debt_regime"));
+  grid.appendChild(medTile("Margin Debt YoY","macro","margin_debt",(v,m)=>{
+    if(m.yoy_pct==null)return "—";
+    const base=num(m.yoy_pct,1)+"%";
+    if(m.rolling_over)return base+" ⚠ rolling over";
+    if(m.yoy_pct>40)return base+" (building)";
+    return base;
+  },"margin_debt","margin_debt_regime"));
   grid.appendChild(medTile("CAPE","structural","cape",(v)=>num(v,1),"cape","cape"));
   (()=>{
     const bm=(DATA.breadth||{}).pct_above_200dma||{};
@@ -922,7 +929,18 @@ function panelOverview(){
   sigDefs.forEach(sd=>{
     let sv=null;
     if(sd.scoreKey){sv=((DATA.scores||{})[sd.scoreKey]||{}).value;}
-    else if(sd.valSec){const mv=((DATA[sd.valSec]||{})[sd.valKey]||{}).value;if(mv!=null){sv=mv<0?90:mv<0.5?70:mv<1.5?40:10;}}
+    else if(sd.valSec){
+      const ycm=((DATA[sd.valSec]||{})[sd.valKey]||{});
+      const mv=ycm.value;
+      const postInv=(DATA.scores&&DATA.scores.cycle_score&&DATA.scores.cycle_score.post_inversion===true);
+      if(mv!=null){
+        if(mv<0)sv=90;
+        else if(mv<1.0&&postInv)sv=70;
+        else if(mv<0.5)sv=65;
+        else if(mv<1.5)sv=35;
+        else sv=10;
+      }
+    }
     const col=sv==null?"var(--faint)":sv<40?"var(--low)":sv<65?"var(--moderate)":"var(--high)";
     const dot=el(`<div class="sig-dot-wrap" role="button" tabindex="0" aria-label="Go to ${sd.label} tab"></div>`);
     dot.innerHTML=`<div class="sig-dot" style="background:${col}"></div><div class="sig-dot-label">${esc(sd.label)}</div>`;
@@ -969,12 +987,12 @@ function panelOverview(){
     wc.appendChild(wcInfoBody);
     const lookback=Math.min(7,hist.length-1);
     const fields=[
-      {k:"composite",label:"Market Health",highIsBad:true},
+      {k:"regime_count",label:"Regime Conditions",highIsBad:true},
       {k:"goldman",label:"Goldman Risk",highIsBad:true},
+      {k:"nyfed_prob",label:"NY Fed Recession %",highIsBad:true},
       {k:"yield_curve",label:"Yield Curve",highIsBad:false},
       {k:"pct_above_200",label:"Breadth",highIsBad:false},
       {k:"hy_oas",label:"HY Spreads",highIsBad:true},
-      {k:"vix",label:"VIX",highIsBad:true},
       {k:"credit_score",label:"Credit Score",highIsBad:true},
     ];
     let rows=0;
@@ -1251,7 +1269,7 @@ function panelEconomy(){
   c.appendChild(mList([
     {h:"Recession Composite",first:true},
     {sec:"scores",key:"goldman_composite",label:"Goldman Bear-Market Risk",fmt:v=>num(v,0)+" / 100",rk:"goldman_composite"},
-    {sec:"macro",key:"recession_prob",label:"Recession Probability (Chauvet-Piger)",fmt:v=>num(v,1)+"%",stale:75},
+    {sec:"macro",key:"recession_prob",label:"Recession Prob (NY Fed 12mo)",fmt:v=>num(v,1)+"%",stale:14},
     {sec:"macro",key:"sahm_rule",label:"Sahm Rule",fmt:v=>num(v,2)+"pp"+" (trigger ≥0.5)",stale:45},
     {sec:"macro",key:"philly_coincident",label:"Philly Fed Coincident Index (SCI)",fmt:(v,m)=>num(v,1)+(m.trend&&m.trend.direction?" "+{rising:"↑",falling:"↓",flat:"→"}[m.trend.direction]:""),stale:45},
     {h:"Leading & Rates"},
