@@ -1,12 +1,12 @@
 {
-  "last_run_utc": "2026-07-08T22:28:48.584499+00:00",
+  "last_run_utc": "2026-07-08T22:48:32.514327+00:00",
   "mcclellan": {
-    "ema19": 77.13617082238756,
-    "ema39": 110.58873159919669
+    "ema19": 14.22255374014879,
+    "ema39": 77.45929501923686
   },
   "alerts": {
     "last_snapshot": {
-      "composite": 50.0,
+      "composite": 50.6,
       "label": "Elevated Risk",
       "goldman": 56.0,
       "yield_curve": 0.69,
@@ -18,7 +18,7 @@
       "hy_oas": 2.67,
       "sahm_rule": 0.07
     },
-    "last_sent_utc": "2026-07-08T22:29:09.823143+00:00",
+    "last_sent_utc": "2026-07-08T22:49:02.112511+00:00",
     "last_send_ok": true
   },
   "history": [
@@ -1028,7 +1028,7 @@
     },
     {
       "date": "2026-07-08",
-      "composite": 50.0,
+      "composite": 50.6,
       "structural": 92.4,
       "cycle": 38.8,
       "cape": 41.64,
@@ -1052,7 +1052,7 @@
       "credit_score": 58.3,
       "cycle_score": 38.8,
       "valuation_score": 92.4,
-      "breadth_score": 46.2,
+      "breadth_score": 50.2,
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 0.54
