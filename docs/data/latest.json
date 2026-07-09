@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-07-08T22:48:32.514327+00:00",
-    "generated_display": "Jul 08 2026, 2:48 PM PT",
+    "generated_utc": "2026-07-09T02:20:50.411144+00:00",
+    "generated_display": "Jul 08 2026, 6:20 PM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -283,60 +283,6 @@
       },
       "threshold_label": "Low"
     },
-    "recession_prob": {
-      "value": 0.54,
-      "status": "ok",
-      "source": "FRED:RECPROUSM156N",
-      "asof": "2026-05-01",
-      "notes": "Chauvet-Piger smoothed recession probability (0-100%)",
-      "trend": {
-        "direction": "rising",
-        "change": 0.38,
-        "pct": 237.5,
-        "periods": 3
-      },
-      "spark": [
-        0.3,
-        0.1,
-        0.2,
-        0.3,
-        0.3,
-        0.3,
-        1.0,
-        2.6,
-        0.2,
-        0.2,
-        0.2,
-        0.2,
-        0.4,
-        0.6,
-        0.2,
-        0.3,
-        0.3,
-        0.2,
-        0.1,
-        0.4,
-        0.1,
-        0.1,
-        0.3,
-        0.5,
-        0.2,
-        0.2,
-        0.8,
-        0.9,
-        1.2,
-        0.5,
-        0.1,
-        0.2,
-        0.2,
-        0.3,
-        0.3,
-        0.5
-      ],
-      "threshold": 30.0,
-      "above_threshold": false,
-      "threshold_note": "Above 30% has preceded every US recession since 1967 \u2014 zero false positives."
-    },
     "fed_funds": {
       "value": 3.63,
       "status": "ok",
@@ -484,6 +430,39 @@
       "rolling_over": false,
       "above_threshold": false
     },
+    "recession_prob": {
+      "value": 16.1,
+      "status": "ok",
+      "source": "derived: Estrella-Mishkin (NY Fed model) from T10Y3M",
+      "notes": "12-month-ahead recession probability. NY Fed Estrella-Mishkin probit model: P = \u03a6(-0.5333 - 0.6629 \u00d7 10y3m spread). Crossed 30% before every US recession since 1969 (one near-miss, 1998).",
+      "spark": [
+        39.4,
+        25.1,
+        23.8,
+        31.6,
+        31.8,
+        33.0,
+        28.6,
+        33.7,
+        30.6,
+        29.7,
+        26.6,
+        24.9,
+        26.6,
+        19.2,
+        17.8,
+        23.2,
+        17.6,
+        15.6,
+        15.0,
+        18.1,
+        16.1
+      ],
+      "threshold": 30.0,
+      "above_threshold": false,
+      "spread_input": 0.69,
+      "derived": true
+    },
     "hy_momentum": {
       "value": 42.3,
       "status": "ok",
@@ -590,12 +569,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -63.24,
+      "value": -88.39,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 14.223,
-      "ema39": 77.459,
+      "ema19": -42.4,
+      "ema39": 45.986,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -685,7 +664,7 @@
       "source": "CNN (production.dataviz.cnn.io)",
       "notes": "CNN's official Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed.",
       "label": "Fear",
-      "timestamp": "2026-07-08T22:31:26+00:00",
+      "timestamp": "2026-07-08T23:59:55+00:00",
       "spark": [
         65.9,
         63.2,
@@ -851,35 +830,35 @@
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 7
+        "days_away": 6
       },
       {
         "date": "2026-07-29",
         "label": "FOMC Meeting + Decision",
-        "days_away": 21
+        "days_away": 20
       },
       {
         "date": "2026-07-31",
         "label": "PCE Release",
-        "days_away": 23
+        "days_away": 22
       },
       {
         "date": "2026-08-01",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 24
+        "days_away": 23
       }
     ]
   },
   "scores": {
     "goldman_composite": {
-      "value": 56.0,
+      "value": 58.2,
       "status": "ok",
       "source": "Goldman-style composite (self-calc)",
       "notes": "percentile-ranked composite; >70 historically high-risk, <40 favorable",
       "inputs": {
         "valuation": 93.5,
-        "yield_curve": 8.5,
-        "unemployment": 80.25,
+        "yield_curve": 55,
+        "unemployment": 45,
         "core_inflation": 83.24742268041237,
         "lei": 14.5
       },
@@ -888,7 +867,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 50.6,
+      "value": 51.3,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -904,7 +883,7 @@
       "derived": true
     },
     "cycle_score": {
-      "value": 38.8,
+      "value": 39.4,
       "status": "ok",
       "source": "derived",
       "notes": "Cycle bucket (v2): LEI direction(30%) YC risk(30%) Goldman composite(30%) Debt service(10%)",
@@ -923,7 +902,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 50.2,
+      "value": 53.5,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -955,7 +934,7 @@
     }
   },
   "source_health": {
-    "ok": 51,
+    "ok": 50,
     "manual": 1,
     "proxy": 4
   },
@@ -998,7 +977,7 @@
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
       "Breadth is broad \u2014 the tape supports staying invested.",
       "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone.",
-      "Next catalyst: CPI Release on 2026-07-15 (7d)."
+      "Next catalyst: CPI Release on 2026-07-15 (6d)."
     ],
     "summary": "Elevated Risk (51/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
@@ -2037,6 +2016,37 @@
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 0.54
+    },
+    {
+      "date": "2026-07-09",
+      "composite": 51.3,
+      "structural": 92.4,
+      "cycle": 39.4,
+      "cape": 41.64,
+      "buffett_z": 2.45,
+      "yield_curve": 0.69,
+      "hy_oas": 2.67,
+      "vix": 16.9,
+      "pct_above_200": 63.8,
+      "goldman": 58.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 1.0,
+      "new_low_pct": 0.4,
+      "fear_greed": 42.2,
+      "umich": 44.8,
+      "sloos": 8.1,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": -23.0,
+      "hy_mom_score": 42.3,
+      "regime_count": 1,
+      "credit_score": 58.3,
+      "cycle_score": 39.4,
+      "valuation_score": 92.4,
+      "breadth_score": 53.5,
+      "labor_score": 19.2,
+      "lei_streak": 0,
+      "nyfed_prob": 16.1
     }
   ]
 }
