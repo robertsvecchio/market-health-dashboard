@@ -94,7 +94,6 @@ FRED_SERIES = {
     "ppi":               ("PPIFIS",             "Producer Price Index, Final Demand (SA) — leads CPI by 1-3 months"),
     "philly_coincident": ("USPHCI",             "Philly Fed Coincident Index — 4-factor current economic activity"),
     "sahm_rule":         ("SAHMREALTIME",       "Sahm Rule: 3mo avg unemployment rise from 12mo low. >=0.5 = recession onset"),
-    "recession_prob":    ("RECPROUSM156N",       "Chauvet-Piger smoothed recession probability (0-100%)"),
     "fed_funds":         ("DFF",                "Effective federal funds rate"),
     "umich_sentiment":   ("UMCSENT",            "U. Michigan Consumer Sentiment"),
     "avg_hourly_earnings":("CES0500000003",     "Average hourly earnings, total private (for real wage growth)"),
@@ -110,7 +109,7 @@ FRED_SERIES = {
 # How far back to look when computing a metric's trend, by series cadence.
 TREND_LOOKBACK = {
     "lei": 3, "yield_curve_10y3m": 21, "nfci_leverage": 4, "unemployment": 3,
-    "philly_coincident": 3, "sahm_rule": 1, "recession_prob": 3,
+    "philly_coincident": 3, "sahm_rule": 1,
     "lending_standards": 1,
     "cc_delinquency": 1, "auto_delinquency": 1, "savings_rate": 3, "debt_service": 1,
     "corp_profits": 1, "gdp": 1, "core_cpi": 3, "core_pce": 3, "ppi": 3, "fed_funds": 21,
@@ -229,6 +228,27 @@ def percentile_rank(value, history):
 
 def clamp(x, lo=0.0, hi=100.0):
     return max(lo, min(hi, x))
+
+
+def nyfed_recession_prob(fred_raw):
+    """
+    NY Fed / Estrella-Mishkin 12-month-ahead recession probability.
+    P(recession in 12mo) = Φ(-0.5333 - 0.6629 * spread)
+    where spread is the 10y-3m Treasury term spread in percentage points
+    and Φ is the standard normal CDF.
+    Source: Estrella & Mishkin (1998); published monthly by the NY Fed.
+    Returns (probability_pct, spread) or (None, None).
+    """
+    yc = fred_raw.get("yield_curve_10y3m")
+    if yc is None or len(yc) < 1:
+        return None, None
+    try:
+        spread = float(yc.iloc[-1])
+        z = -0.5333 - 0.6629 * spread
+        prob = 0.5 * (1 + math.erf(z / math.sqrt(2)))
+        return round(prob * 100, 1), spread
+    except Exception:
+        return None, None
 
 
 # ---------------------------------------------------------------------------
@@ -911,17 +931,6 @@ def pull_fred_all(api_key):
                         f"LEI declining {consecutive} consecutive months — recession precursor active"
                         if consecutive >= 3 else
                         f"LEI declining {consecutive} consecutive month(s) — threshold is 3"
-                    )
-                except Exception:
-                    pass
-            # NY Fed recession probability: 36-month spark + threshold metadata
-            if key == "recession_prob":
-                try:
-                    m["spark"] = [round(float(x), 1) for x in s.iloc[-36:].tolist()]
-                    m["threshold"] = 30.0
-                    m["above_threshold"] = bool(float(s.iloc[-1]) >= 30.0)
-                    m["threshold_note"] = (
-                        "Above 30% has preceded every US recession since 1967 — zero false positives."
                     )
                 except Exception:
                     pass
@@ -1676,14 +1685,33 @@ def goldman_composite(raw, cape_value):
                                        list(np.linspace(5, 44, 200))) or 50)
         yc = raw.get("yield_curve_10y3m")
         if yc is not None:
-            p = percentile_rank(float(yc.iloc[-1]), yc.values)
-            if p is not None:
-                parts["yield_curve"] = clamp(100 - p)
+            yv = float(yc.iloc[-1])
+            # Absolute-threshold scoring (not percentile-of-recent-history, which
+            # scores post-inversion re-steepening as falsely reassuring).
+            post_inv = bool(len(yc) >= 390 and (yc.iloc[-390:] < 0).any())
+            if yv < 0:
+                yc_risk = 90
+            elif yv < 0.5:
+                yc_risk = 70 if post_inv else 55
+            elif yv < 1.5:
+                yc_risk = 55 if post_inv else 30
+            else:
+                yc_risk = 15
+            parts["yield_curve"] = clamp(yc_risk)
         un = raw.get("unemployment")
-        if un is not None:
-            p = percentile_rank(float(un.iloc[-1]), un.values)
-            if p is not None:
-                parts["unemployment"] = clamp(100 - p)
+        if un is not None and len(un) > 13:
+            cur_u = float(un.iloc[-1])
+            min_12 = float(un.iloc[-13:].min())
+            rise = cur_u - min_12
+            # Sahm-style: rise from trailing low is the danger signal, not the level.
+            if rise >= 0.5:
+                parts["unemployment"] = 90
+            elif rise >= 0.3:
+                parts["unemployment"] = 65
+            elif rise >= 0.1:
+                parts["unemployment"] = 45
+            else:
+                parts["unemployment"] = 25
         cpi = raw.get("core_cpi")
         if cpi is not None and len(cpi) > 13:
             yoy = (cpi.iloc[-1] / cpi.iloc[-13] - 1) * 100
@@ -2186,6 +2214,32 @@ def run(no_breadth=False):
     fred_out, fred_raw = pull_fred_all(FRED_API_KEY)
     result["macro"].update(fred_out)
 
+    # ---- NY Fed Estrella-Mishkin 12-month-ahead recession probability ----
+    nyfed_prob, nyfed_spread = nyfed_recession_prob(fred_raw)
+    nyfed_spark = []
+    yc_series = fred_raw.get("yield_curve_10y3m")
+    if yc_series is not None and len(yc_series) >= 24:
+        try:
+            monthly = yc_series.resample("MS").last().dropna().iloc[-36:]
+            for sp in monthly.tolist():
+                z = -0.5333 - 0.6629 * float(sp)
+                nyfed_spark.append(round(0.5 * (1 + math.erf(z / math.sqrt(2))) * 100, 1))
+        except Exception:
+            nyfed_spark = []
+    result["macro"]["recession_prob"] = metric(
+        nyfed_prob,
+        status="ok" if nyfed_prob is not None else "unavailable",
+        source="derived: Estrella-Mishkin (NY Fed model) from T10Y3M",
+        notes="12-month-ahead recession probability. NY Fed Estrella-Mishkin probit "
+              "model: P = Φ(-0.5333 - 0.6629 × 10y3m spread). Crossed 30% before every "
+              "US recession since 1969 (one near-miss, 1998).",
+        spark=nyfed_spark,
+        threshold=30.0,
+        above_threshold=bool(nyfed_prob is not None and nyfed_prob >= 30.0),
+        spread_input=nyfed_spread,
+        derived=True,
+    )
+
     # ---- Shiller CAPE ----
     cape_metric, cape_value, cape_ecy = pull_cape()
     result["structural"]["cape"] = cape_metric
@@ -2464,9 +2518,15 @@ def selftest():
                           "advancers": 250, "decliners": 240})
     assert "hindenburg_omen_today" in bs, "breadth signals failed"
 
+    # ---- NY Fed Estrella-Mishkin probability ----
+    p_inv, s_inv = nyfed_recession_prob({"yield_curve_10y3m": pd.Series([-0.5], index=pd.date_range("2024-01-01", periods=1))})
+    assert p_inv is not None and p_inv > 40, f"NY Fed prob for -0.5 spread should be >40%, got {p_inv}"
+    p_pos, _ = nyfed_recession_prob({"yield_curve_10y3m": pd.Series([2.0], index=pd.date_range("2024-01-01", periods=1))})
+    assert p_pos is not None and p_pos < 10, f"NY Fed prob for +2.0 spread should be <10%, got {p_pos}"
+    print(f"  nyfed_recession_prob ✓ inv={p_inv}% pos={p_pos}%")
+
     # ---- LEI consecutive declines ----
-    _lei_mock = pd.Series(
-        [100.5, 100.3, 100.1, 99.9, 99.7, 99.5, 99.3],
+    _lei_mock = pd.Series(        [100.5, 100.3, 100.1, 99.9, 99.7, 99.5, 99.3],
         index=pd.date_range("2024-01-01", periods=7, freq="MS")
     )
     consecutive = 0
