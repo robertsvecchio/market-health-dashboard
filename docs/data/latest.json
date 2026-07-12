@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-07-11T14:52:35.734394+00:00",
-    "generated_display": "Jul 11 2026, 6:52 AM PT",
+    "generated_utc": "2026-07-12T14:55:19.517031+00:00",
+    "generated_display": "Jul 12 2026, 6:55 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -37.73,
+      "value": -19.83,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 37.277,
-      "ema39": 75.004,
+      "ema19": 69.292,
+      "ema39": 89.125,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -828,22 +828,22 @@
       {
         "date": "2026-07-15",
         "label": "CPI Release",
-        "days_away": 4
+        "days_away": 3
       },
       {
         "date": "2026-07-29",
         "label": "FOMC Meeting + Decision",
-        "days_away": 18
+        "days_away": 17
       },
       {
         "date": "2026-07-31",
         "label": "PCE Release",
-        "days_away": 20
+        "days_away": 19
       },
       {
         "date": "2026-08-01",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 21
+        "days_away": 20
       }
     ]
   },
@@ -865,11 +865,11 @@
       "above_50": true
     },
     "composite": {
-      "value": 50.1,
+      "value": 49.8,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
-      "label": "Elevated Risk",
+      "label": "Moderate Risk",
       "derived": true
     },
     "credit_score": {
@@ -900,7 +900,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 46.0,
+      "value": 43.6,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -975,9 +975,9 @@
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
       "Breadth is broad \u2014 the tape supports staying invested.",
       "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone.",
-      "Next catalyst: CPI Release on 2026-07-15 (4d)."
+      "Next catalyst: CPI Release on 2026-07-15 (3d)."
     ],
-    "summary": "Elevated Risk (50/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
+    "summary": "Moderate Risk (50/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
     {
@@ -2104,6 +2104,37 @@
       "cycle_score": 39.5,
       "valuation_score": 93.0,
       "breadth_score": 46.0,
+      "labor_score": 19.2,
+      "lei_streak": 0,
+      "nyfed_prob": 15.8
+    },
+    {
+      "date": "2026-07-12",
+      "composite": 49.8,
+      "structural": 93.0,
+      "cycle": 39.5,
+      "cape": 42.18,
+      "buffett_z": 2.45,
+      "yield_curve": 0.71,
+      "hy_oas": 2.7,
+      "vix": 15.03,
+      "pct_above_200": 65.0,
+      "goldman": 58.5,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 2.8,
+      "new_low_pct": 0.4,
+      "fear_greed": 49.5,
+      "umich": 44.8,
+      "sloos": 8.1,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": -25.0,
+      "hy_mom_score": 41.7,
+      "regime_count": 1,
+      "credit_score": 58.1,
+      "cycle_score": 39.5,
+      "valuation_score": 93.0,
+      "breadth_score": 43.6,
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 15.8
