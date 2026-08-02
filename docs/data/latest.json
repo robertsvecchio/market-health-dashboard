@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-08-01T14:59:29.462757+00:00",
-    "generated_display": "Aug 01 2026, 6:59 AM PT",
+    "generated_utc": "2026-08-02T15:00:37.834526+00:00",
+    "generated_display": "Aug 02 2026, 7:00 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -18.11,
+      "value": -24.9,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 37.789,
-      "ema39": 55.903,
+      "ema19": 22.41,
+      "ema39": 47.307,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -617,11 +617,12 @@
       "source": "Alpaca S&P500 internals (cluster)",
       "notes": "CONFIRMED when 2+ raw flags occur within 30 days. Retained as breadth data only \u2014 NOT an active alert (high false positive rate).",
       "derived": true,
-      "count": 2,
+      "count": 3,
       "window_days": 30,
       "dates": [
         "2026-07-30",
-        "2026-08-01"
+        "2026-08-01",
+        "2026-08-02"
       ]
     }
   },
@@ -815,19 +816,14 @@
   "catalysts": {
     "upcoming": [
       {
-        "date": "2026-08-01",
-        "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 0
-      },
-      {
         "date": "2026-08-13",
         "label": "CPI Release",
-        "days_away": 12
+        "days_away": 11
       },
       {
         "date": "2026-08-29",
         "label": "PCE Release",
-        "days_away": 28
+        "days_away": 27
       }
     ]
   },
@@ -849,7 +845,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 50.9,
+      "value": 51.0,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -884,7 +880,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 42.9,
+      "value": 43.8,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -959,21 +955,11 @@
       "Credit spreads are the key tell right now \u2014 widening here would confirm rising risk.",
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
       "Breadth is broad \u2014 the tape supports staying invested.",
-      "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone.",
-      "Next catalyst: Nonfarm Payrolls (NFP) on 2026-08-01 (0d)."
+      "Inflation is re-accelerating \u2014 watch the next CPI/PCE print and Fed tone."
     ],
     "summary": "Elevated Risk (51/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
-    {
-      "date": "2026-04-17",
-      "pct_above_200": 59.6,
-      "new_high_pct": 10.2,
-      "new_low_pct": 0.0,
-      "hindenburg_raw": false,
-      "titanic_raw": false,
-      "backfilled": true
-    },
     {
       "date": "2026-04-20",
       "pct_above_200": 58.6,
@@ -2722,6 +2708,37 @@
       "cycle_score": 39.6,
       "valuation_score": 92.1,
       "breadth_score": 42.9,
+      "labor_score": 19.2,
+      "lei_streak": 0,
+      "nyfed_prob": 12.6
+    },
+    {
+      "date": "2026-08-02",
+      "composite": 51.0,
+      "structural": 92.1,
+      "cycle": 39.6,
+      "cape": 40.91,
+      "buffett_z": 2.45,
+      "yield_curve": 0.92,
+      "hy_oas": 2.84,
+      "vix": 15.99,
+      "pct_above_200": 65.8,
+      "goldman": 58.9,
+      "hindenburg_raw": false,
+      "titanic_raw": true,
+      "new_high_pct": 0.6,
+      "new_low_pct": 0.8,
+      "fear_greed": 42.5,
+      "umich": 49.5,
+      "sloos": 8.1,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": 6.0,
+      "hy_mom_score": 52.0,
+      "regime_count": 1,
+      "credit_score": 62.0,
+      "cycle_score": 39.6,
+      "valuation_score": 92.1,
+      "breadth_score": 43.8,
       "labor_score": 19.2,
       "lei_streak": 0,
       "nyfed_prob": 12.6
