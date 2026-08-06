@@ -82,12 +82,6 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .med-tile .mt-val{font-family:var(--mono);font-size:22px;font-weight:700}
 .med-tile .mt-sub{font-size:11px;color:var(--muted);margin-top:2px}
 
-/* ── Signal board ── */
-.sig-board{display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;align-items:center}
-.sig-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.sig-dot{width:12px;height:12px;border-radius:50%}
-.sig-dot-label{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-
 /* ── Composite hero ── */
 .comp-hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 16px 12px;margin-bottom:12px}
 .comp-hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
@@ -290,7 +284,6 @@ const PRIMERS={
   sloos:"Net % of banks tightening C&I lending standards (Senior Loan Officer Opinion Survey, quarterly). Above +20% has preceded every US recession since 1990 with a 2–4 quarter lead — the longest-lead economic signal in this dashboard. Above +40% has historically indicated an active credit crunch.",
   hy_oas_detail:"High-yield credit spread: the premium investors demand to hold junk bonds over Treasuries. Long-term average ~4.5–5%. Below 3.5% indicates compressed risk premiums — not safety, but complacency. Spreads were only 2.7% at the Oct 2007 market peak before exploding to 19% within 14 months.",
   yield_curve_overview:"The 10-year minus 3-month Treasury spread. Inverted (below 0) in 7 of 8 major US crashes since 1929 with 6–18 month lead time. Equally important: the re-steepening after an inversion is when recessions historically arrive.",
-  signal_board:"Six dots representing each signal category, colored by current stress level. Green (<40): no signal. Amber (40–65): watch. Red (>65): stressed. Tap any dot to navigate to that category's detail tab.",
   // Regime and NY Fed primers
   regime_indicator:"Counts how many of four historically-validated crash precursor conditions are simultaneously active: yield curve warning, SLOOS lending tightening, LEI consecutive decline, and margin debt rollover. Every endogenous US bear market of 20%+ since 1950 occurred with 3 or more conditions active. 0–1: invest normally. 2: watch. 3–4: consider reducing risk.",
   yield_curve_regime:"The 10y−3m spread. Inverted (below 0) in 7 of 8 major US crashes since 1929. Equally important: the re-steepening after an inversion is when recessions historically arrive. This condition is active when the curve is inverted OR positive but below 1.0% after a recent inversion.",
@@ -633,7 +626,7 @@ function tabRisk(id){
 }
 
 /* ── High-signal card (Yield Curve or HY Momentum) ── */
-function highSignalCard(title, value, unit, dirArrow, dirColor, sub, histField, lo, hi, primerKey){
+function highSignalCard(title, value, unit, dirArrow, dirColor, sub, histField, lo, hi, primerKey, arrowCol){
   const hist=sparkSeries(histField);
   const pct=(value!=null&&hi>lo)?Math.max(0,Math.min(100,(value-lo)/(hi-lo)*100)):null;
   const c=el(`<div class="hs-card"></div>`);
@@ -647,7 +640,7 @@ function highSignalCard(title, value, unit, dirArrow, dirColor, sub, histField, 
       ${hist.length>=4?`<svg width="100%" height="24" viewBox="0 0 120 24" preserveAspectRatio="none" style="display:block;margin-top:4px">${(()=>{const n=hist.length,mn=Math.min(...hist),mx=Math.max(...hist),rg=(mx-mn)||1,p=2;let pts="";for(let i=0;i<n;i++){const x=p+(i/(n-1))*(120-2*p);const y=p+(1-(hist[i]-mn)/rg)*(24-2*p);pts+=(i?" ":"")+x.toFixed(1)+","+y.toFixed(1);}return`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.4" opacity=".6"/>`;})()}</svg>`:""}
       ${pct!=null?`<div class="hs-bar-wrap"><div class="hs-bar-track" style="background:var(--surface2)"><div class="hs-bar-fill" style="width:${pct}%;background:${col}"></div><div class="hs-bar-marker" style="left:${pct}%"></div></div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--faint);margin-top:2px"><span>${num(lo,2)}</span><span>${num(hi,2)}</span></div></div>`:""}
     </div>
-    <div class="hs-arrow" style="color:${col}">${esc(dirArrow||"")}</div>`;
+    <div class="hs-arrow" style="color:${arrowCol||col}">${esc(dirArrow||"")}</div>`;
   c.appendChild(body);
   if(primerKey&&PRIMERS[primerKey]){
     const pb=el(`<div style="margin-top:8px;font-size:11.5px;color:var(--faint);line-height:1.45">${esc(PRIMERS[primerKey])}</div>`);
@@ -804,11 +797,11 @@ function panelOverview(){
 
   // ── 5 sub-score tiles (equal grid + Tabler icons) ──
   const buckets=[
-    {key:"credit_score",   label:"Credit",    icon:"ti-credit-card",  wlabel:"30%"},
-    {key:"cycle_score",    label:"Cycle",     icon:"ti-chart-line",   wlabel:"25%"},
-    {key:"valuation_score",label:"Valuation", icon:"ti-scale",        wlabel:"20%"},
-    {key:"breadth_score",  label:"Breadth",   icon:"ti-wave-sine",    wlabel:"15%"},
-    {key:"labor_score",    label:"Labor",     icon:"ti-users",        wlabel:"10%"},
+    {key:"credit_score",   label:"Credit",    icon:"ti-credit-card"},
+    {key:"cycle_score",    label:"Cycle",     icon:"ti-chart-line"},
+    {key:"valuation_score",label:"Valuation", icon:"ti-scale"},
+    {key:"breadth_score",  label:"Breadth",   icon:"ti-wave-sine"},
+    {key:"labor_score",    label:"Labor",     icon:"ti-users"},
   ];
   const tileRow=el(`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px"></div>`);
   buckets.forEach(b=>{
@@ -817,15 +810,16 @@ function panelOverview(){
     const sc=sv==null?"var(--faint)":riskColor(sv);
     const histKey=HIST_FIELD[b.key]||null;
     const spk=histKey?sparkline(histKey,60,14,sc):"";
-    const tileLabel=sv!=null?(m2.label||""):(m2.notes?"Data unavailable":"Unknown");
-    const t=el(`<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px"></div>`);
+    const rawLabel=sv!=null?(m2.label||""):(m2.notes?"Unavailable":"Unknown");
+    const tileLabel=rawLabel.replace(" Risk","");
+    const t=el(`<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:10px 8px;min-width:0;overflow:hidden"></div>`);
     t.innerHTML=`
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
         <i class="ti ${b.icon}" style="font-size:14px;color:${sc}" aria-hidden="true"></i>
-        <span style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">${b.label}</span>
+        <span style="font-size:9px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.label}</span>
       </div>
       <div style="font-size:22px;font-weight:500;color:${sc};font-variant-numeric:tabular-nums">${sv!=null?num(sv,0):"—"}</div>
-      <div style="font-size:10px;color:var(--muted)">${tileLabel}</div>      <div style="font-size:9px;color:var(--faint);margin-top:1px">${b.wlabel}</div>
+      <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${tileLabel}</div>
       <div style="margin-top:5px">${spk}</div>`;
     tileRow.appendChild(t);
   });
@@ -834,11 +828,16 @@ function panelOverview(){
   // ── High-signal rows: Yield Curve + HY Spread Momentum ──
   const yc=(DATA.macro||{}).yield_curve_10y3m||{};
   const ycv=yc.value;
-  const ycCol=ycv==null?"var(--faint)":ycv<0?"var(--high)":ycv<0.5?"var(--elevated)":ycv<1.5?"var(--moderate)":"var(--low)";
   const ycPostInvFlag=(DATA.scores&&DATA.scores.cycle_score&&DATA.scores.cycle_score.post_inversion===true);
+  const ycCol=ycv==null?"var(--faint)":
+    ycv<0?"var(--high)":
+    (ycv<1.0&&ycPostInvFlag)?"var(--high)":
+    ycv<0.5?"var(--elevated)":
+    ycv<1.5?"var(--moderate)":"var(--low)";
   const ycDir=ycv==null?"":ycv<0?"Inverted":(ycv<1.0&&ycPostInvFlag)?"Re-steepening":ycv<0.5?"Flat":"Positive";
   const ycArrow=yc.trend?{rising:"↑",falling:"↓",flat:"→"}[yc.trend.direction]||"":"";
-  const ycCard=highSignalCard("Yield Curve 10y–3m",ycv,"%",ycArrow,ycCol,ycDir,"yield_curve",-2,4,"yield_curve_overview");
+  const ycArrowCol=yc.trend?arrowColor("yield_curve_10y3m",yc.trend.direction):"var(--faint)";
+  const ycCard=highSignalCard("Yield Curve 10y–3m",ycv,"%",ycArrow,ycCol,ycDir,"yield_curve",-2,4,"yield_curve_overview",ycArrowCol);
   // Re-steepening warning
   if(ycPostInvFlag&&ycv!=null&&ycv>=0&&ycv<1.0){
     ycCard.appendChild(el(`<div style="margin-top:8px;padding:7px 10px;background:rgba(216,166,87,.10);border:1px solid rgba(216,166,87,.3);border-radius:8px;font-size:12px;color:var(--moderate)">⚠ Re-steepening after inversion — historically the danger zone</div>`));
@@ -850,7 +849,8 @@ function panelOverview(){
   const hymBps=hym.change_90d_bps;
   const hymCol=hymv==null?"var(--faint)":hymv>70?"var(--high)":hymv>55?"var(--elevated)":hymv>40?"var(--moderate)":"var(--low)";
   const hymSub=hymBps!=null?(hymBps>0?`+${Math.round(hymBps)}bps widening`:`${Math.round(hymBps)}bps tightening`):"";
-  const hyCard=highSignalCard("HY Spread Momentum (90d)",hymv,"",hymBps!=null&&hymBps>0?"↑":"↓",hymCol,hymSub,"hy_mom_score",0,100,"hy_momentum");
+  const hyArrowCol=hymBps==null?"var(--faint)":(hymBps>0?"var(--high)":"var(--low)");
+  const hyCard=highSignalCard("HY Spread Momentum (90d)",hymv,"",hymBps!=null&&hymBps>0?"↑":"↓",hymCol,hymSub,"hy_mom_score",0,100,"hy_momentum",hyArrowCol);
   // Complacency flag (from HY OAS level, not momentum)
   const hyOas=(DATA.macro||{}).hy_oas||{};
   if(hyOas.complacent){
@@ -907,48 +907,6 @@ function panelOverview(){
     }
   })();
   c.appendChild(grid);
-
-  // ── Signal board ──
-  const sigDefs=[
-    {label:"Credit", scoreKey:"credit_score",  tabId:"credit"},
-    {label:"Yield Curve",scoreKey:null, valSec:"macro", valKey:"yield_curve_10y3m", tabId:"economy"},
-    {label:"Cycle",  scoreKey:"cycle_score",   tabId:"economy"},
-    {label:"Valuation",scoreKey:"valuation_score",tabId:"valuation"},
-    {label:"Breadth",scoreKey:"breadth_score", tabId:"technical"},
-    {label:"Labor",  scoreKey:"labor_score",   tabId:"technical"},
-  ];
-  const sb=el(`<div class="sig-board"></div>`);
-  // Header with info icon
-  const sbHeader=el(`<div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"></div>`);
-  sbHeader.innerHTML=`<span style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Signal Board</span>
-    <button class="info" aria-label="Explain signal board" aria-expanded="false" style="width:16px;height:16px;font-size:9px">i</button>`;
-  const sbInfoBody=el(`<div style="display:none;width:100%;margin-top:4px;font-size:11px;color:var(--faint);line-height:1.45">${esc(PRIMERS.signal_board||"")}</div>`);
-  sbHeader.querySelector(".info").addEventListener("click",()=>{const open=sbInfoBody.style.display==="none";sbInfoBody.style.display=open?"block":"none";});
-  sb.appendChild(sbHeader);
-  sb.appendChild(sbInfoBody);
-  sigDefs.forEach(sd=>{
-    let sv=null;
-    if(sd.scoreKey){sv=((DATA.scores||{})[sd.scoreKey]||{}).value;}
-    else if(sd.valSec){
-      const ycm=((DATA[sd.valSec]||{})[sd.valKey]||{});
-      const mv=ycm.value;
-      const postInv=(DATA.scores&&DATA.scores.cycle_score&&DATA.scores.cycle_score.post_inversion===true);
-      if(mv!=null){
-        if(mv<0)sv=90;
-        else if(mv<1.0&&postInv)sv=70;
-        else if(mv<0.5)sv=65;
-        else if(mv<1.5)sv=35;
-        else sv=10;
-      }
-    }
-    const col=sv==null?"var(--faint)":sv<40?"var(--low)":sv<65?"var(--moderate)":"var(--high)";
-    const dot=el(`<div class="sig-dot-wrap" role="button" tabindex="0" aria-label="Go to ${sd.label} tab"></div>`);
-    dot.innerHTML=`<div class="sig-dot" style="background:${col}"></div><div class="sig-dot-label">${esc(sd.label)}</div>`;
-    dot.addEventListener("click",()=>{activeTab=sd.tabId;renderAll();window.scrollTo(0,0);});
-    dot.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){activeTab=sd.tabId;renderAll();window.scrollTo(0,0);}});
-    sb.appendChild(dot);
-  });
-  c.appendChild(sb);
 
   // ── Active Alerts ──
   const alertsObj=deriveAlerts(DATA);
@@ -1103,7 +1061,7 @@ function panelOverview(){
     {key:"breadth_score",label:"Breadth",   wt:"15%", rationale:"% above 200DMA(60%) + McClellan Oscillator(40%). Concurrent/lagging signal — confirms deterioration, does not predict it."},
     {key:"labor_score",  label:"Labor",     wt:"10%", rationale:"Sahm Rule(50%) + Unemployment trend(30%) + CC delinquency(20%). Sahm threshold (0.5) fires at recession onset. Last to turn; useful for confirmation."},
   ];
-  const compAccordion=el(`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Five-Bucket Composite Calculation</div></div>`);
+  const compAccordion=el(`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">How Each Risk Category Is Scored</div></div>`);
   const sc2=DATA.scores||{};
   bucketDefs.forEach(bd=>{
     const sv=(sc2[bd.key]||{}).value;
@@ -1112,7 +1070,6 @@ function panelOverview(){
     row.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" class="bucket-row-hdr">
       <span style="font-size:13px;font-weight:600">${esc(bd.label)}</span>
       <span style="display:flex;gap:10px;align-items:center">
-        <span style="font-size:10px;color:var(--faint)">${esc(bd.wt)}</span>
         <span style="font-family:var(--mono);font-size:14px;color:${col}">${sv!=null?Math.round(sv):"—"}</span>
         <span style="font-size:12px;color:var(--muted)">▾</span>
       </span>
