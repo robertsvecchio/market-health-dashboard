@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-08-22T14:19:33.779178+00:00",
-    "generated_display": "Aug 22 2026, 6:19 AM PT",
+    "generated_utc": "2026-08-23T14:21:09.033151+00:00",
+    "generated_display": "Aug 23 2026, 6:21 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": 23.95,
+      "value": 33.62,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": 109.39,
-      "ema39": 85.438,
+      "ema19": 131.117,
+      "ema39": 97.499,
       "negative": false
     },
     "hindenburg_omen_today": {
@@ -818,17 +818,17 @@
       {
         "date": "2026-08-29",
         "label": "PCE Release",
-        "days_away": 7
+        "days_away": 6
       },
       {
         "date": "2026-09-04",
         "label": "Nonfarm Payrolls (NFP)",
-        "days_away": 13
+        "days_away": 12
       },
       {
         "date": "2026-09-16",
         "label": "FOMC Meeting + Decision",
-        "days_away": 25
+        "days_away": 24
       }
     ]
   },
@@ -850,7 +850,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 47.7,
+      "value": 47.5,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -885,7 +885,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 35.2,
+      "value": 33.9,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -960,20 +960,11 @@
       "Credit spreads are the key tell right now \u2014 widening here would confirm rising risk.",
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
       "Breadth is broad \u2014 the tape supports staying invested.",
-      "Next catalyst: PCE Release on 2026-08-29 (7d)."
+      "Next catalyst: PCE Release on 2026-08-29 (6d)."
     ],
     "summary": "Moderate Risk (48/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
-    {
-      "date": "2026-05-18",
-      "pct_above_200": 52.4,
-      "new_high_pct": 4.2,
-      "new_low_pct": 1.6,
-      "hindenburg_raw": false,
-      "titanic_raw": false,
-      "backfilled": true
-    },
     {
       "date": "2026-05-19",
       "pct_above_200": 50.6,
@@ -3184,6 +3175,37 @@
       "cycle_score": 38.5,
       "valuation_score": 92.9,
       "breadth_score": 35.2,
+      "labor_score": 12.2,
+      "lei_streak": 0,
+      "nyfed_prob": 13.5
+    },
+    {
+      "date": "2026-08-23",
+      "composite": 47.5,
+      "structural": 92.9,
+      "cycle": 38.5,
+      "cape": 41.96,
+      "buffett_z": 2.45,
+      "yield_curve": 0.86,
+      "hy_oas": 2.75,
+      "vix": 15.13,
+      "pct_above_200": 69.3,
+      "goldman": 55.2,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 3.59,
+      "new_low_pct": 1.4,
+      "fear_greed": 55.2,
+      "umich": 49.5,
+      "sloos": 0.0,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": 1.0,
+      "hy_mom_score": 50.3,
+      "regime_count": 1,
+      "credit_score": 58.5,
+      "cycle_score": 38.5,
+      "valuation_score": 92.9,
+      "breadth_score": 33.9,
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 13.5
