@@ -1,24 +1,24 @@
 {
-  "last_run_utc": "2026-09-03T17:31:51.991850+00:00",
+  "last_run_utc": "2026-09-04T17:22:36.815595+00:00",
   "mcclellan": {
-    "ema19": 20.015214607502244,
-    "ema39": 36.896147827062364
+    "ema19": -6.138003460034412,
+    "ema39": 22.97549213231603
   },
   "alerts": {
     "last_snapshot": {
-      "composite": 48.5,
+      "composite": 48.8,
       "label": "Moderate Risk",
-      "goldman": 55.2,
-      "yield_curve": 0.87,
-      "vix": 14.56,
-      "pct_above_200": 65.9,
+      "goldman": 55.4,
+      "yield_curve": 0.88,
+      "vix": 14.08,
+      "pct_above_200": 64.1,
       "regime_count": 1,
-      "credit_score": 57.5,
+      "credit_score": 57.1,
       "labor_score": 12.2,
-      "hy_oas": 2.66,
-      "sahm_rule": -0.03
+      "hy_oas": 2.65,
+      "sahm_rule": -0.07
     },
-    "last_sent_utc": "2026-09-03T17:32:21.783773+00:00",
+    "last_sent_utc": "2026-09-04T17:23:22.479114+00:00",
     "last_send_ok": true
   },
   "history": [
@@ -2823,6 +2823,37 @@
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 13.3
+    },
+    {
+      "date": "2026-09-04",
+      "composite": 48.8,
+      "structural": 93.8,
+      "cycle": 38.6,
+      "cape": 42.38,
+      "buffett_z": 2.45,
+      "yield_curve": 0.88,
+      "hy_oas": 2.65,
+      "vix": 14.08,
+      "pct_above_200": 64.1,
+      "goldman": 55.4,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 1.6,
+      "new_low_pct": 1.4,
+      "fear_greed": 42.0,
+      "umich": 55.2,
+      "sloos": 0.0,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": -11.0,
+      "hy_mom_score": 46.3,
+      "regime_count": 1,
+      "credit_score": 57.1,
+      "cycle_score": 38.6,
+      "valuation_score": 93.8,
+      "breadth_score": 45.4,
+      "labor_score": 12.2,
+      "lei_streak": 0,
+      "nyfed_prob": 13.2
     }
   ]
 }
