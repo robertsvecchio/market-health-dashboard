@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-09-05T16:33:20.211388+00:00",
-    "generated_display": "Sep 05 2026, 8:33 AM PT",
+    "generated_utc": "2026-09-06T16:42:46.915206+00:00",
+    "generated_display": "Sep 06 2026, 8:42 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -569,12 +569,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -41.88,
+      "value": -52.59,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": -34.582,
-      "ema39": 7.298,
+      "ema19": -60.182,
+      "ema39": -7.596,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -819,7 +819,7 @@
       {
         "date": "2026-09-16",
         "label": "FOMC Meeting + Decision",
-        "days_away": 11
+        "days_away": 10
       }
     ]
   },
@@ -841,7 +841,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 49.1,
+      "value": 49.3,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -876,7 +876,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 47.5,
+      "value": 48.9,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -954,15 +954,6 @@
     "summary": "Moderate Risk (49/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
-    {
-      "date": "2026-06-08",
-      "pct_above_200": 55.1,
-      "new_high_pct": 1.8,
-      "new_low_pct": 1.8,
-      "hindenburg_raw": false,
-      "titanic_raw": false,
-      "backfilled": true
-    },
     {
       "date": "2026-06-09",
       "pct_above_200": 57.5,
@@ -3481,6 +3472,37 @@
       "cycle_score": 38.4,
       "valuation_score": 92.7,
       "breadth_score": 47.5,
+      "labor_score": 12.2,
+      "lei_streak": 0,
+      "nyfed_prob": 13.3
+    },
+    {
+      "date": "2026-09-06",
+      "composite": 49.3,
+      "structural": 92.7,
+      "cycle": 38.4,
+      "cape": 41.41,
+      "buffett_z": 2.45,
+      "yield_curve": 0.87,
+      "hy_oas": 2.65,
+      "vix": 14.53,
+      "pct_above_200": 63.5,
+      "goldman": 54.9,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 1.2,
+      "new_low_pct": 1.2,
+      "fear_greed": 41.9,
+      "umich": 55.2,
+      "sloos": 0.0,
+      "margin_debt_yoy": 30.48,
+      "hy_momentum_bps": -11.0,
+      "hy_mom_score": 46.3,
+      "regime_count": 1,
+      "credit_score": 57.1,
+      "cycle_score": 38.4,
+      "valuation_score": 92.7,
+      "breadth_score": 48.9,
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 13.3
