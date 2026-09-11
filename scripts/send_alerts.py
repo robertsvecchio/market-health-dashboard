@@ -305,41 +305,55 @@ def build_email(data, prev_snap):
         </div>
         {f'<div style="font-size:12px;color:#8B949E;margin-bottom:8px;line-height:1.45">{regime_context}</div>' if regime_context else ""}
         <!-- Regime condition pills -->
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;margin-bottom:4px">
+        <div style="margin-top:10px;margin-bottom:4px">
           {_regime_pills(_g(data, "regime", "conditions") or {})}
-        </div>
-        <!-- NY Fed + Goldman row -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
-          <div style="background:#161B22;border:1px solid #232A33;border-radius:10px;padding:10px 12px">
-            <div style="font:600 10px sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">NY Fed Recession Prob.</div>
-            <div style="font:700 24px monospace;color:{_nyfed_col(_g(data,"macro","recession_prob","value"))}">{_fmt(_g(data,"macro","recession_prob","value"))}%</div>
-            <div style="font-size:11px;color:#8B949E;margin-top:2px">{'⚠ Above 30% threshold' if (_g(data,'macro','recession_prob','value') or 0) >= 30 else 'Below 30% threshold'}</div>
-          </div>
-          <div style="background:#161B22;border:1px solid #232A33;border-radius:10px;padding:10px 12px">
-            <div style="font:600 10px sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">Goldman Bear Indicator</div>
-            <div style="font:700 24px monospace;color:{_score_col(_g(data,'scores','goldman_composite','value'),70,50,30)}">{_fmt(_g(data,"scores","goldman_composite","value"))}</div>
-            <div style="font-size:11px;color:#8B949E;margin-top:2px">{'&gt;70 high-risk' if (_g(data,'scores','goldman_composite','value') or 0) > 70 else 'Elevated' if (_g(data,'scores','goldman_composite','value') or 0) > 50 else 'Favorable'}</div>
-          </div>
-        </div>
-        <!-- Five bucket scores -->
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px">
-          {_bucket_tile("Credit",_g(data,"scores","credit_score","value"),_g(data,"scores","credit_score","label"),"30%")}
-          {_bucket_tile("Cycle",_g(data,"scores","cycle_score","value"),_g(data,"scores","cycle_score","label"),"25%")}
-          {_bucket_tile("Valuation",_g(data,"scores","valuation_score","value"),_g(data,"scores","valuation_score","label"),"20%")}
-          {_bucket_tile("Breadth",_g(data,"scores","breadth_score","value"),_g(data,"scores","breadth_score","label"),"15%")}
-          {_bucket_tile("Labor",_g(data,"scores","labor_score","value"),_g(data,"scores","labor_score","label"),"10%")}
         </div>
     ''')
 
+    # ---- What changed in the last 24 hours (moved up, right after the pills) ----
     if crossings:
         rows = "".join(
             f'<div style="padding:9px 0;border-top:1px solid #232A33;font-size:14px">'
             f'{chip(c["pri"])} &nbsp;{c["txt"]}</div>' for c in crossings)
         parts.append(f'''
-          <div style="margin-top:18px">
-            <div style="font:600 11px sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">Changed since last run</div>
+          <div style="margin-top:14px">
+            <div style="font:600 11px sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">What changed in the last 24 hours</div>
             {rows}
           </div>''')
+    else:
+        parts.append('''
+          <div style="margin-top:14px;padding:8px 12px;background:#161B22;border:1px solid #232A33;border-radius:8px;font-size:12px;color:#6E7681">
+            No threshold crossings since yesterday — conditions stable.
+          </div>''')
+
+    parts.append(f'''
+        <!-- NY Fed + Goldman — table layout -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;border-collapse:separate;border-spacing:8px 0">
+          <tr>
+            <td width="50%" style="background:#161B22;border:1px solid #232A33;border-radius:10px;padding:10px 12px;vertical-align:top">
+              <div style="font:600 10px sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">NY Fed Recession Prob.</div>
+              <div style="font:700 24px monospace;color:{_nyfed_col(_g(data,'macro','recession_prob','value'))}">{_fmt(_g(data,'macro','recession_prob','value'))}%</div>
+              <div style="font-size:11px;color:#8B949E;margin-top:2px">{'⚠ Above 30% threshold' if (_g(data,'macro','recession_prob','value') or 0) >= 30 else 'Below 30% threshold'}</div>
+            </td>
+            <td width="8" style="font-size:0;line-height:0">&nbsp;</td>
+            <td width="50%" style="background:#161B22;border:1px solid #232A33;border-radius:10px;padding:10px 12px;vertical-align:top">
+              <div style="font:600 10px sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">Goldman Bear Indicator</div>
+              <div style="font:700 24px monospace;color:{_score_col(_g(data,'scores','goldman_composite','value'),70,50,30)}">{_fmt(_g(data,'scores','goldman_composite','value'))}</div>
+              <div style="font-size:11px;color:#8B949E;margin-top:2px">{'&gt;70 high-risk' if (_g(data,'scores','goldman_composite','value') or 0) > 70 else 'Elevated' if (_g(data,'scores','goldman_composite','value') or 0) > 50 else 'Favorable'}</div>
+            </td>
+          </tr>
+        </table>
+        <!-- Five bucket scores — table layout for email client compatibility -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;border-collapse:separate;border-spacing:5px 0">
+          <tr>
+            {_bucket_td("Credit",_g(data,"scores","credit_score","value"),_g(data,"scores","credit_score","label"))}
+            {_bucket_td("Cycle",_g(data,"scores","cycle_score","value"),_g(data,"scores","cycle_score","label"))}
+            {_bucket_td("Valuation",_g(data,"scores","valuation_score","value"),_g(data,"scores","valuation_score","label"))}
+            {_bucket_td("Breadth",_g(data,"scores","breadth_score","value"),_g(data,"scores","breadth_score","label"))}
+            {_bucket_td("Labor",_g(data,"scores","labor_score","value"),_g(data,"scores","labor_score","label"))}
+          </tr>
+        </table>
+    ''')
 
     summary = _g(data, "interpretation", "summary", default="")
     watch = _g(data, "interpretation", "watch", default=[]) or []
@@ -435,17 +449,17 @@ def _nyfed_col(v):
     return "#3FB950"
 
 
-def _bucket_tile(label, score, lbl, weight):
+def _bucket_td(label, score, lbl):
     col = _score_col(score, 65, 50, 25)
     short_lbl = (lbl or "").replace(" Risk", "") if lbl else "—"
     return (
-        f'<div style="background:#161B22;border:1px solid #232A33;border-radius:8px;'
-        f'padding:8px 6px;text-align:center">'
-        f'<div style="font:600 9px sans-serif;letter-spacing:.08em;text-transform:uppercase;'
-        f'color:#8B949E;margin-bottom:3px">{label}</div>'
+        f'<td style="background:#161B22;border:1px solid #232A33;border-radius:8px;'
+        f'padding:8px 4px;text-align:center;vertical-align:top">'
+        f'<div style="font:600 9px sans-serif;letter-spacing:.06em;text-transform:uppercase;'
+        f'color:#8B949E;margin-bottom:3px;white-space:nowrap">{label}</div>'
         f'<div style="font:700 18px monospace;color:{col}">{_fmt(score) if score is not None else "—"}</div>'
         f'<div style="font-size:9px;color:#8B949E;margin-top:1px">{short_lbl}</div>'
-        f'</div>'
+        f'</td>'
     )
 
 
@@ -464,10 +478,11 @@ def _regime_pills(conditions):
         bdr = "rgba(248,81,73,.3)" if active else "rgba(63,185,80,.2)"
         state = "Active" if active else "Clear"
         pills.append(
-            f'<span style="display:inline-flex;align-items:center;gap:4px;'
-            f'padding:3px 8px;border-radius:6px;border:1px solid {bdr};background:{bg};'
-            f'font:600 11px sans-serif;color:{col}">'
-            f'<span style="width:6px;height:6px;border-radius:50%;background:{col};display:inline-block"></span>'
+            f'<span style="display:inline-block;padding:3px 8px;margin:0 4px 4px 0;'
+            f'border-radius:6px;border:1px solid {bdr};background:{bg};'
+            f'font:600 11px sans-serif;color:{col};white-space:nowrap">'
+            f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;'
+            f'background:{col};margin-right:4px"></span>'
             f'{label} {state}</span>'
         )
     return "".join(pills)
