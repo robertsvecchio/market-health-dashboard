@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-09-11T00:12:30.584456+00:00",
-    "generated_display": "Sep 10 2026, 4:12 PM PT",
+    "generated_utc": "2026-09-11T00:38:22.477276+00:00",
+    "generated_display": "Sep 10 2026, 4:38 PM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -97.78,
+      "value": -100.0,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": -187.126,
-      "ema39": -89.344,
+      "ema19": -201.348,
+      "ema39": -101.343,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -655,7 +655,7 @@
       "source": "CNN (production.dataviz.cnn.io)",
       "notes": "CNN's official Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed.",
       "label": "Fear",
-      "timestamp": "2026-09-10T23:55:35+00:00",
+      "timestamp": "2026-09-10T23:59:55+00:00",
       "spark": [
         37.0,
         36.0,
@@ -878,7 +878,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 60.5,
+      "value": 60.8,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -953,7 +953,7 @@
       "With valuations this stretched, favor quality and proven earnings over speculative names.",
       "Next catalyst: FOMC Meeting + Decision on 2026-09-16 (5d)."
     ],
-    "summary": "Elevated Risk (51/100). Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
+    "summary": "1 of 4 regime conditions active \u2014 No Signal. Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
     {
@@ -3601,7 +3601,7 @@
       "credit_score": 57.6,
       "cycle_score": 38.4,
       "valuation_score": 92.1,
-      "breadth_score": 60.5,
+      "breadth_score": 60.8,
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 12.2

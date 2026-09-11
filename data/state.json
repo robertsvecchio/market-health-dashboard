@@ -1,8 +1,8 @@
 {
-  "last_run_utc": "2026-09-11T00:12:30.584456+00:00",
+  "last_run_utc": "2026-09-11T00:38:22.477276+00:00",
   "mcclellan": {
-    "ema19": -187.1264347877108,
-    "ema39": -89.34354745173533
+    "ema19": -201.34792304546664,
+    "ema39": -101.34343594741205
   },
   "alerts": {
     "last_snapshot": {
@@ -17,7 +17,7 @@
       "hy_oas": 2.71,
       "sahm_rule": -0.07
     },
-    "last_sent_utc": "2026-09-11T00:13:00.606764+00:00",
+    "last_sent_utc": "2026-09-11T00:38:43.496401+00:00",
     "last_send_ok": true
   },
   "history": [
@@ -3066,7 +3066,7 @@
       "credit_score": 57.6,
       "cycle_score": 38.4,
       "valuation_score": 92.1,
-      "breadth_score": 60.5,
+      "breadth_score": 60.8,
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 12.2
