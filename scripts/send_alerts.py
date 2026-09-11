@@ -87,9 +87,8 @@ def _g(d, *path, default=None):
 def snapshot(data):
     """Extract the small set of values we track for threshold crossings."""
     return {
-        "composite": _g(data, "scores", "composite", "value"),
-        "label": _g(data, "scores", "composite", "label"),
         "goldman": _g(data, "scores", "goldman_composite", "value"),
+        "nyfed_prob": _g(data, "macro", "recession_prob", "value"),
         "yield_curve": _g(data, "macro", "yield_curve_10y3m", "value"),
         "vix": _g(data, "sentiment", "vix", "value"),
         "pct_above_200": _g(data, "breadth", "pct_above_200dma", "value"),
@@ -114,16 +113,6 @@ def detect_crossings(prev, cur):
     if not prev:
         return out
 
-    # Composite risk band change
-    if prev.get("label") and cur.get("label") and prev["label"] != cur["label"]:
-        worse = ["Low Risk", "Moderate Risk", "Elevated Risk", "High Risk"]
-        try:
-            up = worse.index(cur["label"]) > worse.index(prev["label"])
-        except ValueError:
-            up = True
-        out.append({"txt": f"Composite risk moved {prev['label']} → {cur['label']}",
-                    "pri": "HIGH" if up else "MED"})
-
     # Goldman composite
     if crossed(prev.get("goldman"), cur.get("goldman"), 70, True):
         out.append({"txt": f"Goldman bear-risk composite crossed above 70 ({cur['goldman']:.0f})", "pri": "HIGH"})
@@ -137,6 +126,14 @@ def detect_crossings(prev, cur):
         out.append({"txt": f"Yield curve INVERTED (10y–3m now {cur['yield_curve']:.2f})", "pri": "HIGH"})
     elif crossed(prev.get("yield_curve"), cur.get("yield_curve"), 0, True):
         out.append({"txt": f"Yield curve normalized (10y–3m now {cur['yield_curve']:.2f})", "pri": "MED"})
+
+    # NY Fed recession probability crossing 30%
+    if crossed(prev.get("nyfed_prob"), cur.get("nyfed_prob"), 30, True):
+        out.append({"txt": f"NY Fed recession probability crossed above 30% (now {cur['nyfed_prob']:.1f}%) — historical threshold", "pri": "HIGH"})
+    elif crossed(prev.get("nyfed_prob"), cur.get("nyfed_prob"), 20, True):
+        out.append({"txt": f"NY Fed recession probability rose above 20% (now {cur['nyfed_prob']:.1f}%)", "pri": "MED"})
+    elif crossed(prev.get("nyfed_prob"), cur.get("nyfed_prob"), 30, False):
+        out.append({"txt": f"NY Fed recession probability fell back below 30% (now {cur['nyfed_prob']:.1f}%)", "pri": "MED"})
 
     # VIX
     if crossed(prev.get("vix"), cur.get("vix"), 40, True):
@@ -180,6 +177,18 @@ def active_alerts(data):
             out.append(("HIGH", "Yield curve inverted"))
         elif yc < 0.5:
             out.append(("MED", f"Yield curve flat ({yc:.2f})"))
+
+    # Yield curve post-inversion re-steepening
+    post_inv = _g(data, "scores", "cycle_score", "post_inversion")
+    if post_inv and yc is not None and 0 <= yc < 1.0:
+        out.append(("MED", f"Yield curve re-steepening after inversion ({yc:.2f}%) — historically the danger zone"))
+
+    # NY Fed recession probability
+    nyfed = _g(data, "macro", "recession_prob", "value")
+    if nyfed is not None and nyfed >= 30:
+        out.append(("HIGH", f"NY Fed recession probability above 30% ({nyfed:.1f}%)"))
+    elif nyfed is not None and nyfed >= 20:
+        out.append(("MED", f"NY Fed recession probability elevated ({nyfed:.1f}%)"))
 
     g = _g(data, "scores", "goldman_composite")
     if g and g.get("value") is not None:
@@ -259,9 +268,6 @@ def build_email(data, prev_snap):
     sectors = top_sectors(data)
     cats = upcoming(data, 7)
 
-    score = cur.get("composite")
-    label = cur.get("label") or "Unknown"
-    color = BAND_COLOR.get(label, "#8B949E")
     disp = _g(data, "meta", "generated_display", default="")
 
     # Regime line for email header
@@ -298,12 +304,30 @@ def build_email(data, prev_snap):
           </div>
         </div>
         {f'<div style="font-size:12px;color:#8B949E;margin-bottom:8px;line-height:1.45">{regime_context}</div>' if regime_context else ""}
-        <div style="font-size:13px;color:#8B949E">
-          Credit {_fmt(_g(data,"scores","credit_score","value"))} ·
-          Cycle {_fmt(_g(data,"scores","cycle_score","value"))} ·
-          Valuation {_fmt(_g(data,"scores","valuation_score","value"))} ·
-          Breadth {_fmt(_g(data,"scores","breadth_score","value"))} ·
-          Labor {_fmt(_g(data,"scores","labor_score","value"))}
+        <!-- Regime condition pills -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;margin-bottom:4px">
+          {_regime_pills(_g(data, "regime", "conditions") or {})}
+        </div>
+        <!-- NY Fed + Goldman row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+          <div style="background:#161B22;border:1px solid #232A33;border-radius:10px;padding:10px 12px">
+            <div style="font:600 10px sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">NY Fed Recession Prob.</div>
+            <div style="font:700 24px monospace;color:{_nyfed_col(_g(data,"macro","recession_prob","value"))}">{_fmt(_g(data,"macro","recession_prob","value"))}%</div>
+            <div style="font-size:11px;color:#8B949E;margin-top:2px">{'⚠ Above 30% threshold' if (_g(data,'macro','recession_prob','value') or 0) >= 30 else 'Below 30% threshold'}</div>
+          </div>
+          <div style="background:#161B22;border:1px solid #232A33;border-radius:10px;padding:10px 12px">
+            <div style="font:600 10px sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B949E;margin-bottom:4px">Goldman Bear Indicator</div>
+            <div style="font:700 24px monospace;color:{_score_col(_g(data,'scores','goldman_composite','value'),70,50,30)}">{_fmt(_g(data,"scores","goldman_composite","value"))}</div>
+            <div style="font-size:11px;color:#8B949E;margin-top:2px">{'&gt;70 high-risk' if (_g(data,'scores','goldman_composite','value') or 0) > 70 else 'Elevated' if (_g(data,'scores','goldman_composite','value') or 0) > 50 else 'Favorable'}</div>
+          </div>
+        </div>
+        <!-- Five bucket scores -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px">
+          {_bucket_tile("Credit",_g(data,"scores","credit_score","value"),_g(data,"scores","credit_score","label"),"30%")}
+          {_bucket_tile("Cycle",_g(data,"scores","cycle_score","value"),_g(data,"scores","cycle_score","label"),"25%")}
+          {_bucket_tile("Valuation",_g(data,"scores","valuation_score","value"),_g(data,"scores","valuation_score","label"),"20%")}
+          {_bucket_tile("Breadth",_g(data,"scores","breadth_score","value"),_g(data,"scores","breadth_score","label"),"15%")}
+          {_bucket_tile("Labor",_g(data,"scores","labor_score","value"),_g(data,"scores","labor_score","label"),"10%")}
         </div>
     ''')
 
@@ -384,6 +408,69 @@ def build_email(data, prev_snap):
 
 def _fmt(v):
     return f"{v:.0f}" if isinstance(v, (int, float)) else "—"
+
+
+def _score_col(v, hi, mid, lo):
+    """Color a 0-100 score value."""
+    if v is None:
+        return "#8B949E"
+    if v > hi:
+        return "#F85149"
+    if v > mid:
+        return "#E8833A"
+    if v > lo:
+        return "#D8A657"
+    return "#3FB950"
+
+
+def _nyfed_col(v):
+    if v is None:
+        return "#8B949E"
+    if v >= 30:
+        return "#F85149"
+    if v >= 20:
+        return "#E8833A"
+    if v >= 10:
+        return "#D8A657"
+    return "#3FB950"
+
+
+def _bucket_tile(label, score, lbl, weight):
+    col = _score_col(score, 65, 50, 25)
+    short_lbl = (lbl or "").replace(" Risk", "") if lbl else "—"
+    return (
+        f'<div style="background:#161B22;border:1px solid #232A33;border-radius:8px;'
+        f'padding:8px 6px;text-align:center">'
+        f'<div style="font:600 9px sans-serif;letter-spacing:.08em;text-transform:uppercase;'
+        f'color:#8B949E;margin-bottom:3px">{label}</div>'
+        f'<div style="font:700 18px monospace;color:{col}">{_fmt(score) if score is not None else "—"}</div>'
+        f'<div style="font-size:9px;color:#8B949E;margin-top:1px">{short_lbl}</div>'
+        f'</div>'
+    )
+
+
+def _regime_pills(conditions):
+    defs = [
+        ("yield_curve",     "Yield Curve"),
+        ("credit_stress",   "SLOOS"),
+        ("cycle_breakdown", "LEI"),
+        ("leverage_stress", "Margin Debt"),
+    ]
+    pills = []
+    for key, label in defs:
+        active = conditions.get(key) is True
+        col = "#F85149" if active else "#3FB950"
+        bg = "rgba(248,81,73,.12)" if active else "rgba(63,185,80,.08)"
+        bdr = "rgba(248,81,73,.3)" if active else "rgba(63,185,80,.2)"
+        state = "Active" if active else "Clear"
+        pills.append(
+            f'<span style="display:inline-flex;align-items:center;gap:4px;'
+            f'padding:3px 8px;border-radius:6px;border:1px solid {bdr};background:{bg};'
+            f'font:600 11px sans-serif;color:{col}">'
+            f'<span style="width:6px;height:6px;border-radius:50%;background:{col};display:inline-block"></span>'
+            f'{label} {state}</span>'
+        )
+    return "".join(pills)
 
 
 # ---------------------------------------------------------------------------
