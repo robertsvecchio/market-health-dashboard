@@ -2118,11 +2118,10 @@ def interpret(result, fred_raw):
                                           if ad_div else "Breadth confirms the index — no divergence.")
 
     # Summary
-    score = mval("scores", "composite")
-    label = mval("scores", "composite", "label") or "Unknown"
     s_parts = []
-    if score is not None:
-        s_parts.append(f"{label} ({score:.0f}/100).")
+    rc_val = (result.get("regime") or {}).get("conditions_active", 0)
+    rc_lbl = (result.get("regime") or {}).get("label", "No Signal")
+    s_parts.append(f"{rc_val} of 4 regime conditions active — {rc_lbl}.")
 
     val_flags = []
     if cape_pct is not None and cape_pct >= 85:
