@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-09-19T17:00:26.952006+00:00",
-    "generated_display": "Sep 19 2026, 9:00 AM PT",
+    "generated_utc": "2026-09-20T17:18:08.287961+00:00",
+    "generated_display": "Sep 20 2026, 9:18 AM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -27.88,
+      "value": -41.64,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": -82.251,
-      "ema39": -54.367,
+      "ema19": -112.549,
+      "ema39": -70.91,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -619,7 +619,7 @@
       "source": "Alpaca S&P500 internals (cluster)",
       "notes": "CONFIRMED when 2+ raw flags occur within 30 days. Retained as breadth data only \u2014 NOT an active alert (high false positive rate).",
       "derived": true,
-      "count": 11,
+      "count": 12,
       "window_days": 30,
       "dates": [
         "2026-08-31",
@@ -632,7 +632,8 @@
         "2026-09-14",
         "2026-09-15",
         "2026-09-18",
-        "2026-09-19"
+        "2026-09-19",
+        "2026-09-20"
       ]
     }
   },
@@ -844,7 +845,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 50.3,
+      "value": 50.6,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -879,7 +880,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 54.1,
+      "value": 56.0,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -957,25 +958,6 @@
     "summary": "1 of 4 regime conditions active \u2014 No Signal. Valuations are stretched \u2014 CAPE near historic highs, the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is narrowing, a yellow flag."
   },
   "history": [
-    {
-      "date": "2026-06-22",
-      "composite": 68.9,
-      "structural": 78.8,
-      "cycle": 58.9,
-      "cape": 41.71,
-      "buffett_z": 2.46,
-      "yield_curve": 0.63,
-      "hy_oas": 2.66,
-      "vix": 17.18,
-      "pct_above_200": 58.5,
-      "goldman": 56.0,
-      "hindenburg_raw": true,
-      "titanic_raw": false,
-      "new_high_pct": 7.19,
-      "new_low_pct": 6.99,
-      "fear_greed": 35.7,
-      "umich": 49.8
-    },
     {
       "date": "2026-06-23",
       "composite": 68.3,
@@ -3708,6 +3690,37 @@
       "cycle_score": 37.9,
       "valuation_score": 93.3,
       "breadth_score": 54.1,
+      "labor_score": 12.2,
+      "lei_streak": 0,
+      "nyfed_prob": 13.3
+    },
+    {
+      "date": "2026-09-20",
+      "composite": 50.6,
+      "structural": 93.3,
+      "cycle": 37.9,
+      "cape": 40.94,
+      "buffett_z": 3.61,
+      "yield_curve": 0.87,
+      "hy_oas": 2.7,
+      "vix": 14.81,
+      "pct_above_200": 49.3,
+      "goldman": 53.2,
+      "hindenburg_raw": false,
+      "titanic_raw": true,
+      "new_high_pct": 0.4,
+      "new_low_pct": 5.99,
+      "fear_greed": 29.1,
+      "umich": 55.2,
+      "sloos": 0.0,
+      "margin_debt_yoy": 46.58,
+      "hy_momentum_bps": 4.0,
+      "hy_mom_score": 51.3,
+      "regime_count": 1,
+      "credit_score": 58.2,
+      "cycle_score": 37.9,
+      "valuation_score": 93.3,
+      "breadth_score": 56.0,
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 13.3
