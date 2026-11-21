@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-11-20T21:40:52.214415+00:00",
-    "generated_display": "Nov 20 2026, 1:40 PM PT",
+    "generated_utc": "2026-11-21T20:22:03.351006+00:00",
+    "generated_display": "Nov 21 2026, 12:22 PM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -43,15 +43,15 @@
       "decline_note": "LEI declining 0 consecutive month(s) \u2014 threshold is 3"
     },
     "yield_curve_10y3m": {
-      "value": 0.7,
+      "value": 0.6,
       "status": "ok",
       "source": "FRED:T10Y3M",
-      "asof": "2026-11-19",
+      "asof": "2026-11-20",
       "notes": "10yr minus 3mo Treasury spread",
       "trend": {
         "direction": "falling",
-        "change": -0.16,
-        "pct": -18.6,
+        "change": -0.28,
+        "pct": -31.82,
         "periods": 21
       },
       "spark": [
@@ -74,7 +74,7 @@
         0.84,
         1.09,
         0.78,
-        0.7
+        0.6
       ],
       "any_negative_in_spark": true,
       "post_inversion": true,
@@ -430,7 +430,7 @@
       "above_threshold": true
     },
     "recession_prob": {
-      "value": 15.9,
+      "value": 17.6,
       "status": "ok",
       "source": "derived: Estrella-Mishkin (NY Fed model) from T10Y3M",
       "notes": "12-month-ahead recession probability. NY Fed Estrella-Mishkin probit model: P = \u03a6(-0.5333 - 0.6629 \u00d7 10y3m spread). Crossed 30% before every US recession since 1969 (one near-miss, 1998).",
@@ -454,11 +454,11 @@
         13.8,
         10.5,
         14.7,
-        15.9
+        17.6
       ],
       "threshold": 30.0,
       "above_threshold": false,
-      "spread_input": 0.7,
+      "spread_input": 0.6,
       "derived": true
     },
     "hy_momentum": {
@@ -481,10 +481,10 @@
   },
   "structural": {
     "cape": {
-      "value": 37.86,
+      "value": 36.44,
       "status": "ok",
       "source": "multpl.com (Shiller PE)",
-      "asof": "Nov 19, 2026",
+      "asof": "Nov 20, 2026",
       "notes": "Cyclically adjusted P/E (P/E10)"
     },
     "buffett_indicator": {
@@ -497,7 +497,7 @@
       "elevated": true
     },
     "excess_cape_yield": {
-      "value": -0.24,
+      "value": -0.14,
       "status": "ok",
       "source": "Shiller + FRED:DFII10 (computed)",
       "notes": "Excess CAPE Yield = CAPE earnings yield minus real 10yr.",
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -89.63,
+      "value": -101.39,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": -188.144,
-      "ema39": -98.516,
+      "ema19": -220.638,
+      "ema39": -119.244,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -653,7 +653,7 @@
       "source": "CNN (production.dataviz.cnn.io)",
       "notes": "CNN's official Fear & Greed Index. 0=Extreme Fear, 100=Extreme Greed.",
       "label": "Extreme Fear",
-      "timestamp": "2026-11-20T21:20:39+00:00",
+      "timestamp": "2026-11-20T23:59:52+00:00",
       "spark": [
         31.1,
         30.3,
@@ -806,7 +806,7 @@
       "source": "derived: LEI + yield curve",
       "notes": "business-cycle phase heuristic",
       "lei_direction": "rising",
-      "yield_curve": 0.7,
+      "yield_curve": 0.6,
       "favored_sectors": [
         "XLK",
         "XLI",
@@ -819,12 +819,12 @@
   },
   "scores": {
     "goldman_composite": {
-      "value": 52.2,
+      "value": 51.5,
       "status": "ok",
       "source": "Goldman-style composite (self-calc)",
       "notes": "percentile-ranked composite; >70 historically high-risk, <40 favorable",
       "inputs": {
-        "valuation": 84.0,
+        "valuation": 80.5,
         "yield_curve": 55,
         "unemployment": 25,
         "core_inflation": 81.18556701030928,
@@ -835,7 +835,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 54.8,
+      "value": 55.0,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -851,7 +851,7 @@
       "derived": true
     },
     "cycle_score": {
-      "value": 37.3,
+      "value": 37.0,
       "status": "ok",
       "source": "derived",
       "notes": "Cycle bucket (v2): LEI direction(30%) YC risk(30%) Goldman composite(30%) Debt service(10%)",
@@ -862,7 +862,7 @@
       "yc_risk_score": 45
     },
     "valuation_score": {
-      "value": 91.1,
+      "value": 89.6,
       "status": "ok",
       "source": "derived",
       "notes": "Valuation bucket: CAPE(40%) Buffett(35%) ECY(25%). Capped at 70 in composite calculation.",
@@ -870,11 +870,11 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 64.4,
+      "value": 65.9,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
-      "label": "Elevated Risk",
+      "label": "High Risk",
       "derived": true
     },
     "labor_score": {
@@ -886,7 +886,7 @@
       "derived": true
     },
     "structural_score": {
-      "value": 91.1,
+      "value": 89.6,
       "status": "ok",
       "source": "derived",
       "notes": "alias for valuation_score (backward compat)",
@@ -922,9 +922,9 @@
   },
   "interpretation": {
     "readings": {
-      "cape": "At the 84th percentile of all history; well above the long-run average of ~17 \u2014 elevated. Says little about this month, a lot about the next decade.",
+      "cape": "At the 80th percentile of all history; well above the long-run average of ~17 \u2014 elevated. Says little about this month, a lot about the next decade.",
       "buffett_indicator": "Total market value vs GDP is at a record extreme versus its own trend (z = +3.6). Watch the deviation, not the level.",
-      "excess_cape_yield": "-0.24% \u2014 negative \u2014 by this gauge stocks are priced to underperform bonds.",
+      "excess_cape_yield": "-0.14% \u2014 negative \u2014 by this gauge stocks are priced to underperform bonds.",
       "forward_pe": "22.0x next-12-month earnings \u2014 elevated, +6.0 vs the ~16x long-run mean.",
       "yield_curve_10y3m": "Comfortably positive \u2014 no recession signal here; falling lately.",
       "hy_oas": "Normal \u2014 no credit stress; spreads are widening (bond market getting nervous).",
@@ -949,37 +949,6 @@
     "summary": "2 of 4 regime conditions active \u2014 Watch. Valuations are stretched \u2014 the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
-    {
-      "date": "2026-08-23",
-      "composite": 47.5,
-      "structural": 92.9,
-      "cycle": 38.5,
-      "cape": 41.96,
-      "buffett_z": 2.45,
-      "yield_curve": 0.86,
-      "hy_oas": 2.75,
-      "vix": 15.13,
-      "pct_above_200": 69.3,
-      "goldman": 55.2,
-      "hindenburg_raw": false,
-      "titanic_raw": false,
-      "new_high_pct": 3.59,
-      "new_low_pct": 1.4,
-      "fear_greed": 55.2,
-      "umich": 49.5,
-      "sloos": 0.0,
-      "margin_debt_yoy": 30.48,
-      "hy_momentum_bps": 1.0,
-      "hy_mom_score": 50.3,
-      "regime_count": 1,
-      "credit_score": 58.5,
-      "cycle_score": 38.5,
-      "valuation_score": 92.9,
-      "breadth_score": 33.9,
-      "labor_score": 12.2,
-      "lei_streak": 0,
-      "nyfed_prob": 13.5
-    },
     {
       "date": "2026-08-24",
       "composite": 47.1,
@@ -3738,6 +3707,37 @@
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 15.9
+    },
+    {
+      "date": "2026-11-21",
+      "composite": 55.0,
+      "structural": 89.6,
+      "cycle": 37.0,
+      "cape": 36.44,
+      "buffett_z": 3.59,
+      "yield_curve": 0.6,
+      "hy_oas": 3.52,
+      "vix": 35.89,
+      "pct_above_200": 46.0,
+      "goldman": 51.5,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 0.0,
+      "new_low_pct": 6.2,
+      "fear_greed": 9.7,
+      "umich": 48.0,
+      "sloos": 1.7,
+      "margin_debt_yoy": 46.58,
+      "hy_momentum_bps": 82.0,
+      "hy_mom_score": 77.3,
+      "regime_count": 2,
+      "credit_score": 68.6,
+      "cycle_score": 37.0,
+      "valuation_score": 89.6,
+      "breadth_score": 65.9,
+      "labor_score": 12.2,
+      "lei_streak": 0,
+      "nyfed_prob": 17.6
     }
   ]
 }
