@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_utc": "2026-11-21T20:22:03.351006+00:00",
-    "generated_display": "Nov 21 2026, 12:22 PM PT",
+    "generated_utc": "2026-11-22T20:35:06.240038+00:00",
+    "generated_display": "Nov 22 2026, 12:35 PM PT",
     "schema_version": 3,
     "notes": "Each metric carries status/source. status 'proxy' = computed stand-in for a proprietary/unavailable series (see notes)."
   },
@@ -567,12 +567,12 @@
       "below_40": false
     },
     "mcclellan": {
-      "value": -101.39,
+      "value": -110.95,
       "status": "proxy",
       "source": "Alpaca S&P500 internals",
       "notes": "Ratio-adjusted McClellan Oscillator (S&P500 proxy). Seeds/accumulates via state file across daily runs; trust after ~40 sessions.",
-      "ema19": -220.638,
-      "ema39": -119.244,
+      "ema19": -249.882,
+      "ema39": -138.935,
       "negative": true
     },
     "hindenburg_omen_today": {
@@ -835,7 +835,7 @@
       "above_50": true
     },
     "composite": {
-      "value": 55.0,
+      "value": 55.1,
       "status": "ok",
       "source": "derived",
       "notes": "5-bucket weighted composite: credit(30%) cycle(25%) valuation(20%,capped70) breadth(15%) labor(10%)",
@@ -870,7 +870,7 @@
       "derived": true
     },
     "breadth_score": {
-      "value": 65.9,
+      "value": 67.2,
       "status": "ok",
       "source": "derived",
       "notes": "Breadth bucket: % above 200DMA(60%) McClellan percentile(40%)",
@@ -949,37 +949,6 @@
     "summary": "2 of 4 regime conditions active \u2014 Watch. Valuations are stretched \u2014 the Buffett indicator at a record, a thin equity-risk premium. Still, the cycle holds \u2014 leading indicators still rising, the yield curve still positive, credit spreads calm. Breadth is healthy, so no regime break yet."
   },
   "history": [
-    {
-      "date": "2026-08-24",
-      "composite": 47.1,
-      "structural": 92.9,
-      "cycle": 38.5,
-      "cape": 41.96,
-      "buffett_z": 2.45,
-      "yield_curve": 0.86,
-      "hy_oas": 2.7,
-      "vix": 15.89,
-      "pct_above_200": 71.3,
-      "goldman": 55.2,
-      "hindenburg_raw": false,
-      "titanic_raw": false,
-      "new_high_pct": 3.59,
-      "new_low_pct": 1.2,
-      "fear_greed": 55.9,
-      "umich": 49.5,
-      "sloos": 0.0,
-      "margin_debt_yoy": 30.48,
-      "hy_momentum_bps": -2.0,
-      "hy_mom_score": 49.3,
-      "regime_count": 1,
-      "credit_score": 58.1,
-      "cycle_score": 38.5,
-      "valuation_score": 92.9,
-      "breadth_score": 32.1,
-      "labor_score": 12.2,
-      "lei_streak": 0,
-      "nyfed_prob": 13.5
-    },
     {
       "date": "2026-08-25",
       "composite": 47.6,
@@ -3735,6 +3704,37 @@
       "cycle_score": 37.0,
       "valuation_score": 89.6,
       "breadth_score": 65.9,
+      "labor_score": 12.2,
+      "lei_streak": 0,
+      "nyfed_prob": 17.6
+    },
+    {
+      "date": "2026-11-22",
+      "composite": 55.1,
+      "structural": 89.6,
+      "cycle": 37.0,
+      "cape": 36.44,
+      "buffett_z": 3.59,
+      "yield_curve": 0.6,
+      "hy_oas": 3.52,
+      "vix": 35.89,
+      "pct_above_200": 46.0,
+      "goldman": 51.5,
+      "hindenburg_raw": false,
+      "titanic_raw": false,
+      "new_high_pct": 0.0,
+      "new_low_pct": 6.2,
+      "fear_greed": 9.7,
+      "umich": 48.0,
+      "sloos": 1.7,
+      "margin_debt_yoy": 46.58,
+      "hy_momentum_bps": 82.0,
+      "hy_mom_score": 77.3,
+      "regime_count": 2,
+      "credit_score": 68.6,
+      "cycle_score": 37.0,
+      "valuation_score": 89.6,
+      "breadth_score": 67.2,
       "labor_score": 12.2,
       "lei_streak": 0,
       "nyfed_prob": 17.6
